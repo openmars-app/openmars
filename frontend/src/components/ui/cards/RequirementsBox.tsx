@@ -26,11 +26,12 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
     }
   }, [isRevealed]);
 
-  if (!requirements || !requirements.items || requirements.items.length === 0) {
+  if (!requirements || (!requirements.items?.length && !requirements.description)) {
     return null;
   }
 
-  const items = requirements.items;
+  const hasStateRequirement = requirements.items?.some((item) => item.type === "state");
+  const items = hasStateRequirement && requirements.description ? [] : (requirements.items ?? []);
 
   // Group requirements by type/tag
   const groupRequirements = (requirements: any[]) => {
@@ -243,6 +244,11 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
           </svg>
           <div className="relative flex items-center justify-start gap-[3px] flex-wrap">
             {groupedRequirements.map((group, index) => renderRequirementGroup(group, index))}
+            {items.length === 0 && (
+              <span className="text-[10px] leading-tight text-white py-1">
+                <FormattedDescription text={requirements.description!} />
+              </span>
+            )}
           </div>
         </div>
       </div>

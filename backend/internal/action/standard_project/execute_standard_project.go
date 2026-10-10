@@ -58,6 +58,10 @@ func (a *ExecuteStandardProjectAction) Execute(
 		return err
 	}
 
+	if !g.Settings().AllowsContent(definition.GameModes, definition.RequiresSystems, definition.RequiresFeatures) {
+		return fmt.Errorf("standard project is not available in this game mode")
+	}
+
 	if err := baseaction.ValidateGamePhase(g, shared.GamePhaseAction, log); err != nil {
 		return err
 	}
@@ -80,8 +84,8 @@ func (a *ExecuteStandardProjectAction) Execute(
 	}
 
 	effectiveCost := definition.CreditCost()
-	if a.CardRegistry() != nil && effectiveCost > 0 {
-		calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistry())
+	if a.CardRegistryForGame(g) != nil && effectiveCost > 0 {
+		calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistryForGame(g))
 		discounts := calculator.CalculateStandardProjectDiscounts(player, shared.StandardProject(projectID))
 		creditDiscount := discounts[shared.ResourceCredit]
 		effectiveCost = definition.CreditCost() - creditDiscount
@@ -96,7 +100,7 @@ func (a *ExecuteStandardProjectAction) Execute(
 		}
 	}
 
-	quote, err := gamecards.QuotePayment(player, g, a.CardRegistry(), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: effectiveCost}, Action: "standard-project", StandardProject: shared.StandardProject(projectID)})
+	quote, err := gamecards.QuotePayment(player, g, a.CardRegistryForGame(g), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: effectiveCost}, Action: "standard-project", StandardProject: shared.StandardProject(projectID)})
 	if err != nil {
 		return err
 	}
@@ -122,8 +126,8 @@ func (a *ExecuteStandardProjectAction) Execute(
 	// Apply behavior outputs via BehaviorApplier
 	applier := gamecards.NewBehaviorApplier(player, g, definition.Name, slog.Default()).
 		WithSourceType(shared.SourceTypeStandardProject)
-	if a.CardRegistry() != nil {
-		applier = applier.WithCardRegistry(a.CardRegistry())
+	if a.CardRegistryForGame(g) != nil {
+		applier = applier.WithCardRegistry(a.CardRegistryForGame(g))
 	}
 
 	var allCalculatedOutputs []shared.CalculatedOutput

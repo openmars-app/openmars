@@ -275,7 +275,8 @@ func buildGameMeta(gameState json.RawMessage) string {
 		} `json:"globalParameters"`
 		Settings struct {
 			MaxPlayers int      `json:"maxPlayers"`
-			CardPacks  []string `json:"cardPacks"`
+			GameModeID string   `json:"gameModeId"`
+			Features   []string `json:"features"`
 		} `json:"settings"`
 		CurrentPlayer *struct {
 			ID              string `json:"id"`
@@ -352,8 +353,8 @@ func buildGameMeta(gameState json.RawMessage) string {
 	b.WriteString("| Oceans | " + strconv.Itoa(game.GlobalParameters.Oceans) + "/" + strconv.Itoa(game.GlobalParameters.MaxOceans) + " |\n")
 	b.WriteString("| Venus | " + strconv.Itoa(game.GlobalParameters.Venus) + "% |\n")
 
-	if game.Settings.CardPacks != nil {
-		b.WriteString("| Card Packs | " + strings.Join(game.Settings.CardPacks, ", ") + " |\n")
+	if game.Settings.GameModeID != "" {
+		b.WriteString("| Game mode | " + game.Settings.GameModeID + " (" + strings.Join(game.Settings.Features, ", ") + ")" + " |\n")
 	}
 
 	var claimedMilestones []string

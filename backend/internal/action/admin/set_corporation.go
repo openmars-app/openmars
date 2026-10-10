@@ -60,6 +60,17 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
+	corpCard, err := gamecards.ForGame(a.cardRegistry, g).GetByID(corporationID)
+	if err != nil {
+		log.Error("Failed to fetch corporation card", slog.Any("error", err))
+		return fmt.Errorf("corporation card not found: %s", corporationID)
+	}
+
+	if corpCard.Type != gamecards.CardTypeCorporation {
+		log.Error("Card is not a corporation", slog.String("card_type", string(corpCard.Type)))
+		return fmt.Errorf("card %s is not a corporation card", corporationID)
+	}
+
 	oldCorpID := player.CorporationID()
 	if oldCorpID != "" {
 		log.Debug("Clearing old corporation effects", slog.String("old_corporation_id", oldCorpID))
@@ -72,17 +83,6 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 		player.VPGranters().RemoveByCardID(oldCorpID)
 
 		log.Debug("Old corporation effects cleared")
-	}
-
-	corpCard, err := a.cardRegistry.GetByID(corporationID)
-	if err != nil {
-		log.Error("Failed to fetch corporation card", slog.Any("error", err))
-		return fmt.Errorf("corporation card not found: %s", corporationID)
-	}
-
-	if corpCard.Type != gamecards.CardTypeCorporation {
-		log.Error("Card is not a corporation", slog.String("card_type", string(corpCard.Type)))
-		return fmt.Errorf("card %s is not a corporation card", corporationID)
 	}
 
 	player.SetCorporationID(corporationID)
@@ -103,7 +103,7 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 			slog.String("card_name", effect.CardName),
 			slog.Int("behavior_index", effect.BehaviorIndex))
 
-		baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log, a.cardRegistry)
+		baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log, gamecards.ForGame(a.cardRegistry, g))
 	}
 
 	if err := a.corpProc.ApplyStartingEffects(ctx, corpCard, player, g); err != nil {

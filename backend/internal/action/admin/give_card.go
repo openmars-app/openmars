@@ -10,7 +10,6 @@ import (
 )
 
 // GiveCardAction handles the admin action to give a card to a player
-// NOTE: Card validation is skipped (admin action with trusted input)
 type GiveCardAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry
@@ -52,6 +51,9 @@ func (a *GiveCardAction) Execute(ctx context.Context, gameID string, playerID st
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
+	if _, err := cards.ForGame(a.cardRegistry, game).GetByID(cardID); err != nil {
+		return fmt.Errorf("card unavailable in selected mode: %w", err)
+	}
 	player.Hand().AddCard(cardID)
 
 	log.Info("Admin give card completed")

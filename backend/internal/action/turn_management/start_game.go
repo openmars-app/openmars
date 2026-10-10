@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 	rand "math/rand/v2"
+	"slices"
 
+	baseaction "openmars/internal/action"
 	"openmars/internal/game"
 	"openmars/internal/game/award"
+	"openmars/internal/game/cards"
 	"openmars/internal/game/colony"
 	"openmars/internal/game/milestone"
 	playerPkg "openmars/internal/game/player"
@@ -24,6 +27,7 @@ type BotStarter interface {
 // NOTE: Deck initialization is handled separately before calling this action
 type StartGameAction struct {
 	gameRepo               game.GameRepository
+	cardRegistry           cards.CardRegistry
 	colonyRegistry         colony.ColonyRegistry
 	projectFundingRegistry projectfunding.ProjectFundingRegistry
 	milestoneRegistry      milestone.MilestoneRegistry
@@ -41,9 +45,11 @@ func NewStartGameAction(
 	awardRegistry award.AwardRegistry,
 	botStarter BotStarter,
 	logger *slog.Logger,
+	cardRegistry cards.CardRegistry,
 ) *StartGameAction {
 	return &StartGameAction{
 		gameRepo:               gameRepo,
+		cardRegistry:           cardRegistry,
 		colonyRegistry:         colonyRegistry,
 		projectFundingRegistry: projectFundingRegistry,
 		milestoneRegistry:      milestoneRegistry,
@@ -87,6 +93,23 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	players := g.GetAllPlayers()
 	log.Debug("Starting game with players", slog.Int("player_count", len(players)))
 
+	if a.milestoneRegistry != nil {
+		eligible := a.getEligibleMilestoneIDs(g.Settings())
+		for _, id := range g.Settings().SelectedMilestones {
+			if !slices.Contains(eligible, id) {
+				return fmt.Errorf("milestone %s is not available in this mode", id)
+			}
+		}
+	}
+	if a.awardRegistry != nil {
+		eligible := a.getEligibleAwardIDs(g.Settings())
+		for _, id := range g.Settings().SelectedAwards {
+			if !slices.Contains(eligible, id) {
+				return fmt.Errorf("award %s is not available in this mode", id)
+			}
+		}
+	}
+
 	// 5. BUSINESS LOGIC: Randomize and set turn order
 	playerIDs := make([]string, len(players))
 	for i, p := range players {
@@ -102,7 +125,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 	log.Debug("Randomized turn order", slog.Any("turn_order", playerIDs))
 
-	// 5b. BUSINESS LOGIC: Initialize colony tiles if colonies pack enabled
+	// 5b. BUSINESS LOGIC: Initialize colony tiles if the mode enables colonies
 	if g.Settings().HasColonies() {
 		a.initializeColonies(g, playerIDs, rng, log)
 	}
@@ -121,6 +144,8 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 		log.Error("Game deck not initialized")
 		return fmt.Errorf("game deck not initialized - must initialize deck before starting game")
 	}
+
+	baseaction.SetupModeBehaviors(ctx, g, a.cardRegistry)
 
 	// 7. BUSINESS LOGIC: Update game status to Active
 	if err := g.UpdateStatus(ctx, shared.GameStatusActive); err != nil {
@@ -266,10 +291,9 @@ func (a *StartGameAction) initializeMilestonesAndAwards(g *game.Game, rng *rand.
 }
 
 func (a *StartGameAction) getEligibleMilestoneIDs(settings shared.GameSettings) []string {
-	enabledPacks := settings.EnabledPacks()
 	var eligible []string
 	for _, def := range a.milestoneRegistry.GetAll() {
-		if def.Pack != "" && !enabledPacks[def.Pack] {
+		if !settings.AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
 			continue
 		}
 		eligible = append(eligible, def.ID)
@@ -278,10 +302,9 @@ func (a *StartGameAction) getEligibleMilestoneIDs(settings shared.GameSettings) 
 }
 
 func (a *StartGameAction) getEligibleAwardIDs(settings shared.GameSettings) []string {
-	enabledPacks := settings.EnabledPacks()
 	var eligible []string
 	for _, def := range a.awardRegistry.GetAll() {
-		if def.Pack != "" && !enabledPacks[def.Pack] {
+		if !settings.AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
 			continue
 		}
 		eligible = append(eligible, def.ID)

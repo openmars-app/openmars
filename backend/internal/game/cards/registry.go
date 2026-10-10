@@ -1,7 +1,10 @@
 package cards
 
 import (
+	"encoding/json"
 	"fmt"
+	"openmars/internal/game/mode"
+	"sync"
 
 	"openmars/internal/game"
 	"openmars/internal/game/shared"
@@ -18,24 +21,28 @@ type CardRegistry interface {
 
 // InMemoryCardRegistry implements CardRegistry with an in-memory map
 type InMemoryCardRegistry struct {
-	cards map[string]Card
-	order []string // preserves load (JSON) order so GetAll is deterministic
+	cards     map[string]Card
+	order     []string // preserves load (JSON) order so GetAll is deterministic
+	modes     []mode.Definition
+	cache     sync.Map
+	effective bool
 }
 
 // NewInMemoryCardRegistry creates a new card registry from a slice of cards
-func NewInMemoryCardRegistry(cardList []Card) *InMemoryCardRegistry {
+func NewInMemoryCardRegistry(cardList []Card, modes ...mode.Definition) *InMemoryCardRegistry {
 	cardMap := make(map[string]Card, len(cardList))
 	order := make([]string, 0, len(cardList))
 	for _, card := range cardList {
 		if _, exists := cardMap[card.ID]; !exists {
 			order = append(order, card.ID)
 		}
-		cardMap[card.ID] = card
+		cardMap[card.ID] = card.DeepCopy()
 	}
 
 	return &InMemoryCardRegistry{
 		cards: cardMap,
 		order: order,
+		modes: cloneJSON(modes),
 	}
 }
 
@@ -61,32 +68,28 @@ func (r *InMemoryCardRegistry) GetAll() []Card {
 	return cardList
 }
 
-// GetCardIDsByPacks filters cards by pack and separates them by type.
-// Returns project card IDs, corporation IDs, and prelude IDs.
-func GetCardIDsByPacks(registry CardRegistry, packs []string) (projectCards, corps, preludes []string) {
-	allCards := registry.GetAll()
-
-	packMap := make(map[string]bool, len(packs))
-	for _, pack := range packs {
-		packMap[pack] = true
+func (r *InMemoryCardRegistry) ModeDefinitions() []mode.Definition { return cloneJSON(r.modes) }
+func (r *InMemoryCardRegistry) resolve(settings shared.GameSettings) (CardRegistry, error) {
+	if r.effective {
+		return r, nil
 	}
-
-	for _, card := range allCards {
-		if !packMap[card.Pack] {
-			continue
-		}
-
-		switch card.Type {
-		case CardTypeCorporation:
-			corps = append(corps, card.ID)
-		case CardTypePrelude:
-			preludes = append(preludes, card.ID)
-		default:
-			projectCards = append(projectCards, card.ID)
-		}
+	keyData, err := json.Marshal(struct {
+		Mode              string
+		Features, Systems []string
+	}{settings.GameModeID, settings.Features, settings.Systems})
+	if err != nil {
+		return nil, err
 	}
-
-	return projectCards, corps, preludes
+	key := string(keyData)
+	if cached, ok := r.cache.Load(key); ok {
+		return cached.(CardRegistry), nil
+	}
+	resolved, err := resolveUncached(r, settings)
+	if err != nil {
+		return nil, err
+	}
+	actual, _ := r.cache.LoadOrStore(key, resolved)
+	return actual.(CardRegistry), nil
 }
 
 type VPCardLookupAdapter struct {
@@ -123,10 +126,11 @@ func (a *VPCardLookupAdapter) LookupVPCard(cardID string) (*game.VPCardInfo, err
 
 func convertVPCondition(vc VictoryPointCondition) shared.VPCondition {
 	cond := shared.VPCondition{
-		Amount:     vc.Amount,
-		Condition:  string(vc.Condition),
-		MaxTrigger: vc.MaxTrigger,
-		Per:        vc.Per,
+		StateRequirements: append([]shared.StateRequirement(nil), vc.StateRequirements...),
+		Amount:            vc.Amount,
+		Condition:         string(vc.Condition),
+		MaxTrigger:        vc.MaxTrigger,
+		Per:               vc.Per,
 	}
 	return cond
 }

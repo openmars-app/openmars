@@ -64,8 +64,8 @@ func (a *ConfirmColonyResourceAction) Execute(ctx context.Context, gameID string
 	}
 
 	// Validate the target card can store this resource type
-	if a.CardRegistry() != nil {
-		card, cardErr := a.CardRegistry().GetByID(targetCardID)
+	if a.CardRegistryForGame(g) != nil {
+		card, cardErr := a.CardRegistryForGame(g).GetByID(targetCardID)
 		if cardErr != nil {
 			return fmt.Errorf("target card not found: %s", targetCardID)
 		}

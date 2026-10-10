@@ -11,12 +11,13 @@ import (
 
 // GameState holds all game data.
 type GameState struct {
-	ID           string              `json:"id" save:"state"`
-	CreatedAt    time.Time           `json:"createdAt" save:"state"`
-	UpdatedAt    time.Time           `json:"updatedAt" save:"state"`
-	Status       shared.GameStatus   `json:"status" save:"state"`
-	Settings     shared.GameSettings `json:"settings" save:"state"`
-	HostPlayerID string              `json:"hostPlayerId" save:"state"`
+	ModeRuntime  shared.ModeRuntimeState `json:"modeRuntime" save:"state"`
+	ID           string                  `json:"id" save:"state"`
+	CreatedAt    time.Time               `json:"createdAt" save:"state"`
+	UpdatedAt    time.Time               `json:"updatedAt" save:"state"`
+	Status       shared.GameStatus       `json:"status" save:"state"`
+	Settings     shared.GameSettings     `json:"settings" save:"state"`
+	HostPlayerID string                  `json:"hostPlayerId" save:"state"`
 
 	// Seed is the master RNG seed for this game. All randomness (deck shuffles,
 	// turn order, milestone/award/colony selection) is derived deterministically
@@ -100,6 +101,10 @@ type GameStateHistoryEntry struct {
 
 // PlayerState holds a single player's data.
 type PlayerState struct {
+	ProductionContributions []shared.ProductionContribution         `json:"productionContributions" save:"state"`
+	DependencyStatuses      map[string]shared.DependencyStatus      `json:"dependencyStatuses" save:"state"`
+	DependencyGroups        map[string]shared.DependencyGroup       `json:"dependencyGroups" save:"state"`
+	BehaviorUses            map[string]int                          `json:"behaviorUses" save:"state"`
 	PendingEffectSelection  *shared.PendingEffectSelection          `json:"pendingEffectSelection" save:"state"`
 	PendingCardReveal       *shared.PendingCardReveal               `json:"pendingCardReveal" save:"state"`
 	ResolvedProductionBoxes map[string][]shared.ProductionCondition `json:"resolvedProductionBoxes" save:"state"`

@@ -565,6 +565,7 @@ export const ResourceTypeValueModifier: ResourceType = "value-modifier";
  * TargetType represents different targeting scopes for resource conditions for client consumption
  */
 export type TargetType = string;
+export const TargetGame: TargetType = "game";
 export const TargetSelfPlayer: TargetType = "self-player";
 export const TargetSelfCard: TargetType = "self-card";
 export const TargetTriggeringCard: TargetType = "triggering-card";
@@ -655,6 +656,7 @@ export interface TargetRestrictionDto {
  * Multiple Selectors in a slice use OR logic (any match is sufficient).
  */
 export interface SelectorDto {
+  dependency?: string;
   tagCount?: MinMaxValueDto;
   tags?: CardTag[];
   cardTypes?: CardType[];
@@ -678,7 +680,8 @@ export type ResourceCondition =
   | MiscConditionDto
   | CopyConditionDto
   | CardRevealConditionDto
-  | PaymentSubstituteConditionDto;
+  | PaymentSubstituteConditionDto
+  | StateConditionDto;
 /**
  * BasicResourceConditionDto covers credit, steel, titanium, plant, energy, heat.
  */
@@ -847,6 +850,7 @@ export interface PerConditionDto {
  * ChoiceDto represents a choice for client consumption
  */
 export interface ChoiceDto {
+  stateRequirements?: StateRequirementDto[];
   inputOptions?: BehaviorInputOptionsDto;
   storageTargets?: string[][];
   originalIndex: number /* int */;
@@ -874,6 +878,9 @@ export interface MinMaxValueDto {
  * ResourceTriggerConditionDto represents a resource trigger condition for client consumption
  */
 export interface ResourceTriggerConditionDto {
+  direction?: string;
+  state?: string;
+  to?: number /* int */;
   type: TriggerType;
   resourceTypes?: ResourceType[];
   location?: CardApplyLocation;
@@ -920,6 +927,14 @@ export interface VariableInputAmountDto {
  * CardBehaviorDto represents a card behavior for client consumption.
  */
 export interface CardBehaviorDto {
+  id?: string;
+  dependency?: string;
+  dependencyStatus?: DependencyStatusDto;
+  stateRequirements?: StateRequirementDto[];
+  maxUsesPerGame?: number /* int */;
+  usageGroup?: string;
+  resourceRequirements?: BehaviorResourceRequirementDto[];
+  maxUsesPerGeneration?: number /* int */;
   inputOptions?: BehaviorInputOptionsDto;
   productionBox?: string;
   description?: string;
@@ -949,6 +964,9 @@ export interface CardRequirementsDto {
  * RequirementDto represents a card requirement for client consumption
  */
 export interface RequirementDto {
+  permanent?: boolean;
+  state?: string;
+  equals?: number /* int */;
   type: RequirementType;
   min?: number /* int */;
   max?: number /* int */;
@@ -969,6 +987,7 @@ export interface ResourceStorageDto {
  * VPConditionDto represents a victory point condition for client consumption
  */
 export interface VPConditionDto {
+  stateRequirements?: StateRequirementDto[];
   amount: number /* int */;
   condition: VPConditionType;
   maxTrigger?: number /* int */;
@@ -993,7 +1012,9 @@ export interface CardDto {
   type: CardType;
   cost: number /* int */;
   description: CardDescriptionSectionDto[];
-  pack: string;
+  gameModes: string[];
+  requiresFeatures?: string[];
+  requiresSystems?: string[];
   tags?: CardTag[];
   requirements?: CardRequirementsDto;
   behaviors?: CardBehaviorDto[];
@@ -1031,6 +1052,7 @@ export interface SelectPreludeCardsOtherPlayerDto {}
  * ProductionPhaseDto represents card selection and production phase state for a player
  */
 export interface ProductionPhaseDto {
+  productionUsed: ProductionDto;
   availableCards: CardDto[]; // Cards available for selection
   selectionComplete: boolean; // Whether player completed card selection
   beforeResources: ResourcesDto;
@@ -1040,6 +1062,7 @@ export interface ProductionPhaseDto {
   creditsIncome: number /* int */;
 }
 export interface ProductionPhaseOtherPlayerDto {
+  productionUsed: ProductionDto;
   selectionComplete: boolean; // Whether player completed card selection
   beforeResources: ResourcesDto;
   afterResources: ResourcesDto;
@@ -1051,13 +1074,16 @@ export interface ProductionPhaseOtherPlayerDto {
  * GameSettingsDto contains configurable game parameters
  */
 export interface GameSettingsDto {
+  gameModeId: string;
+  gameModeParameters: { [key: string]: number /* int */ };
+  features: string[];
+  systems: string[];
+  availableGameModes: GameModeDto[];
   maxPlayers: number /* int */;
   mapId: string;
-  venusNextEnabled: boolean;
   developmentMode: boolean;
   demoGame: boolean;
   allowRandomBuy: boolean;
-  cardPacks?: string[];
   hasClaudeOAuthToken: boolean;
   botSpendCapUsd: number /* float64 */;
   botSpendUsd: number /* float64 */;
@@ -1239,12 +1265,15 @@ export interface StateWarningDto {
  * Part of the Player-Scoped Card Architecture
  */
 export interface PlayerCardDto {
+  dependencyTargets?: string[];
   id: string;
   name: string;
   type: CardType;
   cost: number /* int */; // Original card cost (same as CardDto.Cost)
   description: CardDescriptionSectionDto[];
-  pack: string;
+  gameModes: string[];
+  requiresFeatures?: string[];
+  requiresSystems?: string[];
   tags?: CardTag[];
   requirements?: CardRequirementsDto;
   behaviors?: CardBehaviorDto[];
@@ -1281,6 +1310,7 @@ export interface ActionReuseOptionDto {
  * PlayerActionDto represents an owned action with calculated usability.
  */
 export interface PlayerActionDto {
+  dependencyTargets?: string[];
   reuseOptions?: ActionReuseOptionDto[];
   cardId: string; // ID of the card that provides this action
   cardName: string; // Name of the card for display purposes
@@ -1466,6 +1496,7 @@ export interface CardReceiptDto {
   cards: CardDto[];
 }
 export interface PlayerDto {
+  permanentProduction: ProductionDto;
   cardReceipts: CardReceiptDto[];
   resourceRemovalTargets: ResourceRemovalTargetDto[];
   pendingCardReveal?: PendingCardRevealDto;
@@ -1547,6 +1578,7 @@ export interface ActionCostEntryDto {
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
  */
 export interface OtherPlayerDto {
+  permanentProduction: ProductionDto;
   id: string;
   name: string;
   playerType: string;
@@ -1583,6 +1615,7 @@ export interface OtherPlayerDto {
  */
 export interface GameDto {
   resumeLobby?: ResumeLobbyDto;
+  modeRuntime?: ModeRuntimeDto;
   id: string;
   status: GameStatus;
   settings: GameSettingsDto;
@@ -2197,6 +2230,7 @@ export interface GameSaveErrorResponse {
  * GameHistoryEntryDto represents a single historical game state snapshot.
  */
 export interface GameHistoryEntryDto {
+  modeRuntime?: ModeRuntimeDto;
   sequence: number /* int64 */;
   timestamp: string;
   generation: number /* int */;
@@ -2216,6 +2250,8 @@ export interface GameHistoryEntryDto {
  * GameHistoryPlayerDto contains the player data needed for graphs and replay.
  */
 export interface GameHistoryPlayerDto {
+  permanentProduction: ProductionDto;
+  dependencyStatuses: { [key: string]: DependencyStatusDto };
   id: string;
   name: string;
   color: string;
@@ -2256,16 +2292,63 @@ export interface GetGameHistoryResponse {
 }
 
 //////////
+// source: game_mode_dto.go
+
+export interface GameModeRuleDto {
+  title: string;
+  text: string;
+}
+export interface GameModeParameterDto {
+  id: string;
+  label: string;
+  description: string;
+  default: number /* int */;
+  values: number /* int */[];
+}
+export interface GameModeFeatureDto {
+  id: string;
+  name: string;
+  description: string;
+  experimental: boolean;
+  default: boolean;
+}
+export interface GameModeStatusDto {
+  state: string;
+  label: string;
+  labels?: { [key: string]: string };
+  kind: "connection" | "counter";
+  from?: string;
+  to?: string;
+}
+export interface GameModeDto {
+  id: string;
+  name: string;
+  summary: string;
+  scenario: string;
+  rules: GameModeRuleDto[];
+  minPlayers: number /* int */;
+  maxPlayers: number /* int */;
+  parameters: GameModeParameterDto[];
+  features: GameModeFeatureDto[];
+  systems: string[];
+  statuses: GameModeStatusDto[];
+}
+export interface GameModesResponse {
+  gameModes: GameModeDto[];
+}
+
+//////////
 // source: http_dto.go
 
 /**
  * GameSetupDto contains settings selected before creating a lobby.
  */
 export interface GameSetupDto {
+  gameModeId: string;
+  gameModeParameters: { [key: string]: number /* int */ };
+  features: string[];
   maxPlayers: number /* int */;
   mapId: string;
-  cardPacks: string[];
-  venusNextEnabled: boolean;
   developmentMode: boolean;
   demoGame: boolean;
   allowRandomBuy: boolean;
@@ -2274,6 +2357,7 @@ export interface GameSetupDto {
  * GameOptionsDto provides authoritative defaults and map previews for setup.
  */
 export interface GameOptionsDto {
+  gameModes: GameModeDto[];
   defaults: GameSetupDto;
   availableMaps: MapInfoDto[];
 }
@@ -2288,13 +2372,14 @@ export interface CreateGameRequest {
  * lobby. Pointer fields distinguish "leave alone" from "set to zero value".
  */
 export interface UpdateGameSettingsRequest {
+  gameModeId?: string;
+  gameModeParameters?: { [key: string]: number /* int */ };
+  features?: string[];
   maxPlayers?: number /* int */;
   mapId?: string;
-  venusNextEnabled?: boolean;
   developmentMode?: boolean;
   demoGame?: boolean;
   allowRandomBuy?: boolean;
-  cardPacks?: string[];
   claudeOAuthToken?: string;
   botSpendCapUsd?: number /* float64 */;
 }
@@ -2542,6 +2627,114 @@ export const MessageTypeBotTraceSnapshot: MessageType = "bot-trace-snapshot";
 export const MessageTypeBotTraceEvent: MessageType = "bot-trace-event";
 export const MessageTypeKickSpectator: MessageType = "kick-spectator";
 export const MessageTypeSpectatorKicked: MessageType = "spectator-kicked";
+
+//////////
+// source: mode_runtime_dto.go
+
+/**
+ * StateRequirementDto describes a mode state prerequisite.
+ */
+export interface StateRequirementDto {
+  state: string;
+  equals: number /* int */;
+}
+/**
+ * DependencyStatusDto describes the current state of an ongoing operation.
+ */
+export interface DependencyStatusDto {
+  id: string;
+  label?: string;
+  active: boolean;
+  imported: boolean;
+  retired: boolean;
+}
+/**
+ * WindowBoundaryDto describes a relative phase boundary.
+ */
+export interface WindowBoundaryDto {
+  generationOffset: number /* int */;
+  boundary: string;
+}
+/**
+ * StateConditionDto describes a declarative state operation.
+ */
+export interface StateConditionDto {
+  description: string;
+  minimumProduction?: ProductionThresholdDto;
+  type: "state-change" | "remove-dependency" | "retire-dependency" | "schedule-state-window";
+  amount: number /* int */;
+  target: TargetType;
+  state?: string;
+  value?: number /* int */;
+  dependency?: string;
+  start?: WindowBoundaryDto;
+  end?: WindowBoundaryDto;
+}
+/**
+ * StateWindowDto is a scheduled state override.
+ */
+export interface StateWindowDto {
+  id: string;
+  source: string;
+  state: string;
+  value: number /* int */;
+  startGeneration: number /* int */;
+  startBoundary: string;
+  endGeneration: number /* int */;
+  endBoundary: string;
+  status: string;
+}
+/**
+ * ModeRuntimeDto exposes authoritative baseline and effective state.
+ */
+export interface ModeRuntimeDto {
+  events: ModePresentationEventDto[];
+  values: { [key: string]: number /* int */ };
+  effectiveValues: { [key: string]: number /* int */ };
+  initialValues: { [key: string]: number /* int */ };
+  windows: StateWindowDto[];
+  sequence: number /* int */;
+}
+/**
+ * ModePresentationHintDto supplies an optional visual hint.
+ */
+export interface ModePresentationHintDto {
+  kind: string;
+  from?: string;
+  to?: string;
+  connected?: boolean;
+}
+/**
+ * ModePresentationEventDto is an ordered state transition with an accessible fallback.
+ */
+export interface ModePresentationEventDto {
+  id: string;
+  kind: string;
+  state: string;
+  oldValue: number /* int */;
+  newValue: number /* int */;
+  title: string;
+  description?: string;
+  presentation?: ModePresentationHintDto;
+}
+/**
+ * BehaviorResourceRequirementDto describes an availability constraint.
+ */
+export interface BehaviorResourceRequirementDto {
+  location?: string;
+  type: ResourceType;
+  min?: number /* int */;
+  max?: number /* int */;
+  permanent?: boolean;
+  target?: string;
+}
+/**
+ * ProductionThresholdDto limits dependency target selection.
+ */
+export interface ProductionThresholdDto {
+  type: ResourceType;
+  amount: number /* int */;
+}
 
 //////////
 // source: state_diff_dto.go

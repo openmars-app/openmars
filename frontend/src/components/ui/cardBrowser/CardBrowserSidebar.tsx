@@ -1,3 +1,4 @@
+import type { GameModeDto } from "@/types/generated/api-types.ts";
 import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
 import { useHoverSound } from "@/hooks/useHoverSound.ts";
@@ -10,7 +11,7 @@ import CopyLinkButton from "../buttons/CopyLinkButton.tsx";
 import { CARD_FAMILIES, FAMILY_LABELS, labelFor } from "./cardCatalog.ts";
 import type { CardDisplaySize, CardFamily, CardSort } from "./cardCatalog.ts";
 
-export type FilterKind = "tags" | "types" | "packs";
+export type FilterKind = "tags" | "types";
 export type BrowserFilters = Record<FilterKind, ReadonlySet<string>>;
 
 interface SidebarProps {
@@ -21,7 +22,11 @@ interface SidebarProps {
   onCardSize: (size: CardDisplaySize) => void;
   filters: BrowserFilters;
   tags: string[];
-  packs: string[];
+  modes: GameModeDto[];
+  gameModeId: string;
+  preview: string;
+  onMode: (id: string) => void;
+  onPreview: (preview: string) => void;
   counts: Record<CardFamily, number>;
   selectedCounts: Record<CardFamily, number>;
   selectedCount: number;
@@ -137,6 +142,36 @@ export default memo(function CardBrowserSidebar(props: SidebarProps) {
               Card browser
             </h1>
           )}
+          <div className="space-y-2">
+            <span className="font-orbitron text-xs text-white/70">Game mode</span>
+            <GameSelect
+              id="browser-mode"
+              label="Game mode"
+              value={props.gameModeId}
+              options={[{ id: "", name: "All cards" }, ...props.modes]}
+              onChange={props.onMode}
+              className="w-full"
+            />
+          </div>
+          {props.modes
+            .find((mode) => mode.id === props.gameModeId)
+            ?.statuses.some((status) => status.kind === "connection") ? (
+            <div className="space-y-2">
+              <span className="font-orbitron text-xs text-white/70">Preview state</span>
+              <GameSelect
+                id="browser-preview"
+                label="Preview state"
+                value={props.preview}
+                options={[
+                  { id: "connected", name: "Connected" },
+                  { id: "disconnected", name: "Disconnected" },
+                  { id: "restored", name: "Contact restored" },
+                ]}
+                onChange={props.onPreview}
+                className="w-full"
+              />
+            </div>
+          ) : null}
           <fieldset className="m-0 space-y-1 border-0 p-0">
             <legend className="sr-only">Card family</legend>
             {CARD_FAMILIES.map((family) => (
@@ -272,13 +307,6 @@ export default memo(function CardBrowserSidebar(props: SidebarProps) {
             kind="tags"
             values={props.tags}
             selected={props.filters.tags}
-            onToggle={props.onToggle}
-          />
-          <FilterGroup
-            label="Card packs"
-            kind="packs"
-            values={props.packs}
-            selected={props.filters.packs}
             onToggle={props.onToggle}
           />
           <GameButton emphasis="secondary" size="sm" onClick={props.onClearFilters}>

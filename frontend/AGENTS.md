@@ -314,7 +314,7 @@ E2E_BACKEND=1 just frontend e2e            # also the in-game spec (backend on :
 - Projects: `firefox` (desktop), `mobile-landscape-ios` (iPhone 14 landscape size), `mobile-landscape-android` (Pixel 7 landscape), `mobile-portrait` (iPhone 14 portrait; checks that the rotate overlay covers the menus). The mobile projects run on Chromium with the device's viewport, scale factor, `isMobile` and `hasTouch` (no WebKit).
 - Playwright starts its own Vite server on port 3100 (`E2E_PORT` to change it, `E2E_REUSE_SERVER=1` to reuse one already running there); it never touches the dev server on 3000. The bundled browser revision must match `@playwright/test` (pinned in `package.json`).
 - `mobile-menus.spec.ts`: no horizontal overflow, touch targets ≥ 44×32px, inputs ≥ 16px, fixed menu chrome never permanently covers a button, `<html data-layout>` matches the device. Routes other than `/cards` skip when the Go backend isn't reachable.
-- `mobile-game.spec.ts`: creates a base-game solo match, plays through starting selection and checks the compact HUD (no overlap, nothing outside the viewport, every dock screen opens and closes, rotate overlay in portrait). Skipped unless `E2E_BACKEND=1` and the backend runs on port 3001.
+- `mobile-game.spec.ts`: creates an Earth Withdrawal solo match without Preludes, plays through starting selection and checks the compact HUD (no overlap, nothing outside the viewport, scenario status and rules, every dock screen opens and closes, rotate overlay in portrait). Skipped unless `E2E_BACKEND=1` and the backend runs on port 3001.
 
 ## Important Notes
 

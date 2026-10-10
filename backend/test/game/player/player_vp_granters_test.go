@@ -12,13 +12,15 @@ import (
 )
 
 type mockVPRecalculationContext struct {
-	cardStorage             map[string]map[string]int
-	tagCounts               map[string]map[shared.CardTag]int
-	tileCounts              map[shared.ResourceType]int
-	playerTileCounts        map[string]map[shared.ResourceType]int
-	adjacentTilesForCard    map[string]map[shared.ResourceType]int
-	adjacentTilesToTileType int
-	colonyCount             int
+	cardStorage              map[string]map[string]int
+	tagCounts                map[string]map[shared.CardTag]int
+	tileCounts               map[shared.ResourceType]int
+	playerTileCounts         map[string]map[shared.ResourceType]int
+	adjacentTilesForCard     map[string]map[shared.ResourceType]int
+	adjacentTilesToTileType  int
+	colonyCount              int
+	modeValues               map[string]int
+	permanentProductionTypes int
 }
 
 func newMockVPRecalculationContext() *mockVPRecalculationContext {
@@ -1020,4 +1022,37 @@ func TestPerAdjacentToTileTypeVPGranter(t *testing.T) {
 			testutil.AssertEqual(t, tt.expectedVP, p.VPGranters().TotalComputedVP(), "TotalComputedVP should match")
 		})
 	}
+}
+
+func (m *mockVPRecalculationContext) ModeRequirementsMet(requirements []shared.StateRequirement) bool {
+	for _, r := range requirements {
+		v, ok := m.modeValues[r.State]
+		if !ok || v != r.Equals {
+			return false
+		}
+	}
+	return true
+}
+func (m *mockVPRecalculationContext) CountPermanentProductionTypes(_ string) int {
+	return m.permanentProductionTypes
+}
+
+func TestLiveScenarioVPChangesWithStateAndPermanentProduction(t *testing.T) {
+	g, _ := testutil.CreateTestGameWithPlayers(t, 1)
+	p := g.GetAllPlayers()[0]
+	cap := 5
+	p.VPGranters().Add(shared.VPGranter{CardID: "independent-production", VPConditions: []shared.VPCondition{{Amount: 1, Condition: "per", MaxTrigger: &cap, Per: &shared.PerCondition{ResourceType: shared.ResourcePermanentProductionTypes, Amount: 1}, StateRequirements: []shared.StateRequirement{{State: "transition", Equals: 1}}}}})
+	ctx := newMockVPRecalculationContext()
+	ctx.permanentProductionTypes = 4
+	p.VPGranters().RecalculateAll(ctx)
+	testutil.AssertEqual(t, 0, p.VPGranters().TotalComputedVP(), "Missing state must fail closed")
+	ctx.modeValues = map[string]int{"transition": 1}
+	p.VPGranters().RecalculateAll(ctx)
+	testutil.AssertEqual(t, 4, p.VPGranters().TotalComputedVP(), "State enables production scoring")
+	ctx.permanentProductionTypes = 6
+	p.VPGranters().RecalculateAll(ctx)
+	testutil.AssertEqual(t, 5, p.VPGranters().TotalComputedVP(), "Cap applies to live scoring")
+	ctx.permanentProductionTypes = 2
+	p.VPGranters().RecalculateAll(ctx)
+	testutil.AssertEqual(t, 2, p.VPGranters().TotalComputedVP(), "Lost permanent production reduces score")
 }

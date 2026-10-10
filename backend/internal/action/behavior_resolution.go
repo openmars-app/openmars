@@ -51,6 +51,12 @@ func ValidateResolutionStorageTargets(choice shared.Choice, targets []string, p 
 		}
 		id := targets[index]
 		index++
+		if operation, ok := output.(*shared.StateCondition); ok {
+			if err := gamecards.ValidateDependencyTarget(p, registry, id, operation.Dependency, operation.ResourceType == shared.ResourceRemoveDependency, operation.MinimumProduction); err != nil {
+				return err
+			}
+			continue
+		}
 		if err := gamecards.ValidateStorageDestination(p, registry, output, id, ""); err != nil {
 			return err
 		}
@@ -69,6 +75,14 @@ func ResolutionStorageTargets(choice shared.Choice, p *player.Player, registry g
 			continue
 		}
 		eligible := gamecards.StorageDestinations(p, registry, output, "")
+		if operation, ok := output.(*shared.StateCondition); ok {
+			eligible = nil
+			for _, id := range p.PlayedCards().Cards() {
+				if gamecards.ValidateDependencyTarget(p, registry, id, operation.Dependency, operation.ResourceType == shared.ResourceRemoveDependency, operation.MinimumProduction) == nil {
+					eligible = append(eligible, id)
+				}
+			}
+		}
 		if eligible == nil {
 			eligible = []string{}
 		}

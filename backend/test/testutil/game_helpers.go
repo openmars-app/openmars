@@ -14,7 +14,7 @@ import (
 )
 
 // NewSeededGame builds a game with a fixed master RNG seed and an initialized deck,
-// using the same deck-construction path as production (GetCardIDsByPacks -> InitDeck).
+// using the same deck-construction path as production (Resolve -> GetCardIDs -> InitDeck).
 // Because all game randomness derives from the seed, this is the replay primitive for
 // reproducing a reported game: the server logs each game's seed at creation, so a bug
 // report's seed can be replayed here to reconstruct the identical deck deterministically.
@@ -22,9 +22,9 @@ func NewSeededGame(t *testing.T, seed uint64, settings shared.GameSettings) (*ga
 	t.Helper()
 
 	repo := NewTestGameRepository(t)
-	cardRegistry := CreateTestCardRegistry()
-	if len(settings.CardPacks) == 0 {
-		settings.CardPacks = []string{"base-game"}
+	cardRegistry := CreateTestModeCatalog()
+	if settings.GameModeID == "" {
+		settings.GameModeID = "classic"
 	}
 	if settings.MaxPlayers == 0 {
 		settings.MaxPlayers = 4
@@ -33,7 +33,7 @@ func NewSeededGame(t *testing.T, seed uint64, settings shared.GameSettings) (*ga
 	g := game.NewGame(repo.DataStore(), "seeded-"+strconv.FormatUint(seed, 10), "", settings, board.GenerateMarsBoard(false))
 	g.SetSeed(seed) // override the auto-generated seed before the deck is shuffled
 
-	projectCards, corpCards, preludeCards := cards.GetCardIDsByPacks(cardRegistry, settings.CardPacks)
+	projectCards, corpCards, preludeCards := cards.GetCardIDs(cards.ForGame(cardRegistry, g))
 	g.InitDeck(projectCards, corpCards, preludeCards)
 	g.SetVPCardLookup(cards.NewVPCardLookupAdapter(cardRegistry))
 

@@ -382,8 +382,7 @@ func (a *KickPlayerAction) handleProductionPhaseKick(ctx context.Context, g *gam
 }
 
 func (a *KickPlayerAction) triggerEndOfGeneration(ctx context.Context, g *game.Game, gameID string, log *slog.Logger) {
-	if g.GlobalParameters().IsMaxed() {
-		log.Debug("All global parameters maxed after kick - triggering final scoring")
+	if g.CurrentPhase() == shared.GamePhaseFinalPhase {
 		if err := a.finalScoringAction.Execute(ctx, gameID); err != nil {
 			log.Error("Failed to execute final scoring", slog.Any("error", err))
 		}
@@ -399,6 +398,12 @@ func (a *KickPlayerAction) triggerEndOfGeneration(ctx context.Context, g *game.G
 		}
 	}
 
+	if g.GlobalParameters().IsMaxed() {
+		if err := turn_management.ExecuteFinalProductionPhase(ctx, g, activePlayers, log); err != nil {
+			log.Error("Failed final production", slog.Any("error", err))
+		}
+		return
+	}
 	if err := turn_management.ExecuteProductionPhase(ctx, g, activePlayers, log); err != nil {
 		log.Error("Failed to execute production phase after kick", slog.Any("error", err))
 	}

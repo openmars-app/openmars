@@ -19,6 +19,7 @@ type SelectPreludeCardsPhase struct {
 
 // ProductionPhase represents the production phase state for a player
 type ProductionPhase struct {
+	ProductionUsed    Production
 	AvailableCards    []string
 	SelectionComplete bool
 	BeforeResources   Resources

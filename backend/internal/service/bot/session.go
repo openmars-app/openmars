@@ -13,6 +13,7 @@ import (
 	"openmars/internal/delivery/dto"
 	"openmars/internal/events"
 	"openmars/internal/game"
+	"openmars/internal/game/cards"
 	playerPkg "openmars/internal/game/player"
 	"openmars/internal/game/shared"
 )
@@ -657,7 +658,7 @@ func (s *botSession) readReaction(batch []Happening) (reactionInput, bool) {
 				checkLosses = true
 				continue
 			case HappeningCard:
-				if card, err := s.bc.cardRegistry.GetByID(h.Detail); err == nil {
+				if card, err := cards.ForGame(s.bc.cardRegistry, snap.Game).GetByID(h.Detail); err == nil {
 					h.Big = card.Cost >= s.bc.cfg.BigCardCost
 				}
 			}

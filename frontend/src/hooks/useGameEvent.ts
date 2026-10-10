@@ -8,6 +8,8 @@ export interface GameEvent {
   playerColor?: string;
   duration: number;
   size?: "normal" | "large";
+  description?: string;
+  presentation?: { kind: string; from?: string; to?: string; connected?: boolean };
 }
 
 type GameEventInput = Omit<GameEvent, "id">;

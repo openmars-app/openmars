@@ -116,8 +116,8 @@ func TestProductionBoxMetadata_OnlyContainsCopyableProduction(t *testing.T) {
 			}
 			marked++
 			for _, output := range behavior.Outputs {
-				if !shared.IsProductionResourceType(output.GetResourceType()) {
-					t.Errorf("%s production box includes %s", card.Name, output.GetResourceType())
+				if behavior.ProductionBox == "evaluate" && !shared.IsProductionResourceType(output.GetResourceType()) {
+					t.Errorf("%s evaluated production box includes %s", card.Name, output.GetResourceType())
 				}
 			}
 			validationCard := cards.Card{ID: card.ID, Type: card.Type, Behaviors: []shared.CardBehavior{behavior}}

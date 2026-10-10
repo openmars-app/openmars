@@ -110,7 +110,7 @@ func (a *UseCardActionAction) Execute(
 	if !gamecards.HasManualTrigger(cardAction.Behavior) || baseaction.IsActionReuse(cardAction.Behavior) {
 		return fmt.Errorf("select a manual action to execute")
 	}
-	if err := baseaction.ValidateCardActionChoice(cardAction.Behavior, choiceIndex, p, g, a.CardRegistry()); err != nil {
+	if err := baseaction.ValidateCardActionChoice(cardAction.Behavior, choiceIndex, p, g, a.CardRegistryForGame(g)); err != nil {
 		return err
 	}
 
@@ -121,8 +121,9 @@ func (a *UseCardActionAction) Execute(
 	applier := gamecards.NewBehaviorApplier(p, g, cardAction.CardName, slog.Default()).
 		WithSourceCardID(cardID).
 		WithSourceBehaviorIndex(behaviorIndex).
+		WithBehavior(cardAction.Behavior).
 		WithActionCompletion(completion).
-		WithCardRegistry(a.CardRegistry()).
+		WithCardRegistry(a.CardRegistryForGame(g)).
 		WithSourceType(shared.SourceTypeCardAction).WithInputCardIDs(cardStorageSources)
 	if len(cardStorageTargets) > 0 {
 		applier = applier.WithTargetCardIDs(cardStorageTargets)
@@ -167,7 +168,10 @@ func (a *UseCardActionAction) Execute(
 		return err
 	}
 
-	if err := gamecards.ValidateRevealOutputs(outputs, g, a.CardRegistry()); err != nil {
+	if err := gamecards.ValidateRevealOutputs(outputs, g, a.CardRegistryForGame(g)); err != nil {
+		return err
+	}
+	if err := applier.ValidateModeOutputs(outputs); err != nil {
 		return err
 	}
 	if err := applier.ValidateResourceOutputs(outputs); err != nil {
@@ -209,7 +213,7 @@ func (a *UseCardActionAction) Execute(
 		description = fmt.Sprintf("Used %s to reuse %s action", reuseAction.CardName, cardAction.CardName)
 	}
 	var displayData *game.LogDisplayData
-	if cardFromRegistry, err := a.CardRegistry().GetByID(cardID); err == nil {
+	if cardFromRegistry, err := a.CardRegistryForGame(g).GetByID(cardID); err == nil {
 		displayData = baseaction.BuildCardDisplayData(cardFromRegistry, shared.SourceTypeCardAction)
 	}
 	a.WriteStateLogFull(ctx, g, cardAction.CardName, shared.SourceTypeCardAction, playerID, description, choiceIndex, calculatedOutputs, displayData)

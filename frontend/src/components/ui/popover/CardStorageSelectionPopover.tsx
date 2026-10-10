@@ -27,6 +27,7 @@ interface CardStorageSelectionPopoverProps {
   resourceType: ResourceType;
   amount: number;
   selectorTags?: string[];
+  eligibleCardIds?: string[];
   playedCards: CardDto[];
   corporationCard?: CardDto;
   resourceStorage?: { [cardId: string]: number };
@@ -46,6 +47,7 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
   resourceType,
   amount,
   selectorTags,
+  eligibleCardIds,
   playedCards,
   corporationCard,
   resourceStorage,
@@ -59,6 +61,8 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
   const [previewCard, setPreviewCard] = useState<CardDto | null>(null);
   const closePreview = useCallback(() => setPreviewCard(null), []);
 
+  const isDependency = ["remove-dependency", "retire-dependency"].includes(resourceType);
+  const importing = resourceType === "remove-dependency";
   const allCandidateCards = [
     ...(corporationCard?.resourceStorage ? [corporationCard] : []),
     ...playedCards,
@@ -66,6 +70,7 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
 
   const validCards: CardStorageOption[] = allCandidateCards
     .filter((card) => {
+      if (isDependency) return eligibleCardIds?.includes(card.id) ?? false;
       if (!card.resourceStorage) {
         return false;
       }
@@ -101,9 +106,13 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
     [ColonyResourceReasonBuild]: "Colony Built",
     [ColonyResourceReasonColonyBonus]: "Colony Bonus",
   };
-  const title = hasNoStorage
-    ? "No Storage Available"
-    : (reason && reasonTitleMap[reason]) || "Select Card Storage";
+  const title = isDependency
+    ? importing
+      ? "Import technology"
+      : "Retire an operation"
+    : hasNoStorage
+      ? "No Storage Available"
+      : (reason && reasonTitleMap[reason]) || "Select Card Storage";
 
   return (
     <GameFlowPopover
@@ -121,7 +130,7 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
         <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
           {title}
         </h3>
-        {!hasNoStorage && (
+        {!hasNoStorage && !isDependency && (
           <div className="text-white/60 text-xs compact:text-[13px] text-shadow-glow mt-1 flex items-center justify-center gap-1.5">
             <span>
               Place {amount} resource{amount !== 1 ? "s" : ""}
@@ -129,10 +138,19 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
             {resourceType !== "card-resource" && <GameIcon iconType={resourceType} size="small" />}
           </div>
         )}
+        {isDependency && (
+          <p className="text-sm text-white/70 mt-2">
+            {importing
+              ? "Choose an eligible project. Its ongoing operation, including upkeep, will become independent. Immediate rewards are not repeated."
+              : "Choose an eligible project. Its dependent operation will stop permanently."}
+          </p>
+        )}
       </GameFlowTitle>
 
       <GameFlowBody>
-        {hasNoStorage ? (
+        {hasNoStorage && isDependency ? (
+          <p className="p-4 text-sm text-white/70">No eligible project is available.</p>
+        ) : hasNoStorage ? (
           <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="text-yellow-400 text-4xl">⚠️</div>
@@ -193,10 +211,17 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
                   />
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="text-white/60 text-xs compact:text-[13px] font-medium">
-                    {currentStorage}
-                  </span>
-                  <GameIcon iconType={card.resourceStorage?.type || resourceType} size="small" />
+                  {!isDependency && (
+                    <>
+                      <span className="text-white/60 text-xs compact:text-[13px] font-medium">
+                        {currentStorage}
+                      </span>
+                      <GameIcon
+                        iconType={card.resourceStorage?.type || resourceType}
+                        size="small"
+                      />
+                    </>
+                  )}
                   <CardPreviewButton card={card} onPreview={setPreviewCard} />
                 </div>
               </div>
@@ -212,15 +237,17 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
               <GameButton emphasis="primary" tone="info" size="sm" onClick={onCancel}>
                 Cancel
               </GameButton>
-              <GameButton
-                emphasis="secondary"
-                tone="warn"
-                size="sm"
-                clickSound={false}
-                onClick={handleContinueWithoutStorage}
-              >
-                Continue Anyway
-              </GameButton>
+              {!isDependency && (
+                <GameButton
+                  emphasis="secondary"
+                  tone="warn"
+                  size="sm"
+                  clickSound={false}
+                  onClick={handleContinueWithoutStorage}
+                >
+                  Continue Anyway
+                </GameButton>
+              )}
             </>
           ) : (
             <GameButton emphasis="secondary" tone="info" size="sm" onClick={onCancel}>

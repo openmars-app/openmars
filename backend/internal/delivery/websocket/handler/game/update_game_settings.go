@@ -55,13 +55,12 @@ func (h *UpdateGameSettingsHandler) HandleMessage(ctx context.Context, connectio
 	}
 
 	domainPatch := gameaction.SettingsPatch{
-		MaxPlayers:       patch.MaxPlayers,
-		MapID:            patch.MapID,
-		VenusNextEnabled: patch.VenusNextEnabled,
-		DevelopmentMode:  patch.DevelopmentMode,
-		DemoGame:         patch.DemoGame,
-		AllowRandomBuy:   patch.AllowRandomBuy,
-		CardPacks:        patch.CardPacks,
+		MaxPlayers:      patch.MaxPlayers,
+		MapID:           patch.MapID,
+		DevelopmentMode: patch.DevelopmentMode,
+		DemoGame:        patch.DemoGame,
+		AllowRandomBuy:  patch.AllowRandomBuy,
+		GameModeID:      patch.GameModeID, GameModeParameters: patch.GameModeParameters, Features: patch.Features,
 		ClaudeOAuthToken: patch.ClaudeOAuthToken,
 		BotSpendCapUSD:   patch.BotSpendCapUSD,
 	}

@@ -63,7 +63,7 @@ func setupStuckPlayer(t *testing.T) (*game.Game, *player.Player, gamecards.CardR
 	settings := shared.GameSettings{
 		MaxPlayers:      5,
 		DevelopmentMode: true,
-		CardPacks:       []string{shared.PackBaseGame},
+		GameModeID:      "classic", Features: []string{},
 		// Colonies and Venus left disabled: no colony-trade action surface exists,
 		// matching a default base game. Base game IS enabled so the base-game standard
 		// projects (PowerPlant, etc.) are real surfaces, exactly as in a live game.

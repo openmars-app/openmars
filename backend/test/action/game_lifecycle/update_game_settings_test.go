@@ -20,7 +20,7 @@ type updateSettingsTestRig struct {
 func newUpdateSettingsRig(t *testing.T, players int) *updateSettingsTestRig {
 	t.Helper()
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	mapRegistry := testutil.CreateTestMapRegistry()
 	logger := testutil.TestLogger()
 
@@ -60,10 +60,10 @@ func (r *updateSettingsTestRig) game(t *testing.T) *gamePkg.Game {
 	return g
 }
 
-func boolPtr(b bool) *bool          { return &b }
-func intPtr(v int) *int             { return &v }
-func strPtr(s string) *string       { return &s }
-func packsPtr(p []string) *[]string { return &p }
+func boolPtr(b bool) *bool             { return &b }
+func intPtr(v int) *int                { return &v }
+func strPtr(s string) *string          { return &s }
+func featuresPtr(p []string) *[]string { return &p }
 
 func TestUpdateGameSettings_HostOnly(t *testing.T) {
 	rig := newUpdateSettingsRig(t, 2)
@@ -102,32 +102,32 @@ func TestUpdateGameSettings_MaxPlayersValidRange(t *testing.T) {
 	err := rig.action.Execute(context.Background(), rig.gameID, rig.host(), &gameAction.SettingsPatch{
 		MaxPlayers: intPtr(0),
 	})
-	testutil.AssertErrorContains(t, err, "max players must be between 1 and 10", "max=0 should reject")
+	testutil.AssertErrorContains(t, err, "max players must be between 1 and 8", "max=0 should reject")
 
 	err = rig.action.Execute(context.Background(), rig.gameID, rig.host(), &gameAction.SettingsPatch{
-		MaxPlayers: intPtr(11),
+		MaxPlayers: intPtr(9),
 	})
-	testutil.AssertErrorContains(t, err, "max players must be between 1 and 10", "max=11 should reject")
+	testutil.AssertErrorContains(t, err, "max players must be between 1 and 8", "max=9 should reject")
 
 	err = rig.action.Execute(context.Background(), rig.gameID, rig.host(), &gameAction.SettingsPatch{
-		MaxPlayers: intPtr(6),
+		MaxPlayers: intPtr(8),
 	})
-	testutil.AssertNoError(t, err, "max=6 should succeed")
-	testutil.AssertEqual(t, 6, rig.game(t).Settings().MaxPlayers, "max players should update")
+	testutil.AssertNoError(t, err, "Classic max=8 should succeed")
+	testutil.AssertEqual(t, 8, rig.game(t).Settings().MaxPlayers, "max players should update")
 }
 
-func TestUpdateGameSettings_CardPacksRequiresBaseGame(t *testing.T) {
+func TestUpdateGameSettings_RejectsUnknownModeAndFeatures(t *testing.T) {
 	rig := newUpdateSettingsRig(t, 1)
 
 	err := rig.action.Execute(context.Background(), rig.gameID, rig.host(), &gameAction.SettingsPatch{
-		CardPacks: packsPtr([]string{}),
+		GameModeID: strPtr("unknown"),
 	})
-	testutil.AssertErrorContains(t, err, "at least one card pack must be enabled", "empty card packs should reject")
+	testutil.AssertErrorContains(t, err, "unknown game mode", "unknown mode should reject")
 
 	err = rig.action.Execute(context.Background(), rig.gameID, rig.host(), &gameAction.SettingsPatch{
-		CardPacks: packsPtr([]string{"prelude"}),
+		Features: featuresPtr([]string{"unknown"}),
 	})
-	testutil.AssertErrorContains(t, err, "base game pack cannot be disabled", "missing base-game should reject")
+	testutil.AssertErrorContains(t, err, "feature unknown is unavailable in classic", "unknown feature should reject")
 }
 
 func TestUpdateGameSettings_DemoOffClearsChoices(t *testing.T) {

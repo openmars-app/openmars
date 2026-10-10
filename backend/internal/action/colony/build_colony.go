@@ -102,7 +102,7 @@ func (a *BuildColonyAction) Execute(ctx context.Context, gameID string, playerID
 		return fmt.Errorf("player already has a colony on this tile")
 	}
 
-	quote, err := cards.QuotePayment(player, g, a.cardRegistry, cards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: BuildColonyCost}, Action: "build-colony"})
+	quote, err := cards.QuotePayment(player, g, cards.ForGame(a.cardRegistry, g), cards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: BuildColonyCost}, Action: "build-colony"})
 	if err != nil {
 		return err
 	}
@@ -128,9 +128,9 @@ func (a *BuildColonyAction) Execute(ctx context.Context, gameID string, playerID
 		slot := definition.Colonies[slotIndex]
 		for _, reward := range slot.Reward {
 			if reward.Amount > 0 {
-				pending := applyOutput(ctx, g, player, reward.Type, reward.Amount, a.cardRegistry, log)
+				pending := applyOutput(ctx, g, player, reward.Type, reward.Amount, cards.ForGame(a.cardRegistry, g), log)
 				if pending != nil {
-					setPendingColonyResource(player, pending, definition.Name, colonyID, "build", a.cardRegistry, log)
+					setPendingColonyResource(player, pending, definition.Name, colonyID, "build", cards.ForGame(a.cardRegistry, g), log)
 				}
 				calculatedOutputs = append(calculatedOutputs, shared.CalculatedOutput{
 					ResourceType: reward.Type,

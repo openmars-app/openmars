@@ -70,7 +70,7 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 		return err
 	}
 
-	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
+	calculator := gamecards.NewRequirementModifierCalculator(gamecards.ForGame(a.cardRegistry, g))
 	discounts := calculator.CalculateStandardProjectDiscounts(player, shared.StandardProjectConvertPlantsToGreenery)
 	plantDiscount := discounts[shared.ResourcePlant]
 	requiredPlants := BasePlantsForGreenery - plantDiscount
@@ -82,7 +82,7 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 		slog.Int("discount", plantDiscount),
 		slog.Int("final_cost", requiredPlants))
 
-	quote, err := gamecards.QuotePayment(player, g, a.cardRegistry, gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourcePlant: requiredPlants}, Action: "standard-project", StandardProject: shared.StandardProjectConvertPlantsToGreenery})
+	quote, err := gamecards.QuotePayment(player, g, gamecards.ForGame(a.cardRegistry, g), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourcePlant: requiredPlants}, Action: "standard-project", StandardProject: shared.StandardProjectConvertPlantsToGreenery})
 	if err != nil {
 		return err
 	}

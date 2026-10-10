@@ -14,8 +14,11 @@ export default function LobbyMapInfoPanel({ game, playerId, layout }: LobbyMapIn
       layout={layout}
       maps={game.settings.availableMaps ?? []}
       mapId={game.settings.mapId}
-      cardPacks={game.settings.cardPacks ?? []}
-      venusNextEnabled={game.settings.venusNextEnabled}
+      modes={game.settings.availableGameModes}
+      gameModeId={game.settings.gameModeId}
+      gameModeParameters={game.settings.gameModeParameters}
+      features={game.settings.features}
+      maxPlayers={game.settings.maxPlayers}
       onChange={
         game.hostPlayerId === playerId
           ? (patch) => {

@@ -266,7 +266,7 @@ func TestInitPhase_LastPlayerForcedTilePlacement(t *testing.T) {
 
 	testGame.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers: 4,
-		CardPacks:  []string{"base-game"},
+		GameModeID: "classic", Features: []string{},
 	})
 
 	err := testGame.UpdateStatus(ctx, shared.GameStatusActive)

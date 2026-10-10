@@ -4,6 +4,7 @@ import "time"
 
 // GameHistoryEntryDto represents a single historical game state snapshot.
 type GameHistoryEntryDto struct {
+	ModeRuntime  *ModeRuntimeDto                 `json:"modeRuntime,omitempty"`
 	Sequence     int64                           `json:"sequence"`
 	Timestamp    time.Time                       `json:"timestamp"`
 	Generation   int                             `json:"generation"`
@@ -22,23 +23,25 @@ type GameHistoryEntryDto struct {
 
 // GameHistoryPlayerDto contains the player data needed for graphs and replay.
 type GameHistoryPlayerDto struct {
-	ID              string         `json:"id"`
-	Name            string         `json:"name"`
-	Color           string         `json:"color"`
-	TerraformRating int            `json:"terraformRating"`
-	Credits         int            `json:"credits"`
-	Steel           int            `json:"steel"`
-	Titanium        int            `json:"titanium"`
-	Plants          int            `json:"plants"`
-	Energy          int            `json:"energy"`
-	Heat            int            `json:"heat"`
-	PlayedCardCount int            `json:"playedCardCount"`
-	Production      ProductionDto  `json:"production"`
-	PlayedCardIDs   []string       `json:"playedCardIds"`
-	HandCardIDs     []string       `json:"handCardIds"`
-	CorporationID   string         `json:"corporationId"`
-	ResourceStorage map[string]int `json:"resourceStorage"`
-	TotalVP         int            `json:"totalVP"`
+	PermanentProduction ProductionDto                  `json:"permanentProduction"`
+	DependencyStatuses  map[string]DependencyStatusDto `json:"dependencyStatuses"`
+	ID                  string                         `json:"id"`
+	Name                string                         `json:"name"`
+	Color               string                         `json:"color"`
+	TerraformRating     int                            `json:"terraformRating"`
+	Credits             int                            `json:"credits"`
+	Steel               int                            `json:"steel"`
+	Titanium            int                            `json:"titanium"`
+	Plants              int                            `json:"plants"`
+	Energy              int                            `json:"energy"`
+	Heat                int                            `json:"heat"`
+	PlayedCardCount     int                            `json:"playedCardCount"`
+	Production          ProductionDto                  `json:"production"`
+	PlayedCardIDs       []string                       `json:"playedCardIds"`
+	HandCardIDs         []string                       `json:"handCardIds"`
+	CorporationID       string                         `json:"corporationId"`
+	ResourceStorage     map[string]int                 `json:"resourceStorage"`
+	TotalVP             int                            `json:"totalVP"`
 }
 
 // ClaimedMilestoneDto represents a claimed milestone in history.

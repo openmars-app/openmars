@@ -88,7 +88,7 @@ func (a *ConfirmCardDiscardAction) Execute(ctx context.Context, gameID string, p
 
 	// Remove discarded cards from hand
 	if len(cardsToDiscard) > 0 {
-		validator := gamecards.NewBehaviorApplier(p, g, selection.Source, log).WithSourceCardID(selection.SourceCardID).WithTriggeringCard(selection.TriggeringCardID, selection.TriggeringPlayerID).WithCardRegistry(a.CardRegistry())
+		validator := gamecards.NewBehaviorApplier(p, g, selection.Source, log).WithSourceCardID(selection.SourceCardID).WithTriggeringCard(selection.TriggeringCardID, selection.TriggeringPlayerID).WithCardRegistry(a.CardRegistryForGame(g))
 		if err := validator.ValidateResourceOutputs(selection.PendingOutputs); err != nil {
 			return err
 		}
@@ -209,7 +209,7 @@ func (a *ConfirmCardDiscardAction) applyPendingOutputs(
 		applier := gamecards.NewBehaviorApplier(p, g, selection.Source, slog.Default()).
 			WithSourceCardID(selection.SourceCardID).
 			WithTriggeringCard(selection.TriggeringCardID, selection.TriggeringPlayerID).
-			WithCardRegistry(a.CardRegistry()).
+			WithCardRegistry(a.CardRegistryForGame(g)).
 			WithSourceType(shared.SourceTypePassiveEffect)
 		if err := applier.ApplyOutputs(ctx, []shared.BehaviorCondition{outputBC}); err != nil {
 			return nil, err

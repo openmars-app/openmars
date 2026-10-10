@@ -40,12 +40,29 @@ func (e *Effects) read(fn func(s *datastore.PlayerState)) {
 }
 
 func (e *Effects) List() []shared.CardEffect {
-	var effectsCopy []shared.CardEffect
+	var runtime shared.ModeRuntimeState
+	_ = e.ds.ReadGame(e.gameID, func(s *datastore.GameState) { runtime = s.ModeRuntime })
+	var result []shared.CardEffect
 	e.read(func(s *datastore.PlayerState) {
-		effectsCopy = make([]shared.CardEffect, len(s.Effects))
-		copy(effectsCopy, s.Effects)
+		for _, effect := range s.Effects {
+			enabled := true
+			for _, r := range effect.Behavior.StateRequirements {
+				v, ok := runtime.EffectiveValue(r.State)
+				if !ok || v != r.Equals {
+					enabled = false
+				}
+			}
+			if dep := effect.Behavior.Dependency; dep != "" {
+				key := shared.DependencyKey(effect.CardID, dep)
+				d, ok := s.DependencyGroups[key]
+				enabled = enabled && ok && shared.DependencyEnabled(runtime, d, s.DependencyStatuses[key])
+			}
+			if enabled {
+				result = append(result, effect)
+			}
+		}
 	})
-	return effectsCopy
+	return result
 }
 
 func (e *Effects) SetEffects(effects []shared.CardEffect) {

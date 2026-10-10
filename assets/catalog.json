@@ -3819,6 +3819,266 @@
         "family": "Open Mars Frontier",
         "weight": 400
       }
+    },
+    {
+      "id": "cards/ES001",
+      "source": "cards/ES001.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES002",
+      "source": "cards/ES002.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES003",
+      "source": "cards/ES003.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES004",
+      "source": "cards/ES004.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES005",
+      "source": "cards/ES005.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES006",
+      "source": "cards/ES006.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES007",
+      "source": "cards/ES007.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES008",
+      "source": "cards/ES008.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES009",
+      "source": "cards/ES009.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES010",
+      "source": "cards/ES010.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES011",
+      "source": "cards/ES011.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES012",
+      "source": "cards/ES012.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES013",
+      "source": "cards/ES013.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES014",
+      "source": "cards/ES014.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES015",
+      "source": "cards/ES015.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES016",
+      "source": "cards/ES016.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES017",
+      "source": "cards/ES017.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES018",
+      "source": "cards/ES018.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES019",
+      "source": "cards/ES019.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES020",
+      "source": "cards/ES020.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES021",
+      "source": "cards/ES021.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES022",
+      "source": "cards/ES022.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES023",
+      "source": "cards/ES023.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES024",
+      "source": "cards/ES024.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES025",
+      "source": "cards/ES025.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES026",
+      "source": "cards/ES026.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES027",
+      "source": "cards/ES027.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES028",
+      "source": "cards/ES028.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES029",
+      "source": "cards/ES029.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES030",
+      "source": "cards/ES030.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES031",
+      "source": "cards/ES031.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES032",
+      "source": "cards/ES032.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES033",
+      "source": "cards/ES033.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES034",
+      "source": "cards/ES034.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES035",
+      "source": "cards/ES035.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES036",
+      "source": "cards/ES036.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES037",
+      "source": "cards/ES037.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES038",
+      "source": "cards/ES038.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES039",
+      "source": "cards/ES039.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES040",
+      "source": "cards/ES040.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES041",
+      "source": "cards/ES041.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES042",
+      "source": "cards/ES042.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES043",
+      "source": "cards/ES043.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES044",
+      "source": "cards/ES044.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/EP01",
+      "source": "cards/EP01.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/EP02",
+      "source": "cards/EP02.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/EP03",
+      "source": "cards/EP03.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/EP04",
+      "source": "cards/EP04.png",
+      "profile": "card"
+    },
+    {
+      "id": "corporations/terran-supply-authority",
+      "source": "corporations/terran-supply-authority.png",
+      "profile": "corporation",
+      "corporation": {
+        "key": "terran-supply-authority",
+        "name": "Terran Supply Authority",
+        "color": "#258ED0"
+      }
+    },
+    {
+      "id": "corporations/martian-independence-cooperative",
+      "source": "corporations/martian-independence-cooperative.png",
+      "profile": "corporation",
+      "corporation": {
+        "key": "martian-independence-cooperative",
+        "name": "Martian Independence Cooperative",
+        "color": "#B9704F"
+      }
     }
   ]
 }

@@ -72,7 +72,14 @@ async function settle(page: Page) {
   await page.waitForFunction(() =>
     document
       .getAnimations()
-      .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+      .filter((animation) => {
+        const effect = animation.effect;
+        if (effect?.getComputedTiming().iterations === Infinity) return false;
+        // Cached card families use content-visibility:hidden. Firefox keeps
+        // their suspended entrance animations in the running state.
+        const target = effect instanceof KeyframeEffect ? effect.target : null;
+        return !target || target.checkVisibility({ visibilityProperty: true });
+      })
       .every((animation) => animation.playState !== "running"),
   );
 }

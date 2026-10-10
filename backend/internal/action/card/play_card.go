@@ -104,7 +104,7 @@ func (a *PlayCardAction) Execute(
 		return fmt.Errorf("card %s not in hand", cardID)
 	}
 
-	card, err := a.CardRegistry().GetByID(cardID)
+	card, err := a.CardRegistryForGame(g).GetByID(cardID)
 	if err != nil {
 		log.Error("Card not found in registry", slog.Any("error", err))
 		return fmt.Errorf("card not found: %w", err)
@@ -114,20 +114,20 @@ func (a *PlayCardAction) Execute(
 		slog.String("card_name", card.Name),
 		slog.Int("base_cost", card.Cost))
 
-	calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistry())
+	calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistryForGame(g))
 
-	if err := validateCardRequirements(card, g, player, calculator, a.CardRegistry()); err != nil {
+	if err := validateCardRequirements(card, g, player, calculator, a.CardRegistryForGame(g)); err != nil {
 		log.Error("Card requirements not met", slog.Any("error", err))
 		return fmt.Errorf("cannot play card: %w", err)
 	}
 
 	for _, behavior := range card.Behaviors {
-		if !gamecards.HasAutoTrigger(behavior) {
+		if !gamecards.HasAutoTrigger(behavior) || !g.ModeRequirementsMet(behavior.StateRequirements) {
 			continue
 		}
 		effectiveChoice := choiceIndex
 		if behavior.ChoicePolicy != nil && behavior.ChoicePolicy.Type == shared.ChoicePolicyTypeAuto {
-			index := shared.AutoSelectChoiceIndex(behavior.ChoicePolicy, resolveChoicePolicyCount(behavior.ChoicePolicy, player, a.CardRegistry()))
+			index := shared.AutoSelectChoiceIndex(behavior.ChoicePolicy, resolveChoicePolicyCount(behavior.ChoicePolicy, player, a.CardRegistryForGame(g)))
 			if index >= 0 {
 				effectiveChoice = &index
 			}
@@ -141,20 +141,23 @@ func (a *PlayCardAction) Execute(
 			}
 		}
 		_, revealOutputs := behavior.ExtractInputsOutputs(effectiveChoice)
-		validator := gamecards.NewBehaviorApplier(player, g, card.Name, log).WithSourceCardID(card.ID).WithCardRegistry(a.CardRegistry()).WithTargetCardIDs(cardStorageTargets).WithSourceType(shared.SourceTypeCardPlay)
+		validator := gamecards.NewBehaviorApplier(player, g, card.Name, log).WithSourceCardID(card.ID).WithCardRegistry(a.CardRegistryForGame(g)).WithTargetCardIDs(cardStorageTargets).WithSourceType(shared.SourceTypeCardPlay).WithBehavior(behavior)
 		if targetPlayerID != nil {
 			validator.WithTargetPlayerID(*targetPlayerID)
 		}
 		if selectedAmount != nil {
 			validator.WithSelectedAmount(*selectedAmount)
 		}
+		if err := validator.ValidateModeOutputs(revealOutputs); err != nil {
+			return err
+		}
 		if err := validator.ValidateResourceOutputs(revealOutputs); err != nil {
 			return err
 		}
-		if err := gamecards.ValidateRevealOutputs(revealOutputs, g, a.CardRegistry()); err != nil {
+		if err := gamecards.ValidateRevealOutputs(revealOutputs, g, a.CardRegistryForGame(g)); err != nil {
 			return err
 		}
-		options, deferred, err := gamecards.EffectSelectionOptions(behavior.Outputs, player, g, a.CardRegistry(), a.colonyBonusLookup)
+		options, deferred, err := gamecards.EffectSelectionOptions(behavior.Outputs, player, g, a.CardRegistryForGame(g), a.colonyBonusLookup)
 		if err != nil {
 			return err
 		}
@@ -170,12 +173,12 @@ func (a *PlayCardAction) Execute(
 		return fmt.Errorf("cannot play card: %s", tileErrors[0].Message)
 	}
 
-	if err := validateProductionOutputs(card, player); err != nil {
+	if err := validateProductionOutputs(card, player, g); err != nil {
 		log.Error("Production output validation failed", slog.Any("error", err))
 		return fmt.Errorf("cannot play card: %w", err)
 	}
 
-	if err := validateNegativeResourceOutputs(card, player); err != nil {
+	if err := validateNegativeResourceOutputs(card, player, g); err != nil {
 		log.Error("Negative resource output validation failed", slog.Any("error", err))
 		return fmt.Errorf("cannot play card: %w", err)
 	}
@@ -185,8 +188,11 @@ func (a *PlayCardAction) Execute(
 		for _, behavior := range card.Behaviors {
 			if gamecards.HasAutoTrigger(behavior) && *choiceIndex >= 0 && *choiceIndex < len(behavior.Choices) {
 				selectedChoice := behavior.Choices[*choiceIndex]
+				if !g.ModeRequirementsMet(selectedChoice.StateRequirements) {
+					return fmt.Errorf("choice mode state requirement not met")
+				}
 				if selectedChoice.Requirements != nil {
-					if err := validateChoiceRequirements(selectedChoice.Requirements, player, g, a.CardRegistry()); err != nil {
+					if err := validateChoiceRequirements(selectedChoice.Requirements, player, g, a.CardRegistryForGame(g)); err != nil {
 						log.Error("Choice requirements not met", slog.Any("error", err))
 						return fmt.Errorf("choice %d requirements not met: %w", *choiceIndex, err)
 					}
@@ -209,7 +215,7 @@ func (a *PlayCardAction) Execute(
 			slog.Int("effective_cost", effectiveCost))
 	}
 
-	quote, err := gamecards.QuotePayment(player, g, a.CardRegistry(), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: effectiveCost}, Action: shared.ActionCardPlaying, Card: card})
+	quote, err := gamecards.QuotePayment(player, g, a.CardRegistryForGame(g), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: effectiveCost}, Action: shared.ActionCardPlaying, Card: card})
 	if err != nil {
 		return err
 	}
@@ -226,7 +232,7 @@ func (a *PlayCardAction) Execute(
 		}
 		effectiveChoice := choiceIndex
 		if behavior.ChoicePolicy != nil && len(behavior.Choices) > 0 {
-			index := shared.AutoSelectChoiceIndex(behavior.ChoicePolicy, resolveChoicePolicyCount(behavior.ChoicePolicy, player, a.CardRegistry()))
+			index := shared.AutoSelectChoiceIndex(behavior.ChoicePolicy, resolveChoicePolicyCount(behavior.ChoicePolicy, player, a.CardRegistryForGame(g)))
 			if index >= 0 {
 				effectiveChoice = &index
 			}
@@ -237,7 +243,7 @@ func (a *PlayCardAction) Execute(
 		}
 		immediateInputs = append(immediateInputs, inputs...)
 	}
-	inputApplier := gamecards.NewBehaviorApplier(player, g, card.Name, log).WithSourceCardID(card.ID).WithCardRegistry(a.CardRegistry()).WithInputCardIDs(cardStorageSources)
+	inputApplier := gamecards.NewBehaviorApplier(player, g, card.Name, log).WithSourceCardID(card.ID).WithCardRegistry(a.CardRegistryForGame(g)).WithInputCardIDs(cardStorageSources)
 	if selectedAmount != nil {
 		inputApplier.WithSelectedAmount(*selectedAmount)
 	}
@@ -284,7 +290,7 @@ func (a *PlayCardAction) Execute(
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
 
-	baseaction.ActivateSelfTagTriggers(g, player, card, a.CardRegistry(), log)
+	baseaction.ActivateSelfTagTriggers(g, player, card, a.CardRegistryForGame(g), log)
 
 	// Clean up temporary "next-card" effects that existed before this card was played
 	removePrePlayTemporaryEffects(player, prePlayTemporaryCardIDs, log)
@@ -320,6 +326,11 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 
 	for _, req := range card.Requirements.Items {
 		switch req.Type {
+		case gamecards.RequirementState:
+			value, ok := g.ModeStateValue(req.State)
+			if !ok || req.Equals == nil || value != *req.Equals {
+				return fmt.Errorf("mode state requirement not met")
+			}
 		case gamecards.RequirementTemperature:
 			lenience := calculator.CalculateGlobalParameterRequirementOffset(player, "temperature")
 			temp := g.GlobalParameters().Temperature()
@@ -367,6 +378,9 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 				return fmt.Errorf("production requirement missing resource specification")
 			}
 			production := player.Resources().Production()
+			if req.Permanent {
+				production = player.Resources().PermanentProduction()
+			}
 			var currentProd int
 			switch *req.Resource {
 			case shared.ResourceCredit, shared.ResourceCreditProduction:
@@ -444,6 +458,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 		slog.String("card_id", card.ID),
 		slog.Int("behavior_count", len(card.Behaviors)))
 
+	p.Resources().RegisterDependencyGroups(card.ID, card.DependencyGroups)
 	var allCalculatedOutputs []shared.CalculatedOutput
 
 	for behaviorIndex, behavior := range card.Behaviors {
@@ -452,11 +467,11 @@ func (a *PlayCardAction) applyCardBehaviors(
 			slog.Int("trigger_count", len(behavior.Triggers)))
 
 		// Apply auto-trigger behaviors immediately
-		if gamecards.HasAutoTrigger(behavior) {
+		if gamecards.HasAutoTrigger(behavior) && g.ModeRequirementsMet(behavior.StateRequirements) {
 			// Auto-select choice if behavior has an auto-selection policy
 			effectiveChoiceIndex := choiceIndex
 			if behavior.ChoicePolicy != nil && len(behavior.Choices) > 0 {
-				count := resolveChoicePolicyCount(behavior.ChoicePolicy, p, a.CardRegistry())
+				count := resolveChoicePolicyCount(behavior.ChoicePolicy, p, a.CardRegistryForGame(g))
 				autoIdx := shared.AutoSelectChoiceIndex(behavior.ChoicePolicy, count)
 				if autoIdx >= 0 {
 					effectiveChoiceIndex = &autoIdx
@@ -487,9 +502,9 @@ func (a *PlayCardAction) applyCardBehaviors(
 			// Use BehaviorApplier for consistent output handling
 			applier := gamecards.NewBehaviorApplier(p, g, card.Name, slog.Default()).
 				WithSourceCardID(card.ID).
-				WithCardRegistry(a.CardRegistry()).
+				WithCardRegistry(a.CardRegistryForGame(g)).
 				WithSourceType(shared.SourceTypeCardPlay).
-				WithProductionBox(behavior.ProductionBox)
+				WithProductionBox(behavior.ProductionBox).WithBehavior(behavior)
 			if a.colonyBonusLookup != nil {
 				applier = applier.WithColonyBonusLookup(a.colonyBonusLookup)
 			}
@@ -597,7 +612,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 			})
 
 			// Subscribe passive effects to relevant events
-			baseaction.SubscribePassiveEffectToEvents(ctx, g, p, effect, log, a.CardRegistry())
+			baseaction.SubscribePassiveEffectToEvents(ctx, g, p, effect, log, a.CardRegistryForGame(g))
 		}
 	}
 
@@ -828,7 +843,7 @@ func checkChoiceRequirement(req shared.ChoiceRequirement, p *player.Player, g *g
 		if req.Resource == nil {
 			return fmt.Errorf("production requirement missing resource type")
 		}
-		production := p.Resources().Production()
+		production := p.Resources().PermanentProduction()
 		amount := production.GetAmount(*req.Resource)
 		if req.Min != nil && amount < *req.Min {
 			return fmt.Errorf("%s production too low: need %d, have %d", *req.Resource, *req.Min, amount)
@@ -849,15 +864,15 @@ func checkChoiceRequirement(req shared.ChoiceRequirement, p *player.Player, g *g
 }
 
 // validateProductionOutputs checks that playing the card won't bring production below the minimum.
-func validateProductionOutputs(card *gamecards.Card, p *player.Player) error {
+func validateProductionOutputs(card *gamecards.Card, p *player.Player, g *game.Game) error {
 	if len(card.Behaviors) == 0 {
 		return nil
 	}
 
-	production := p.Resources().Production()
+	production := p.Resources().PermanentProduction()
 
 	for _, behavior := range card.Behaviors {
-		if !gamecards.HasAutoTrigger(behavior) {
+		if !gamecards.HasAutoTrigger(behavior) || !g.ModeRequirementsMet(behavior.StateRequirements) {
 			continue
 		}
 		for _, outputBC := range behavior.Outputs {
@@ -892,7 +907,7 @@ func validateProductionOutputs(card *gamecards.Card, p *player.Player) error {
 	return nil
 }
 
-func validateNegativeResourceOutputs(card *gamecards.Card, p *player.Player) error {
+func validateNegativeResourceOutputs(card *gamecards.Card, p *player.Player, g *game.Game) error {
 	if len(card.Behaviors) == 0 {
 		return nil
 	}
@@ -900,7 +915,7 @@ func validateNegativeResourceOutputs(card *gamecards.Card, p *player.Player) err
 	resources := p.Resources().Get()
 
 	for _, behavior := range card.Behaviors {
-		if !gamecards.HasAutoTrigger(behavior) {
+		if !gamecards.HasAutoTrigger(behavior) || !g.ModeRequirementsMet(behavior.StateRequirements) {
 			continue
 		}
 		for _, outputBC := range behavior.Outputs {

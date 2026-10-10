@@ -136,6 +136,13 @@ func CountPerCondition(
 		return 0
 	}
 
+	if per.ResourceType == shared.ResourcePermanentProductionTypes {
+		if p == nil {
+			return 0
+		}
+		return p.Resources().PermanentProduction().PositiveTypes()
+	}
+
 	if per.ResourceType == shared.ResourceColonyCount || per.ResourceType == shared.ResourceColony {
 		if colonies == nil {
 			return 0

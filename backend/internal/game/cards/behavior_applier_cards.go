@@ -23,7 +23,7 @@ func (a *BehaviorApplier) applyCardStorageOutput(ctx context.Context, o *shared.
 	}
 
 	// Generic card-resource: add resources of whatever type the target card stores
-	if rt == shared.ResourceCardResource {
+	if rt == shared.ResourceCardResource && o.Target != "self-card" {
 		targetID := a.nextTargetCardID()
 		if amount == 0 || (targetID == "" && amount > 0) {
 			return nil

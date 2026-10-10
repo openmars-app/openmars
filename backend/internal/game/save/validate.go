@@ -1,8 +1,11 @@
 package save
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -15,6 +18,7 @@ import (
 	"openmars/internal/game/colony"
 	"openmars/internal/game/datastore"
 	"openmars/internal/game/milestone"
+	"openmars/internal/game/mode"
 	"openmars/internal/game/projectfunding"
 	"openmars/internal/game/shared"
 	"openmars/internal/game/standardproject"
@@ -22,13 +26,16 @@ import (
 
 // Catalog supplies immutable definitions used to validate a portable position.
 type Catalog struct {
-	StandardProjects standardproject.StandardProjectRegistry
-	Cards            cards.CardRegistry
-	Maps             *board.MapRegistry
-	Colonies         colony.ColonyRegistry
-	Awards           award.AwardRegistry
-	Milestones       milestone.MilestoneRegistry
-	Projects         projectfunding.ProjectFundingRegistry
+	rawCards             map[string]*cards.Card
+	effectiveCards       map[[2]string]*cards.Card
+	allowUnselectedCards bool
+	StandardProjects     standardproject.StandardProjectRegistry
+	Cards                cards.CardRegistry
+	Maps                 *board.MapRegistry
+	Colonies             colony.ColonyRegistry
+	Awards               award.AwardRegistry
+	Milestones           milestone.MilestoneRegistry
+	Projects             projectfunding.ProjectFundingRegistry
 }
 
 // Fingerprint includes all loaded rule assets with deterministic project ordering.
@@ -42,13 +49,14 @@ func (c Catalog) Fingerprint() (string, error) {
 	slices.SortFunc(projects, func(a, b projectfunding.ProjectDefinition) int { return strings.Compare(a.ID, b.ID) })
 	return Fingerprint(struct {
 		Cards            []cards.Card
+		Modes            []mode.Definition
 		Maps             []*board.MapDefinition
 		Colonies         []colony.ColonyDefinition
 		Awards           []award.AwardDefinition
 		Milestones       []milestone.MilestoneDefinition
 		Projects         []projectfunding.ProjectDefinition
 		StandardProjects []standardproject.StandardProjectDefinition
-	}{c.Cards.GetAll(), maps, c.Colonies.GetAll(), c.Awards.GetAll(), c.Milestones.GetAll(), projects, c.StandardProjects.GetAll()})
+	}{c.Cards.GetAll(), cards.ModeDefinitions(c.Cards), maps, c.Colonies.GetAll(), c.Awards.GetAll(), c.Milestones.GetAll(), projects, c.StandardProjects.GetAll()})
 }
 
 // Validate checks current gameplay invariants and the complete historical archive.
@@ -76,6 +84,9 @@ func Validate(doc *Document, catalog Catalog, fingerprint string) (err error) {
 	if doc.State.Status != shared.GameStatusActive {
 		return fmt.Errorf("only in-progress games can be loaded")
 	}
+	// Lookups are immutable during validation; archive snapshots reuse these local copies.
+	catalog.rawCards = make(map[string]*cards.Card)
+	catalog.effectiveCards = make(map[[2]string]*cards.Card)
 	if err := catalog.validateState(doc.State); err != nil {
 		return fmt.Errorf("state: %w", err)
 	}
@@ -87,7 +98,8 @@ func Validate(doc *Document, catalog Catalog, fingerprint string) (err error) {
 	archive := *doc.State
 	archive.Players = map[string]*datastore.PlayerState{}
 	archive.Settings = doc.State.Settings
-	archive.Settings.CardPacks = []string{shared.PackBaseGame, shared.PackPrelude, shared.PackVenus, shared.PackExperimental, shared.PackColonies, shared.PackProjectFunding}
+	archiveCatalog := catalog
+	archiveCatalog.allowUnselectedCards = true
 	for id, p := range doc.State.Players {
 		archive.Players[id] = p
 	}
@@ -108,7 +120,9 @@ func Validate(doc *Document, catalog Catalog, fingerprint string) (err error) {
 				return fmt.Errorf("history[%d]: invalid player", i)
 			}
 		}
-		if err := catalog.walk(reflect.ValueOf(h.State), &archive, "history"); err != nil {
+		historyPosition := archive
+		historyPosition.Settings = h.State.Settings
+		if err := archiveCatalog.walk(reflect.ValueOf(h.State), &historyPosition, "history"); err != nil {
 			return fmt.Errorf("history[%d]: %w", i, err)
 		}
 		seq = h.Sequence
@@ -121,7 +135,7 @@ func Validate(doc *Document, catalog Catalog, fingerprint string) (err error) {
 		if entry.PlayerID != "" && archive.Players[entry.PlayerID] == nil {
 			return fmt.Errorf("log[%d]: unknown player", i)
 		}
-		if err := catalog.walk(reflect.ValueOf(entry), &archive, "log"); err != nil {
+		if err := archiveCatalog.walk(reflect.ValueOf(entry), &archive, "log"); err != nil {
 			return err
 		}
 		seq = entry.SequenceNumber
@@ -135,7 +149,7 @@ func Validate(doc *Document, catalog Catalog, fingerprint string) (err error) {
 				return fmt.Errorf("logBaseline: invalid player")
 			}
 		}
-		if err := catalog.walk(reflect.ValueOf(doc.LogBaseline), &archive, "logBaseline"); err != nil {
+		if err := archiveCatalog.walk(reflect.ValueOf(doc.LogBaseline), &archive, "logBaseline"); err != nil {
 			return err
 		}
 	}
@@ -165,17 +179,15 @@ func (c Catalog) validateState(s *datastore.GameState) error {
 	if !ok {
 		return fmt.Errorf("settings.mapId: unknown map")
 	}
-	packs := []string{shared.PackBaseGame, shared.PackPrelude, shared.PackVenus, shared.PackExperimental, shared.PackColonies, shared.PackProjectFunding}
-	if !slices.Contains(s.Settings.CardPacks, shared.PackBaseGame) {
-		return fmt.Errorf("settings.cardPacks: base game required")
+	settings, definition, err := mode.Normalize(cards.ModeDefinitions(c.Cards), s.Settings)
+	if err != nil {
+		return fmt.Errorf("settings: %w", err)
 	}
-	for _, p := range s.Settings.CardPacks {
-		if !slices.Contains(packs, p) {
-			return fmt.Errorf("settings.cardPacks: unknown pack %q", p)
-		}
+	if settings.GameModeID != s.Settings.GameModeID || !maps.Equal(settings.GameModeParameters, s.Settings.GameModeParameters) || !slices.Equal(settings.Features, s.Settings.Features) || !slices.Equal(settings.Systems, s.Settings.Systems) {
+		return fmt.Errorf("settings: incomplete or inconsistent mode selection")
 	}
-	if s.Settings.VenusNextEnabled && !slices.Contains(s.Settings.CardPacks, shared.PackVenus) {
-		return fmt.Errorf("settings: Venus requires its card pack")
+	if err := c.validateModeRuntime(s, definition); err != nil {
+		return err
 	}
 	phases := []shared.GamePhase{shared.GamePhaseWaitingForGameStart, shared.GamePhaseStartingSelection, shared.GamePhaseInitApplyCorp, shared.GamePhaseInitApplyPrelude, shared.GamePhaseAction, shared.GamePhaseProductionAndCardDraw, shared.GamePhaseFinalPhase, shared.GamePhaseComplete}
 	if !slices.Contains(phases, s.CurrentPhase) {
@@ -202,7 +214,7 @@ func (c Catalog) validateState(s *datastore.GameState) error {
 	if s.Players[s.CurrentTurnPlayerID] == nil {
 		return fmt.Errorf("currentTurnPlayerId: unknown player")
 	}
-	expected := board.GenerateBoardFromMap(def, s.Settings.VenusNextEnabled)
+	expected := board.GenerateBoardFromMap(def, s.Settings.HasVenus())
 	hexes := map[string]board.Tile{}
 	for _, tile := range expected {
 		hexes[tile.Coordinates.String()] = tile
@@ -318,7 +330,7 @@ func (c Catalog) validateState(s *datastore.GameState) error {
 			return err
 		}
 		if p.CorporationID != "" {
-			card, err := c.Cards.GetByID(p.CorporationID)
+			card, err := c.rawCard(p.CorporationID)
 			if err != nil || card.Type != cards.CardTypeCorporation {
 				return fmt.Errorf("players.%s.corporationId: invalid corporation", id)
 			}
@@ -329,7 +341,7 @@ func (c Catalog) validateState(s *datastore.GameState) error {
 		if p.Resources.Credits < 0 || p.Resources.Steel < 0 || p.Resources.Titanium < 0 || p.Resources.Plants < 0 || p.Resources.Energy < 0 || p.Resources.Heat < 0 {
 			return fmt.Errorf("players.%s.resources: negative resource", id)
 		}
-		if p.Production.Credits < -5 || p.Production.Steel < 0 || p.Production.Titanium < 0 || p.Production.Plants < 0 || p.Production.Energy < 0 || p.Production.Heat < 0 {
+		if !validSavedProduction(p) {
 			return fmt.Errorf("players.%s.production: out of range", id)
 		}
 		for _, a := range p.Actions {
@@ -366,7 +378,7 @@ func (c Catalog) validateState(s *datastore.GameState) error {
 		if s.Players[id] == nil || first == nil || !slices.Contains([]string{"queued", "resolving"}, first.State) {
 			return fmt.Errorf("forcedFirstActions: invalid continuation")
 		}
-		card, err := c.Cards.GetByID(first.CorporationID)
+		card, err := c.cardForState(first.CorporationID, s)
 		if err != nil {
 			return err
 		}
@@ -400,12 +412,12 @@ func (c Catalog) cardID(id string, s *datastore.GameState) error {
 	if id == "" {
 		return nil
 	}
-	card, err := c.Cards.GetByID(id)
+	card, err := c.rawCard(id)
 	if err != nil {
 		return err
 	}
-	if !s.Settings.EnabledPacks()[card.Pack] {
-		return fmt.Errorf("card %s belongs to a disabled pack", id)
+	if !c.allowUnselectedCards && (!s.Settings.AllowsContent(card.GameModes, card.RequiresSystems, card.RequiresFeatures) || card.Type == cards.CardTypePrelude && !s.Settings.HasPrelude()) {
+		return fmt.Errorf("card %s is unavailable in this mode selection", id)
 	}
 	return nil
 }
@@ -464,7 +476,7 @@ func (c Catalog) walk(v reflect.Value, s *datastore.GameState, path string) erro
 			value := v.Field(i)
 			if field.Name == "BehaviorIndex" || field.Name == "SourceBehaviorIndex" {
 				if cardID != "" {
-					card, err := c.Cards.GetByID(cardID)
+					card, err := c.cardForState(cardID, s)
 					if err != nil {
 						return err
 					}
@@ -546,4 +558,158 @@ func (c Catalog) reference(v reflect.Value, name string, s *datastore.GameState,
 		}
 	}
 	return nil
+}
+
+func (c Catalog) rawCard(id string) (*cards.Card, error) {
+	if card, ok := c.rawCards[id]; ok {
+		return card, nil
+	}
+	card, err := c.Cards.GetByID(id)
+	if err == nil && c.rawCards != nil {
+		c.rawCards[id] = card
+	}
+	return card, err
+}
+
+func (c Catalog) cardForState(id string, s *datastore.GameState) (*cards.Card, error) {
+	key := [2]string{s.Settings.GameModeID, id}
+	if card, ok := c.effectiveCards[key]; ok {
+		return card, nil
+	}
+	card, err := c.rawCard(id)
+	if err != nil {
+		return nil, err
+	}
+	effective, err := cards.ApplyModeModifiers(*card, s.Settings.GameModeID)
+	if err == nil && c.effectiveCards != nil {
+		c.effectiveCards[key] = &effective
+	}
+	return &effective, err
+}
+
+func (c Catalog) validateModeRuntime(s *datastore.GameState, definition mode.Definition) error {
+	r := s.ModeRuntime
+	actual, err := json.Marshal(r.Definition)
+	if err != nil {
+		return err
+	}
+	expected, err := json.Marshal(definition.Runtime)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(actual, expected) {
+		return fmt.Errorf("modeRuntime.definition: does not match the catalog")
+	}
+	initial := maps.Clone(definition.Runtime.State)
+	if initial == nil {
+		initial = map[string]int{}
+	}
+	for _, deadline := range definition.Runtime.Deadlines {
+		initial[deadline.State] = s.Settings.GameModeParameters[deadline.Parameter]
+	}
+	if !maps.Equal(initial, r.InitialValues) || len(r.Values) != len(initial) {
+		return fmt.Errorf("modeRuntime: invalid initial values or state keys")
+	}
+	for state := range r.Values {
+		if _, ok := initial[state]; !ok {
+			return fmt.Errorf("modeRuntime: unknown state %s", state)
+		}
+	}
+	for _, deadline := range definition.Runtime.Deadlines {
+		value := r.Values[deadline.State]
+		if value < initial[deadline.State]-deadline.MaxParameterAdjustment || value > initial[deadline.State]+deadline.MaxParameterAdjustment {
+			return fmt.Errorf("modeRuntime: deadline outside configured bounds")
+		}
+		occurred := r.Values[deadline.OccurredState]
+		if occurred != 0 && occurred != 1 || occurred == 0 && r.Values[deadline.ActiveState] != deadline.ActiveValue || occurred == 1 && r.Values[deadline.ActiveState] != deadline.InactiveValue {
+			return fmt.Errorf("modeRuntime: inconsistent deadline state")
+		}
+	}
+	if r.Sequence < 0 {
+		return fmt.Errorf("modeRuntime.sequence: negative value")
+	}
+	for _, count := range r.Changes {
+		if count < 0 {
+			return fmt.Errorf("modeRuntime.changes: negative usage")
+		}
+	}
+	boundary := func(generation int, name string) int {
+		return generation*3 + slices.Index([]string{"research-start", "production-start", "production-end"}, name)
+	}
+	ids := map[string]bool{}
+	for i, window := range r.Windows {
+		_, known := initial[window.State]
+		if window.ID == "" || ids[window.ID] || !known || window.StartGeneration < 1 || window.EndGeneration < window.StartGeneration || !slices.Contains([]string{"pending", "active", "completed", "cancelled"}, window.Status) || !slices.Contains([]string{"research-start", "production-start", "production-end"}, window.StartBoundary) || !slices.Contains([]string{"research-start", "production-start", "production-end"}, window.EndBoundary) {
+			return fmt.Errorf("modeRuntime.windows: invalid interval")
+		}
+		ids[window.ID] = true
+		start, end := boundary(window.StartGeneration, window.StartBoundary), boundary(window.EndGeneration, window.EndBoundary)
+		if end <= start {
+			return fmt.Errorf("modeRuntime.windows: invalid interval order")
+		}
+		for _, previous := range r.Windows[:i] {
+			if window.State == previous.State && window.Status != "cancelled" && previous.Status != "cancelled" && start < boundary(previous.EndGeneration, previous.EndBoundary) && end > boundary(previous.StartGeneration, previous.StartBoundary) {
+				return fmt.Errorf("modeRuntime.windows: overlapping reservations")
+			}
+		}
+	}
+	for _, p := range s.Players {
+		if p == nil {
+			continue
+		}
+		groups := maps.Clone(p.DependencyGroups)
+		if groups == nil {
+			groups = map[string]shared.DependencyGroup{}
+		}
+		for _, contribution := range p.ProductionContributions {
+			if !slices.Contains(p.PlayedCardIDs, contribution.CardID) && p.CorporationID != contribution.CardID {
+				return fmt.Errorf("productionContributions: source card is not owned")
+			}
+			if !slices.Contains([]shared.ResourceType{shared.ResourceCreditProduction, shared.ResourceSteelProduction, shared.ResourceTitaniumProduction, shared.ResourcePlantProduction, shared.ResourceEnergyProduction, shared.ResourceHeatProduction}, contribution.Resource) {
+				return fmt.Errorf("productionContributions: invalid production resource")
+			}
+			groups[shared.DependencyKey(contribution.CardID, contribution.Dependency.ID)] = contribution.Dependency
+		}
+		for _, group := range groups {
+			if _, known := initial[group.State]; group.ID == "" || !known {
+				return fmt.Errorf("dependencyGroups: unknown state or empty ID")
+			}
+			if group.RetireOnState != nil {
+				if _, known := initial[group.RetireOnState.State]; !known {
+					return fmt.Errorf("dependencyGroups: unknown retirement state")
+				}
+			}
+		}
+		for key, status := range p.DependencyStatuses {
+			group, ok := groups[key]
+			if !ok || status.Removed && (status.Retired || !group.Importable) {
+				return fmt.Errorf("dependencyStatuses: invalid source or status")
+			}
+		}
+		for _, count := range p.BehaviorUses {
+			if count < 0 {
+				return fmt.Errorf("behaviorUses: negative usage")
+			}
+		}
+	}
+	return nil
+}
+
+func validSavedProduction(p *datastore.PlayerState) bool {
+	for _, resource := range []shared.ResourceType{shared.ResourceCreditProduction, shared.ResourceSteelProduction, shared.ResourceTitaniumProduction, shared.ResourcePlantProduction, shared.ResourceEnergyProduction, shared.ResourceHeatProduction} {
+		minimum := 0
+		if resource == shared.ResourceCreditProduction {
+			minimum = shared.MinCreditProduction
+		}
+		// Importing signed upkeep preserves the raw rate; the floor applies to effective production.
+		for _, contribution := range p.ProductionContributions {
+			if contribution.Resource == resource && contribution.Amount < 0 && p.DependencyStatuses[shared.DependencyKey(contribution.CardID, contribution.Dependency.ID)].Removed {
+				minimum += contribution.Amount
+			}
+		}
+		if p.Production.GetAmount(resource) < minimum {
+			return false
+		}
+	}
+	return true
 }

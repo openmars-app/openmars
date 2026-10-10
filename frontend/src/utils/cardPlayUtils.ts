@@ -5,12 +5,14 @@ export interface StorageSelection {
   amount: number;
   target: string;
   selectorTags?: string[];
+  eligibleCardIds?: string[];
 }
 
 export interface StorageNeed {
   resourceType: ResourceType;
   amount: number;
   selectorTags?: string[];
+  eligibleCardIds?: string[];
 }
 
 const STORAGE_RESOURCES: ResourceType[] = [
@@ -37,12 +39,27 @@ const TARGETABLE_RESOURCES: ResourceType[] = [
   "heat-production",
 ];
 
-export function getAllAnyCardStorageSelections(outputs: any[] | undefined): StorageSelection[] {
+export function getAllAnyCardStorageSelections(
+  outputs: any[] | undefined,
+  eligibleCardIds?: string[],
+): StorageSelection[] {
   if (!outputs) return [];
 
   const results: StorageSelection[] = [];
 
   for (const output of outputs) {
+    if (
+      output.target === "any-card" &&
+      ["remove-dependency", "retire-dependency"].includes(output.type)
+    ) {
+      results.push({
+        resourceType: output.type,
+        amount: 1,
+        target: output.target,
+        eligibleCardIds: eligibleCardIds ?? [],
+      });
+      continue;
+    }
     if (
       output.amount > 0 &&
       (output.target === "any-card" || output.target === "self-card") &&

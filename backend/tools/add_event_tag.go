@@ -12,7 +12,7 @@ type Card struct {
 	Type        string          `json:"type"`
 	Cost        int             `json:"cost"`
 	Description json.RawMessage `json:"description"`
-	Pack        string          `json:"pack"`
+	GameModes   []string        `json:"gameModes"`
 	Tags        []string        `json:"tags,omitempty"`
 	// All other fields will be preserved with RawMessage
 	Other map[string]json.RawMessage `json:"-"`
@@ -63,7 +63,7 @@ func (c Card) MarshalJSON() ([]byte, error) {
 	result["type"] = c.Type
 	result["cost"] = c.Cost
 	result["description"] = c.Description
-	result["pack"] = c.Pack
+	result["gameModes"] = c.GameModes
 	if len(c.Tags) > 0 {
 		result["tags"] = c.Tags
 	}

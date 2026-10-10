@@ -88,7 +88,7 @@ func TestTileVisualPlacementAndViewerConsistency(t *testing.T) {
 	}
 	playerView := dto.ToGameDto(g, registry, playerID)
 	spectatorView := dto.ToSpectatorGameDto(g, registry, nil, nil)
-	history := dto.ToGameHistoryEntryDtos([]*datastore.GameStateHistoryEntry{{State: &datastore.GameState{Tiles: g.Board().Tiles()}}})
+	history := dto.ToGameHistoryEntryDtos([]*datastore.GameStateHistoryEntry{{State: &datastore.GameState{Tiles: g.Board().Tiles()}}}, nil)
 	var views []*dto.TileVisualDto
 	for _, tiles := range [][]dto.TileDto{playerView.Board.Tiles, spectatorView.Board.Tiles, history[0].Board.Tiles} {
 		for _, tile := range tiles {

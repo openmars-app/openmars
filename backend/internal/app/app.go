@@ -92,11 +92,10 @@ func New(cfg Config) (*App, error) {
 		log.Debug("Changelog loaded", slog.Int("entry_count", len(entries)))
 	}
 
-	cardData, err := cards.LoadCardsFromJSON(asset("cards.json"))
+	cardRegistry, err := cards.LoadCatalog(asset("cards.json"))
 	if err != nil {
 		return nil, fmt.Errorf("load cards: %w", err)
 	}
-	cardRegistry := cards.NewInMemoryCardRegistry(cardData)
 
 	colonyData, err := colony.LoadColoniesFromJSON(asset("colonies.json"))
 	if err != nil {
@@ -142,7 +141,7 @@ func New(cfg Config) (*App, error) {
 		return nil, fmt.Errorf("load bot strategy guide: %w", err)
 	}
 	log.Debug("Game data loaded",
-		slog.Int("card_count", len(cardData)),
+		slog.Int("card_count", len(cardRegistry.GetAll())),
 		slog.Int("map_count", len(mapRegistry.ListMaps())))
 
 	ds, err := datastore.NewDataStore()
@@ -163,7 +162,7 @@ func New(cfg Config) (*App, error) {
 		if err != nil {
 			return nil
 		}
-		return gameAction.ComputePlayerVPBreakdowns(g, cardRegistry, awardRegistry, milestoneRegistry)
+		return gameAction.ComputePlayerVPBreakdowns(g, cards.ForGame(cardRegistry, g), awardRegistry, milestoneRegistry)
 	})
 
 	stateRepo := game.NewInMemoryGameStateRepository()
@@ -258,7 +257,7 @@ func New(cfg Config) (*App, error) {
 	botController := bot.NewBotController(gameRepo, stateRepo, cardRegistry, broadcaster, botRunner, botTools, personas, bot.DefaultConfig(strategy), log)
 	broadcaster.SetBotNotifier(botController)
 	addBotAction := gameAction.NewAddBotAction(gameRepo, cardRegistry, botController, log, colonyRegistry)
-	startGameAction := turnAction.NewStartGameAction(gameRepo, colonyRegistry, pfRegistry, milestoneRegistry, awardRegistry, botController, log)
+	startGameAction := turnAction.NewStartGameAction(gameRepo, colonyRegistry, pfRegistry, milestoneRegistry, awardRegistry, botController, log, cardRegistry)
 	convertToBotAction := gameAction.NewConvertToBotAction(gameRepo, botController, log)
 
 	playerDisconnectedAction := connAction.NewPlayerDisconnectedAction(gameRepo, log)

@@ -50,6 +50,7 @@ func SetupRouter(
 
 	api := router.PathPrefix("/api/v1").Subrouter()
 	api.HandleFunc("/game-options", gameHandler.GameOptions).Methods(http.MethodGet)
+	api.HandleFunc("/game-modes", gameHandler.GameModes).Methods(http.MethodGet)
 	api.HandleFunc("/health", healthHandler.HealthCheck).Methods(http.MethodGet)
 	api.HandleFunc("/meta", metaHandler.Meta).Methods(http.MethodGet)
 	api.HandleFunc("/changelog", changelogHandler.Changelog).Methods(http.MethodGet)

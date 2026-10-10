@@ -39,7 +39,7 @@ func (a *ConfirmEffectSelectionAction) Execute(ctx context.Context, gameID, play
 	if optionIndex < 0 || optionIndex >= len(pending.Options) {
 		return fmt.Errorf("invalid effect option")
 	}
-	options, _, err := gamecards.EffectSelectionOptions(pending.Outputs, p, g, a.CardRegistry(), a.colonies)
+	options, _, err := gamecards.EffectSelectionOptions(pending.Outputs, p, g, a.CardRegistryForGame(g), a.colonies)
 	if err != nil {
 		return err
 	}
@@ -55,12 +55,12 @@ func (a *ConfirmEffectSelectionAction) Execute(ctx context.Context, gameID, play
 	}
 	description := "Moved colony tracks"
 	if selected.CardID != "" {
-		source, err := a.CardRegistry().GetByID(selected.CardID)
+		source, err := a.CardRegistryForGame(g).GetByID(selected.CardID)
 		if err != nil {
 			return err
 		}
 		description = "Copied production from " + source.Name
-		applier := gamecards.NewBehaviorApplier(p, g, pending.Source, log).WithSourceCardID(pending.SourceCardID).WithCardRegistry(a.CardRegistry()).WithTargetPlayerID(selected.TargetPlayerID).WithSourceType(shared.SourceTypeCardPlay)
+		applier := gamecards.NewBehaviorApplier(p, g, pending.Source, log).WithSourceCardID(pending.SourceCardID).WithCardRegistry(a.CardRegistryForGame(g)).WithTargetPlayerID(selected.TargetPlayerID).WithSourceType(shared.SourceTypeCardPlay)
 		if err := applier.ApplyOutputs(ctx, selected.Outputs); err != nil {
 			return err
 		}

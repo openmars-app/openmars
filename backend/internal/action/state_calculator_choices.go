@@ -12,6 +12,10 @@ import (
 // Returns a list of errors explaining why the choice is unavailable (empty if available).
 func CalculateChoiceErrors(choice shared.Choice, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) []player.StateError {
 	var errors []player.StateError
+	errors = append(errors, modeBehaviorErrors("", shared.CardBehavior{Outputs: choice.Outputs}, p, g, cardRegistry, nil)...)
+	if !g.ModeRequirementsMet(choice.StateRequirements) {
+		errors = append(errors, player.StateError{Code: player.ErrorCodeInvalidRequirement, Category: player.ErrorCategoryRequirement, Message: "Mode state requirement not met"})
+	}
 
 	if choice.Requirements != nil && len(choice.Requirements.Items) > 0 {
 		if err := gamecards.ValidateChoiceTagRequirements(choice.Requirements.Items, gamecards.PlayerTagCounts(p, cardRegistry)); err != nil {

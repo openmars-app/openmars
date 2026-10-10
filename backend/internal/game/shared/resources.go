@@ -47,3 +47,14 @@ func (r Resources) GetAmount(resourceType ResourceType) int {
 		return 0
 	}
 }
+
+// PositiveTypes counts resource types with production greater than zero.
+func (p Production) PositiveTypes() int {
+	count := 0
+	for _, amount := range []int{p.Credits, p.Steel, p.Titanium, p.Plants, p.Energy, p.Heat} {
+		if amount > 0 {
+			count++
+		}
+	}
+	return count
+}

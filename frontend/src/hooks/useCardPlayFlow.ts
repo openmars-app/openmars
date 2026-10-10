@@ -284,7 +284,10 @@ export function useCardPlayFlow() {
         store.setShowCardResourceSelection(true);
         return;
       }
-      const allStorageNeeds = getAllAnyCardStorageSelections(outputs);
+      const allStorageNeeds = getAllAnyCardStorageSelections(
+        outputs,
+        choice?.storageTargets?.[0] ?? action.dependencyTargets,
+      );
       if (allStorageNeeds.length > 0 && !cardStorageTargets) {
         const first = allStorageNeeds[0];
         store.setPendingActionStorage({
@@ -300,6 +303,7 @@ export function useCardPlayFlow() {
           resourceType: first.resourceType,
           amount: first.amount,
           selectorTags: first.selectorTags,
+          eligibleCardIds: first.eligibleCardIds,
         });
         store.setShowActionStorageSelection(true);
         return;
@@ -402,14 +406,19 @@ export function useCardPlayFlow() {
             resourceType: ResourceType;
             amount: number;
             selectorTags?: string[];
+            eligibleCardIds?: string[];
           }> = [];
           for (const behavior of autoTriggerBehaviors || []) {
-            const selections = getAllAnyCardStorageSelections(behavior.outputs);
+            const selections = getAllAnyCardStorageSelections(
+              behavior.outputs,
+              card.dependencyTargets,
+            );
             for (const sel of selections) {
               allStorageNeeds.push({
                 resourceType: sel.resourceType,
                 amount: sel.amount,
                 selectorTags: sel.selectorTags,
+                eligibleCardIds: sel.eligibleCardIds,
               });
             }
           }
@@ -425,6 +434,7 @@ export function useCardPlayFlow() {
               resourceType: first.resourceType,
               amount: first.amount,
               selectorTags: first.selectorTags,
+              eligibleCardIds: first.eligibleCardIds,
             });
             store.setShowCardStorageSelection(true);
           } else {
@@ -460,22 +470,31 @@ export function useCardPlayFlow() {
           resourceType: ResourceType;
           amount: number;
           selectorTags?: string[];
+          eligibleCardIds?: string[];
         }> = [];
-        const choiceSelections = getAllAnyCardStorageSelections(selectedChoice?.outputs);
+        const choiceSelections = getAllAnyCardStorageSelections(
+          selectedChoice?.outputs,
+          selectedChoice?.storageTargets?.[0] ?? cardPendingChoice.dependencyTargets,
+        );
         for (const sel of choiceSelections) {
           allStorageNeeds.push({
             resourceType: sel.resourceType,
             amount: sel.amount,
             selectorTags: sel.selectorTags,
+            eligibleCardIds: sel.eligibleCardIds,
           });
         }
         if (allStorageNeeds.length === 0) {
-          const behaviorSelections = getAllAnyCardStorageSelections(behavior?.outputs);
+          const behaviorSelections = getAllAnyCardStorageSelections(
+            behavior?.outputs,
+            cardPendingChoice.dependencyTargets,
+          );
           for (const sel of behaviorSelections) {
             allStorageNeeds.push({
               resourceType: sel.resourceType,
               amount: sel.amount,
               selectorTags: sel.selectorTags,
+              eligibleCardIds: sel.eligibleCardIds,
             });
           }
         }
@@ -491,6 +510,7 @@ export function useCardPlayFlow() {
             resourceType: first.resourceType,
             amount: first.amount,
             selectorTags: first.selectorTags,
+            eligibleCardIds: first.eligibleCardIds,
           });
           store.setShowCardStorageSelection(true);
           store.setCardPendingChoice(null);
@@ -607,6 +627,7 @@ export function useCardPlayFlow() {
             resourceType: next.resourceType,
             amount: next.amount,
             selectorTags: next.selectorTags,
+            eligibleCardIds: next.eligibleCardIds,
           });
           return;
         }
@@ -665,6 +686,7 @@ export function useCardPlayFlow() {
           resourceType: next.resourceType,
           amount: next.amount,
           selectorTags: next.selectorTags,
+          eligibleCardIds: next.eligibleCardIds,
         });
         return;
       }

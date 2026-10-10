@@ -339,10 +339,11 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
             className={`${uiAnimationClass} ${endgameFadeClass} transition-opacity duration-700 ease-in-out`}
           >
             <RightSidebar
+              game={gameState ?? undefined}
               globalParameters={gameState?.globalParameters}
               generation={gameState?.generation}
               currentPlayer={currentTurnPlayer}
-              showVenus={gameState?.settings?.venusNextEnabled}
+              showVenus={gameState?.settings?.systems.includes("venus")}
             />
 
             {playedCardNotification && onPlayedCardTogglePin && onPlayedCardAdvance && (

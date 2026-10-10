@@ -111,6 +111,101 @@ _NAME_OVERRIDES = {
     "EXP004": "nuclear detonation on Mars, enormous mushroom cloud rising over Martian desert, shockwave rippling across red terrain, intense blinding flash",
 }
 
+
+# Earth Withdrawal subjects are explicit so card rules never become image lettering.
+_NAME_OVERRIDES.update(
+{'ES001': 'Licensed fabrication robots processing Martian ore beneath an Earth telemetry '
+          'display.',
+ 'ES002': 'Priority cargo capsules approaching a Martian freight terminal.',
+ 'ES003': 'Local greenhouses managed through remote environmental-control consoles.',
+ 'ES004': 'Analysts using an Earth-hosted scientific platform from a Martian laboratory.',
+ 'ES005': 'Modular generators with remote maintenance links and local cooling equipment.',
+ 'ES006': 'A dispatcher allocating limited cargo capacity between industrial and biological '
+          'supplies.',
+ 'ES007': 'A construction project displaying its Terran financing authorization.',
+ 'ES008': 'Remote guidance coordinating a large Martian terraforming operation.',
+ 'ES009': 'Service crews bringing nursery plants and equipment to a newly completed settlement.',
+ 'ES010': 'Delegates presenting an independence petition in a Martian assembly chamber.',
+ 'ES011': 'Local engineers taking control of launch infrastructure.',
+ 'ES012': 'A local administrative office adjoining its research archive.',
+ 'ES013': 'A human settlement executive closes an Earth subsidy authorization terminal inside a '
+          'pressurized Martian office. Local factories beyond the window, no floating paperwork, '
+          'no aliens.',
+ 'ES014': 'Two human diplomats in normal formal clothing inside a pressurized Martian meeting '
+          'room exchange a secure data case to extend an infrastructure cooperation agreement. '
+          'No aliens, no planet in the sky.',
+ 'ES015': 'Replacement relay panels and salvaged components at a service dock.',
+ 'ES016': 'An extended service agreement beside a freight terminal operating through the night.',
+ 'ES017': 'A powerful communications array drawing electricity from newly installed generators.',
+ 'ES018': 'Sealed material lockers awaiting the final release authorization.',
+ 'ES019': 'A reserve nursery opening beneath an independently powered greenhouse.',
+ 'ES020': 'Researchers preserving technical libraries in rugged offline storage.',
+ 'ES041': 'A distant relay realigning its antenna toward Earth.',
+ 'ES042': 'Settlement antennas synchronized into a temporary ground array.',
+ 'ES043': 'A brief transmission unlocking pre-positioned supply manifests.',
+ 'ES044': 'A transmission mast drawing emergency power, its cooling radiators glowing at night.',
+ 'ES021': 'Engineers exchange a complete technical archive beside an imported turbine inside a '
+          'Martian habitat.',
+ 'ES022': 'Two scientists collaboratively inspect a locally manufactured prototype and abstract '
+          'technical visualization in a Martian laboratory.',
+ 'ES023': 'Industrial engineers exchange precision tooling and a steel casting at a glowing '
+          'Martian foundry.',
+ 'ES024': 'A specialist arrives at a Martian airlock carrying rugged data cases, welcomed by '
+          'local engineers.',
+ 'ES025': 'An urgent compact cargo capsule descends toward a Martian landing pad carrying '
+          'precision machine-control modules.',
+ 'ES026': 'A bioreactor synthesizes greenhouse nutrients from local Martian minerals, green '
+          'culture vessels and carefully maintained pipework.',
+ 'ES027': 'Researchers operate a locally mirrored technical archive, rugged storage racks and '
+          'dim cool screens in a Martian laboratory.',
+ 'ES028': 'Industrial waste-heat recovery pipes and heat exchangers distribute warmth to Martian '
+          'greenhouses, amber thermal glow.',
+ 'ES029': 'A local electrically powered parts foundry staffed by Martian engineers, precision '
+          'metal components and small heat-recovery pipes.',
+ 'ES030': 'A secure vault inside a Martian settlement contains sealed reserve funds in robust '
+          'anonymous cases, quiet warm security lighting.',
+ 'ES031': 'Delivered emergency supplies in sealed titanium and steel cargo bays, a Martian '
+          'warehouse with strong depth and overhead light.',
+ 'ES032': 'A control-room team rehearses isolated operation of a Martian settlement, focused '
+          'operators and abstract diagnostic displays.',
+ 'ES033': 'A domestic industrial trade fair inside a Martian habitat, locally made tools and '
+          'materials exchanged by workers.',
+ 'ES034': 'An intersettlement freight market exchanges local steel and titanium, compact '
+          'transport rovers beside organized cargo stacks.',
+ 'ES035': 'An autonomous furnace maintained by Martian technicians, robotic handling arms and '
+          'bright molten steel within an enclosed local foundry.',
+ 'ES036': 'An independent research campus on Mars studies mineral and atmospheric samples, '
+          'practical scientific equipment and sunlit red terrain beyond.',
+ 'ES037': 'Botanists maintain an independent greenhouse network, healthy plants and moisture '
+          'suspended in warm habitat light.',
+ 'ES038': 'A municipal power-dispatch center connects illuminated Martian domed settlements, '
+          'energy infrastructure crossing dark red terrain.',
+ 'ES039': 'Certified local scientific records stored beside research instruments in a meticulous '
+          'Martian archive, no readable writing.',
+ 'ES040': 'Martian industrial representatives sign a local commercial charter around a circular '
+          'table, independent workshops visible beyond, no readable writing.',
+ 'EP01': 'An early Martian settlement receives imported aerospace tooling, pallets of steel '
+         'beside precise titanium-processing equipment.',
+ 'EP02': 'The first settlement tooling workshop, a modest well-stocked workbench with steel '
+         'components and engineering instruments.',
+ 'EP03': 'Locally held emergency reserves sealed in an early Mars settlement vault, anonymous '
+         'resource containers and reliable locks.',
+ 'EP04': 'Settlement founders plan self-sufficiency beside a newly installed local generator, '
+         'collaborative practical work and red Martian terrain.'}
+)
+
+_CORPORATION_LOGOS = {'EC01': 'Use case: logo-brand. Standalone landscape 2:1 futuristic corporation wordmark. Exact '
+         'text in three lines: TERRAN / SUPPLY / AUTHORITY. Bold cream geometric angular '
+         'lettering with engineered cutouts on near-black charcoal. Electric blue orbital '
+         'cargo-link emblem integrated to the left. Flat graphic mark, precise margins, legible '
+         'at small size. No scenery, buildings, headquarters, subtitles or watermark.',
+ 'EC02': 'Use case: logo-brand. Standalone landscape 2:1 futuristic corporation wordmark. Exact '
+         'text in three lines: MARTIAN / INDEPENDENCE / COOPERATIVE. Bold cream geometric '
+         'angular lettering on near-black charcoal. Rust-copper accent, geometric interlocking '
+         'hexagonal industrial emblem integrated with the lettering. Strong retro-futurist '
+         'space-industry identity, flat graphic mark, precise margins, legible at small size. No '
+         'scenery, buildings, headquarters, subtitles or watermark.'}
+
 # Keywords that indicate a sentence is about game mechanics, not visuals
 _MECHANIC_KEYWORDS = re.compile(
     r"(?:production|M€|VP|step|tile|draw|discard|opponent|player|"
@@ -153,6 +248,9 @@ def build_prompt(card: dict) -> str:
     The card name is the dominant subject. Tags and type provide light
     atmospheric context without overwhelming the scene.
     """
+    if card["id"] in _CORPORATION_LOGOS:
+        return _CORPORATION_LOGOS[card["id"]]
+
     parts: list[str] = []
 
     # Card name as primary subject.
@@ -169,7 +267,10 @@ def build_prompt(card: dict) -> str:
         parts.append(f"{name}, detailed scene of {name}")
 
     # Visual concepts from description (short, secondary)
-    concepts = _extract_visual_concepts(card.get("description", ""))
+    description = card.get("description", "")
+    if isinstance(description, list):
+        description = " ".join(entry.get("text", "") for entry in description)
+    concepts = _extract_visual_concepts(description)
     if concepts:
         parts.append(concepts)
 

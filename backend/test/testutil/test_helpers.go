@@ -37,6 +37,16 @@ func CreateTestCardRegistry() gamecards.CardRegistry {
 	return GetCardDB()
 }
 
+// CreateTestModeCatalog loads the complete mode-aware application catalog.
+func CreateTestModeCatalog() gamecards.CardRegistry {
+	_, currentFile, _, _ := runtime.Caller(0)
+	catalog, err := gamecards.LoadCatalog(filepath.Join(filepath.Dir(currentFile), "..", "..", "assets", "cards.json"))
+	if err != nil {
+		panic(fmt.Sprintf("failed to load mode catalog: %v", err))
+	}
+	return catalog
+}
+
 // CreateTestAwardRegistry returns an award registry loaded from the JSON database.
 func CreateTestAwardRegistry() award.AwardRegistry {
 	_, currentFile, _, _ := runtime.Caller(0)
@@ -110,7 +120,7 @@ func CreateTestGameWithPlayers(t *testing.T, numPlayers int) (*game.Game, game.G
 	// Create game
 	settings := shared.GameSettings{
 		MaxPlayers: 4,
-		CardPacks:  []string{"base-game"},
+		GameModeID: "classic", Features: []string{},
 	}
 
 	testGame := game.NewGame(repo.DataStore(), uniqueGameID(t), "", settings, board.GenerateMarsBoard(false))
@@ -173,12 +183,11 @@ func CreateTestGameWithVenus(t *testing.T, numPlayers int) (*game.Game, game.Gam
 	cardRegistry := CreateTestCardRegistry()
 
 	settings := shared.GameSettings{
-		MaxPlayers:       4,
-		CardPacks:        []string{"base-game", "venus-next"},
-		VenusNextEnabled: true,
+		MaxPlayers: 4,
+		GameModeID: "classic", Features: []string{}, Systems: []string{"venus"},
 	}
 
-	testGame := game.NewGame(repo.DataStore(), uniqueGameID(t), "", settings, board.GenerateMarsBoard(settings.VenusNextEnabled))
+	testGame := game.NewGame(repo.DataStore(), uniqueGameID(t), "", settings, board.GenerateMarsBoard(settings.HasVenus()))
 	allCards := cardRegistry.GetAll()
 
 	projectCards := make([]string, 0)

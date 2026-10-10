@@ -96,7 +96,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		}
 	}
 
-	calc := gamecards.NewRequirementModifierCalculator(a.CardRegistry())
+	calc := gamecards.NewRequirementModifierCalculator(a.CardRegistryForGame(g))
 	cardBuyDiscounts := calc.CalculateActionDiscounts(player, shared.ActionCardBuying)
 	costPerCard := max(3-cardBuyDiscounts[shared.ResourceCredit], 0)
 	count := len(selectedCardIDs)
@@ -105,7 +105,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	}
 	cost := count * costPerCard
 
-	quote, err := gamecards.QuotePayment(player, g, a.CardRegistry(), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: cost}, Action: "card-buying"})
+	quote, err := gamecards.QuotePayment(player, g, a.CardRegistryForGame(g), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: cost}, Action: "card-buying"})
 	if err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 				return fmt.Errorf("failed to transition to final phase: %w", err)
 			}
 
-			autoPassPlayersForFinalPhase(allPlayers, a.CardRegistry(), log)
+			autoPassPlayersForFinalPhase(allPlayers, a.CardRegistryForGame(g), log)
 
 			turnOrder := g.TurnOrder()
 			firstPlayerID := ""

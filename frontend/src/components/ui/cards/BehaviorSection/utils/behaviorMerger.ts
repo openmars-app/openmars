@@ -28,7 +28,17 @@ const getConditionKey = (behavior: any): string | null => {
       const type = trigger.condition.type;
       const target = trigger.condition.target || "any";
       const location = trigger.condition.location || "any";
-      return `${type}:${target}:${location}`;
+      return JSON.stringify({
+        type,
+        target,
+        location,
+        condition: trigger.condition,
+        dependency: behavior.dependency,
+        stateRequirements: behavior.stateRequirements,
+        maxUsesPerGeneration: behavior.maxUsesPerGeneration,
+        maxUsesPerGame: behavior.maxUsesPerGame,
+        usageGroup: behavior.usageGroup,
+      });
     }
   }
   return null;
@@ -64,7 +74,7 @@ export const mergeTriggeredEffects = (
 
   triggeredEffects.forEach((effect) => {
     const groupKey = effect.behavior.group
-      ? `group:${effect.behavior.group}`
+      ? `group:${effect.behavior.group}:${JSON.stringify([effect.behavior.dependency, effect.behavior.stateRequirements, effect.behavior.maxUsesPerGeneration, effect.behavior.maxUsesPerGame, effect.behavior.usageGroup])}`
       : getConditionKey(effect.behavior);
     if (groupKey) {
       const existing = groupedByCondition.get(groupKey) || [];
@@ -140,7 +150,11 @@ const mergeAutoProductionGroup = (
 
     // Check if behavior has a trigger condition (e.g., greenery-placed for Herbivores)
     const hasCondition =
-      behavior.triggers && behavior.triggers.some((trigger: any) => trigger.condition);
+      Boolean(behavior.dependency) ||
+      Boolean(behavior.stateRequirements?.length) ||
+      Boolean(behavior.maxUsesPerGeneration) ||
+      Boolean(behavior.maxUsesPerGame) ||
+      (behavior.triggers && behavior.triggers.some((trigger: any) => trigger.condition));
 
     // Grouped behaviors skip auto merging — they'll be handled by mergeTriggeredEffects
     if (behavior.group) {

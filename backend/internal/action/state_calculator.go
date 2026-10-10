@@ -29,6 +29,15 @@ func CalculatePlayerCardState(
 	errors = append(errors, validateActionsRemaining(p, g)...)
 	errors = append(errors, validateNoPendingSelection(p, g)...)
 
+	cardRegistry = gamecards.ForGame(cardRegistry, g)
+	if effective, err := cardRegistry.GetByID(card.ID); err == nil {
+		card = effective
+	}
+	for _, b := range card.Behaviors {
+		if gamecards.HasAutoTrigger(b) && g.ModeRequirementsMet(b.StateRequirements) {
+			errors = append(errors, modeBehaviorErrors(card.ID, b, p, g, cardRegistry, metadata)...)
+		}
+	}
 	costMap, discounts := calculateEffectiveCost(card, p, cardRegistry)
 	if len(discounts) > 0 {
 		metadata["discounts"] = discounts
@@ -97,6 +106,15 @@ func CalculatePendingCardPlayability(
 	var warnings []player.StateWarning
 	metadata := make(map[string]interface{})
 
+	cardRegistry = gamecards.ForGame(cardRegistry, g)
+	if effective, err := cardRegistry.GetByID(card.ID); err == nil {
+		card = effective
+	}
+	for _, b := range card.Behaviors {
+		if gamecards.HasAutoTrigger(b) && g.ModeRequirementsMet(b.StateRequirements) {
+			errors = append(errors, modeBehaviorErrors(card.ID, b, p, g, cardRegistry, metadata)...)
+		}
+	}
 	costMap, discounts := calculateEffectiveCost(card, p, cardRegistry)
 	if len(discounts) > 0 {
 		metadata["discounts"] = discounts
@@ -139,7 +157,12 @@ func CalculatePlayerCardActionState(
 	cardRegistry ...gamecards.CardRegistry,
 ) player.EntityState {
 	var errors []player.StateError
-
+	var registry gamecards.CardRegistry
+	if len(cardRegistry) > 0 {
+		registry = gamecards.ForGame(cardRegistry[0], g)
+	}
+	metadata := make(map[string]interface{})
+	errors = append(errors, modeBehaviorErrors(cardID, behavior, p, g, registry, metadata)...)
 	errors = append(errors, validatePhase(g)...)
 
 	currentTurn := g.CurrentTurn()
@@ -207,7 +230,7 @@ func CalculatePlayerCardActionState(
 
 		// Production inputs check player production instead of basic resources
 		if shared.IsProductionResourceType(rt) {
-			available := p.Resources().Production().GetAmount(rt)
+			available := p.Resources().PermanentProduction().GetAmount(rt)
 			if available-shared.ProductionMinimum(rt) < amt {
 				errors = append(errors, player.StateError{
 					Code:     player.ErrorCodeInsufficientResources,
@@ -226,10 +249,6 @@ func CalculatePlayerCardActionState(
 				Message:  fmt.Sprintf("Not enough %s", rt),
 			})
 		}
-	}
-	var registry gamecards.CardRegistry
-	if len(cardRegistry) > 0 {
-		registry = cardRegistry[0]
 	}
 	for _, input := range behavior.Inputs {
 		if input.GetTarget() == "self-card" && gamecards.IsStorageResourceType(input.GetResourceType()) && !shared.IsVariableAmount(input) {
@@ -285,7 +304,7 @@ func CalculatePlayerCardActionState(
 		Errors:         errors,
 		Warnings:       warnings,
 		Cost:           make(map[string]int),
-		Metadata:       make(map[string]any),
+		Metadata:       metadata,
 		ComputedValues: computedValues,
 		LastCalculated: time.Now(),
 	}
@@ -577,7 +596,7 @@ func validateProductionOutputs(
 	}
 
 	var errors []player.StateError
-	production := p.Resources().Production()
+	production := p.Resources().PermanentProduction()
 
 	// Check all behaviors for auto-triggers with negative production outputs
 	for _, behavior := range card.Behaviors {
@@ -1107,6 +1126,11 @@ func checkRequirement(
 	calculator *gamecards.RequirementModifierCalculator,
 ) *player.StateError {
 	switch req.Type {
+	case gamecards.RequirementState:
+		value, ok := g.ModeStateValue(req.State)
+		if !ok || req.Equals == nil || value != *req.Equals {
+			return &player.StateError{Code: player.ErrorCodeInvalidRequirement, Category: player.ErrorCategoryRequirement, Message: "Mode state requirement not met"}
+		}
 	case gamecards.RequirementTemperature:
 		lenience := calculator.CalculateGlobalParameterRequirementOffset(p, "temperature")
 		temp := g.GlobalParameters().Temperature()
@@ -1200,6 +1224,9 @@ func checkRequirement(
 		}
 
 		production := p.Resources().Production()
+		if req.Permanent {
+			production = p.Resources().PermanentProduction()
+		}
 		currentProduction := production.GetAmount(*req.Resource)
 
 		if req.Min != nil && currentProduction < *req.Min {

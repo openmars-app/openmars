@@ -130,6 +130,7 @@ var emptyProfile = FieldProfile{}
 
 // outputFieldProfiles maps each ResourceType to its valid field profile for outputs.
 var outputFieldProfiles = map[ResourceType]FieldProfile{
+	ResourceStateChange: {AllowTarget: true}, ResourceRemoveDependency: {AllowTarget: true}, ResourceRetireDependency: {AllowTarget: true}, ResourceScheduleStateWindow: {AllowTarget: true},
 	ResourceCopy: {AllowTarget: true, AllowSelectors: true, AllowCopy: true},
 	// Basic resources
 	ResourceCredit:   basicResourceOutputProfile,
@@ -262,6 +263,7 @@ var inputFieldProfiles = map[ResourceType]FieldProfile{
 
 // ValidTargets is the set of known valid target values.
 var validTargets = map[string]bool{
+	"game":                true,
 	"self-player":         true,
 	"self-card":           true,
 	"triggering-card":     true,
@@ -277,6 +279,7 @@ var validTargets = map[string]bool{
 
 // AllResourceTypes contains every ResourceType constant for exhaustiveness testing.
 var AllResourceTypes = []ResourceType{
+	ResourceStateChange, ResourceRemoveDependency, ResourceRetireDependency, ResourceScheduleStateWindow,
 	ResourceCopy,
 	ResourceCredit, ResourceSteel, ResourceTitanium, ResourcePlant, ResourceEnergy, ResourceHeat,
 	ResourceMicrobe, ResourceAnimal, ResourceFloater, ResourceScience, ResourceAsteroid, ResourceFighter, ResourceDisease, ResourceCamp,
@@ -300,6 +303,28 @@ var AllResourceTypes = []ResourceType{
 // isInput indicates whether this is an input (true) or output (false).
 // Returns a list of violation descriptions (empty = valid).
 func ValidateResourceCondition(bc BehaviorCondition, isInput bool) []string {
+	if o, ok := bc.(*StateCondition); ok {
+		if isInput {
+			return []string{"state operations cannot be inputs"}
+		}
+		switch o.ResourceType {
+		case ResourceStateChange:
+			if o.State == "" || o.Amount == 0 || o.Target != "game" {
+				return []string{"state-change requires state, nonzero amount and game target"}
+			}
+		case ResourceScheduleStateWindow:
+			if o.State == "" || o.Start == nil || o.End == nil || o.Target != "game" {
+				return []string{"state window requires state, boundaries and game target"}
+			}
+		case ResourceRemoveDependency, ResourceRetireDependency:
+			if o.Dependency == "" || (o.Target != "any-card" && o.Target != "self-card") {
+				return []string{"dependency operation requires dependency and card target"}
+			}
+		default:
+			return []string{"unknown state operation"}
+		}
+		return nil
+	}
 	if payment, ok := bc.(*PaymentSubstituteCondition); ok {
 		var problems []string
 		if isInput || payment.Target != "self-player" || payment.Amount <= 0 {

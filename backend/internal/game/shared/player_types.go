@@ -29,10 +29,11 @@ type VPGranter struct {
 
 // VPCondition defines how victory points are calculated
 type VPCondition struct {
-	Amount     int
-	Condition  string // "fixed", "per", "once"
-	MaxTrigger *int
-	Per        *PerCondition
+	StateRequirements []StateRequirement
+	Amount            int
+	Condition         string // "fixed", "per", "once"
+	MaxTrigger        *int
+	Per               *PerCondition
 }
 
 // VP condition type constants

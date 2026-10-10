@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 
 	"github.com/google/uuid"
 
 	"openmars/internal/game"
 	"openmars/internal/game/board"
 	"openmars/internal/game/cards"
+	"openmars/internal/game/mode"
 	"openmars/internal/game/shared"
 )
 
@@ -44,7 +44,7 @@ func (a *CreateGameAction) Execute(
 ) (*game.Game, error) {
 	log := a.logger.With(
 		slog.Int("max_players", settings.MaxPlayers),
-		slog.Any("card_packs", settings.CardPacks),
+		slog.String("game_mode", settings.GameModeID),
 	)
 	log.Debug("Creating new game")
 
@@ -76,24 +76,31 @@ func (a *CreateGameAction) Build(gameID string, settings shared.GameSettings) (*
 	if settings.MapID == "" {
 		settings.MapID = board.DefaultMapID()
 	}
-	if len(settings.CardPacks) == 0 {
-		settings.CardPacks = shared.DefaultCardPacks()
+	var definition mode.Definition
+	var err error
+	settings, definition, err = mode.Normalize(cards.ModeDefinitions(a.cardRegistry), settings)
+	if err != nil {
+		return nil, err
 	}
-	if settings.VenusNextEnabled && !slices.Contains(settings.CardPacks, shared.PackVenus) {
-		settings.CardPacks = append(settings.CardPacks, shared.PackVenus)
+	effective, err := cards.Resolve(a.cardRegistry, settings)
+	if err != nil {
+		return nil, err
 	}
 
 	mapDef, ok := a.mapRegistry.GetMap(settings.MapID)
 	if !ok {
 		return nil, fmt.Errorf("unknown map: %s", settings.MapID)
 	}
-	initialTiles := board.GenerateBoardFromMap(mapDef, settings.VenusNextEnabled)
+	initialTiles := board.GenerateBoardFromMap(mapDef, settings.HasVenus())
 
 	newGame := game.NewGame(a.gameRepo.DataStore(), gameID, "", settings, initialTiles)
 
-	projectCardIDs, corpIDs, preludeIDs := cards.GetCardIDsByPacks(a.cardRegistry, settings.CardPacks)
+	projectCardIDs, corpIDs, preludeIDs := cards.GetCardIDs(effective)
 	newGame.InitDeck(projectCardIDs, corpIDs, preludeIDs)
-	newGame.SetVPCardLookup(cards.NewVPCardLookupAdapter(a.cardRegistry))
+	newGame.SetVPCardLookup(cards.NewVPCardLookupAdapter(effective))
+	if err := newGame.ConfigureModeRuntime(definition.Runtime, settings.GameModeParameters); err != nil {
+		return nil, err
+	}
 	a.logger.Debug("Deck initialized",
 		slog.String("game_id", gameID),
 		slog.Int("project_cards", len(projectCardIDs)),
@@ -116,6 +123,7 @@ func getFirst5(ids []string) []string {
 type GameOptions struct {
 	Defaults      shared.GameSettings
 	AvailableMaps []*board.MapDefinition
+	GameModes     []mode.Definition
 }
 
 // Options returns the defaults and boards used by game creation.
@@ -127,8 +135,8 @@ func (a *CreateGameAction) Options() GameOptions {
 	}
 	return GameOptions{Defaults: shared.GameSettings{
 		MaxPlayers: game.DefaultMaxPlayers, MapID: board.DefaultMapID(),
-		CardPacks: shared.DefaultCardPacks(),
-	}, AvailableMaps: availableMaps}
+		GameModeID: "classic", Features: []string{"prelude"},
+	}, AvailableMaps: availableMaps, GameModes: cards.ModeDefinitions(a.cardRegistry)}
 }
 
 // ExecuteSetup validates the complete setup before registering a game.
@@ -144,14 +152,12 @@ func (a *CreateGameAction) ExecuteSetup(ctx context.Context, setup *shared.GameS
 }
 
 func validateSetup(settings shared.GameSettings, registry *board.MapRegistry) error {
-	if settings.MaxPlayers < 1 || settings.MaxPlayers > 10 {
-		return fmt.Errorf("max players must be between 1 and 10")
+	if settings.MaxPlayers < 1 || settings.MaxPlayers > 8 {
+		return fmt.Errorf("max players must be between 1 and 8")
 	}
 	if _, ok := registry.GetMap(settings.MapID); !ok {
 		return fmt.Errorf("unknown map: %s", settings.MapID)
 	}
-	if !slices.Contains(settings.CardPacks, shared.PackBaseGame) {
-		return fmt.Errorf("base game pack cannot be disabled")
-	}
+
 	return nil
 }

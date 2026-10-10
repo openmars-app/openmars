@@ -1,10 +1,11 @@
 import React from "react";
+import type { VPConditionDto } from "@/types/generated/api-types.ts";
 import { getIconPath } from "@/utils/iconStore.ts";
 import DecorBox from "./DecorBox.tsx";
 
 interface VictoryPointIconProps {
   value?: number | string;
-  vpConditions?: any[];
+  vpConditions?: VPConditionDto[];
   corner?: "bottom-right" | "top-left";
   bare?: boolean;
 }
@@ -28,7 +29,18 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
     }
     return (
       <DecorBox corner={corner}>
-        {content}
+        <span
+          title={vpConditions
+            ?.map((condition) => condition.description)
+            .filter(Boolean)
+            .join(" ")}
+          className="inline-flex items-center gap-0.5"
+        >
+          {content}
+          {vpConditions?.some((condition) => condition.stateRequirements?.length) && (
+            <span aria-label="Conditional scoring">*</span>
+          )}
+        </span>
         <span className="text-[9px] text-white/50 font-semibold tracking-wider">VP</span>
       </DecorBox>
     );
@@ -54,6 +66,11 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             <span className="text-[11px] font-bold">{condition.amount}</span>
             <span className="text-[9px] text-white/40">/</span>
             {perAmount > 1 && <span className="text-[11px] font-bold">{perAmount}</span>}
+            {!resourceIcon && (
+              <span className="text-[9px]" title={condition.description}>
+                type
+              </span>
+            )}
             {resourceIcon && (
               <img src={resourceIcon} alt={resourceType} className="w-3.5 h-3.5 object-contain" />
             )}
@@ -86,6 +103,11 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             <span className="text-[11px] font-bold">{firstPerCondition.amount}</span>
             <span className="text-[9px] text-white/40">/</span>
             {perAmount > 1 && <span className="text-[11px] font-bold">{perAmount}</span>}
+            {!resourceIcon && (
+              <span className="text-[9px]" title={firstPerCondition.description}>
+                type
+              </span>
+            )}
             {resourceIcon && (
               <img src={resourceIcon} alt={resourceType} className="w-3.5 h-3.5 object-contain" />
             )}

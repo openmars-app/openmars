@@ -16,19 +16,19 @@ import (
 func TestGameLifecycle_CreateJoinStartPlay(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
 	// Create actions
 	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, testutil.CreateTestMapRegistry(), logger)
 	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 
 	// Step 1: Create game
 	settings := shared.GameSettings{
 		MaxPlayers: 4,
-		CardPacks:  []string{"base-game"},
+		GameModeID: "classic", Features: []string{},
 	}
 
 	createdGame, err := createAction.Execute(ctx, settings)
@@ -88,7 +88,7 @@ func TestGameLifecycle_CreateJoinStartPlay(t *testing.T) {
 func TestGameLifecycle_MultipleGames(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
@@ -96,13 +96,13 @@ func TestGameLifecycle_MultipleGames(t *testing.T) {
 	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Create 3 games
-	game1, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 2, CardPacks: []string{"base-game"}})
+	game1, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 2, GameModeID: "classic", Features: []string{}})
 	testutil.AssertNoError(t, err, "Failed to create game 1")
 
-	game2, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 2, CardPacks: []string{"base-game"}})
+	game2, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 2, GameModeID: "classic", Features: []string{}})
 	testutil.AssertNoError(t, err, "Failed to create game 2")
 
-	game3, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 2, CardPacks: []string{"base-game"}})
+	game3, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 2, GameModeID: "classic", Features: []string{}})
 	testutil.AssertNoError(t, err, "Failed to create game 3")
 
 	// Add players to each game
@@ -131,7 +131,7 @@ func TestGameLifecycle_MultipleGames(t *testing.T) {
 func TestGameLifecycle_PlayerReconnection(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
@@ -139,7 +139,7 @@ func TestGameLifecycle_PlayerReconnection(t *testing.T) {
 	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Create game
-	createdGame, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 2, CardPacks: []string{"base-game"}})
+	createdGame, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 2, GameModeID: "classic", Features: []string{}})
 	testutil.AssertNoError(t, err, "Failed to create game")
 
 	// Player joins
@@ -163,16 +163,16 @@ func TestGameLifecycle_PlayerReconnection(t *testing.T) {
 func TestGameLifecycle_SoloMode(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
 	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, testutil.CreateTestMapRegistry(), logger)
 	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 
 	// Create game
-	createdGame, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 1, CardPacks: []string{"base-game"}})
+	createdGame, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 1, GameModeID: "classic", Features: []string{}})
 	testutil.AssertNoError(t, err, "Failed to create game")
 
 	// Single player joins
@@ -199,7 +199,7 @@ func TestGameLifecycle_SoloMode(t *testing.T) {
 func TestGameLifecycle_GameStateConsistency(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
@@ -207,7 +207,7 @@ func TestGameLifecycle_GameStateConsistency(t *testing.T) {
 	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Create game
-	createdGame, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 4, CardPacks: []string{"base-game"}})
+	createdGame, err := createAction.Execute(ctx, shared.GameSettings{MaxPlayers: 4, GameModeID: "classic", Features: []string{}})
 	testutil.AssertNoError(t, err, "Failed to create game")
 	gameID := createdGame.ID()
 

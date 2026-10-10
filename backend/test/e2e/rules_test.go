@@ -73,7 +73,7 @@ func TestRules_ProjectFundingNeverChargesMoreThanTheSeatCosts(t *testing.T) {
 	srv := harness.Start(t)
 	game := srv.Play(t, func(s *dto.GameSetupDto) {
 		s.DevelopmentMode = true
-		s.CardPacks = append(s.CardPacks, "project-funding")
+		s.Features = append(s.Features, "project-funding")
 	}, "alice", "bob")
 	player := game.Current(t)
 	player.Admin(t, dto.AdminCommandTypeSetResources, map[string]any{"playerId": player.PlayerID(), "resources": map[string]any{"credits": 200}})

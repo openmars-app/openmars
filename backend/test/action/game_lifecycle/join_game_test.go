@@ -117,7 +117,7 @@ func TestJoinGameAction_MaxPlayersReached(t *testing.T) {
 	// Create game with max 2 players
 	settings := shared.GameSettings{
 		MaxPlayers: 2,
-		CardPacks:  []string{shared.PackBaseGame},
+		GameModeID: "classic", Features: []string{},
 	}
 
 	ds, _ := datastore.NewDataStore()

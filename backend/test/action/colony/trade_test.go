@@ -38,7 +38,7 @@ func setupColonyGame(t *testing.T) (*game.Game, game.GameRepository, colony.Colo
 	colonyRegistry := colony.NewInMemoryColonyRegistry(colonyDefs)
 
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	testGame.UpdateSettings(context.Background(), settings)
 
 	// Give both players energy for trading

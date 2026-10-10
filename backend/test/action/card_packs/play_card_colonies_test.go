@@ -34,7 +34,7 @@ func setupColoniesGame(t *testing.T) (*game.Game, game.GameRepository, colony.Co
 	colonyRegistry := colony.NewInMemoryColonyRegistry(colonyDefs)
 
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	testGame.UpdateSettings(context.Background(), settings)
 
 	return testGame, repo, colonyRegistry, player1, player2

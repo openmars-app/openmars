@@ -27,6 +27,14 @@ type ChoicePolicy struct {
 
 // CardBehavior represents card behaviors (immediate and repeatable)
 type CardBehavior struct {
+	ID                            string                         `json:"id,omitempty"`
+	Dependency                    string                         `json:"dependency,omitempty"`
+	Scope                         string                         `json:"scope,omitempty"`
+	StateRequirements             []StateRequirement             `json:"stateRequirements,omitempty"`
+	MaxUsesPerGame                int                            `json:"maxUsesPerGame,omitempty"`
+	UsageGroup                    string                         `json:"usageGroup,omitempty"`
+	ResourceRequirements          []BehaviorResourceRequirement  `json:"resourceRequirements,omitempty"`
+	MaxUsesPerGeneration          int                            `json:"maxUsesPerGeneration,omitempty"`
 	ProductionBox                 string                         `json:"productionBox,omitempty"`
 	Description                   string                         `json:"description,omitempty" ts:"string | undefined"`
 	Triggers                      []Trigger                      `json:"triggers,omitempty"`
@@ -41,6 +49,18 @@ type CardBehavior struct {
 // DeepCopy creates a deep copy of the CardBehavior
 func (cb CardBehavior) DeepCopy() CardBehavior {
 	var result CardBehavior
+	result.ID = cb.ID
+	result.Dependency = cb.Dependency
+	result.Scope = cb.Scope
+	result.StateRequirements = append([]StateRequirement(nil), cb.StateRequirements...)
+	result.MaxUsesPerGeneration = cb.MaxUsesPerGeneration
+	result.MaxUsesPerGame = cb.MaxUsesPerGame
+	result.UsageGroup = cb.UsageGroup
+	result.ResourceRequirements = append([]BehaviorResourceRequirement(nil), cb.ResourceRequirements...)
+	for i := range result.ResourceRequirements {
+		result.ResourceRequirements[i].Min = clonePointer(result.ResourceRequirements[i].Min)
+		result.ResourceRequirements[i].Max = clonePointer(result.ResourceRequirements[i].Max)
+	}
 
 	result.Description = cb.Description
 	result.Group = cb.Group
@@ -75,6 +95,22 @@ func (cb CardBehavior) DeepCopy() CardBehavior {
 		result.Triggers = make([]Trigger, len(cb.Triggers))
 		for i, trigger := range cb.Triggers {
 			result.Triggers[i] = trigger
+			if trigger.Condition != nil {
+				c := *trigger.Condition
+				c.To = clonePointer(c.To)
+				c.Target = clonePointer(c.Target)
+				c.Location = clonePointer(c.Location)
+				c.ResourceTypes = append([]ResourceType(nil), c.ResourceTypes...)
+				c.Selectors = CloneSelectors(c.Selectors)
+				c.OnBonusType = append([]string(nil), c.OnBonusType...)
+				if c.RequiredOriginalCost != nil {
+					v := *c.RequiredOriginalCost
+					v.Min = clonePointer(v.Min)
+					v.Max = clonePointer(v.Max)
+					c.RequiredOriginalCost = &v
+				}
+				result.Triggers[i].Condition = &c
+			}
 		}
 	}
 
@@ -95,7 +131,7 @@ func (cb CardBehavior) DeepCopy() CardBehavior {
 	if cb.Choices != nil {
 		result.Choices = make([]Choice, len(cb.Choices))
 		for i, choice := range cb.Choices {
-			choiceCopy := Choice{}
+			choiceCopy := Choice{StateRequirements: append([]StateRequirement(nil), choice.StateRequirements...)}
 
 			if choice.Inputs != nil {
 				choiceCopy.Inputs = make([]BehaviorCondition, len(choice.Inputs))
@@ -273,6 +309,14 @@ func IsProductionResourceType(rt ResourceType) bool {
 // convert to []BehaviorCondition with pointer elements.
 func (cb *CardBehavior) UnmarshalJSON(data []byte) error {
 	type cardBehaviorJSON struct {
+		ID                            string                         `json:"id,omitempty"`
+		Dependency                    string                         `json:"dependency,omitempty"`
+		Scope                         string                         `json:"scope,omitempty"`
+		StateRequirements             []StateRequirement             `json:"stateRequirements,omitempty"`
+		MaxUsesPerGame                int                            `json:"maxUsesPerGame,omitempty"`
+		UsageGroup                    string                         `json:"usageGroup,omitempty"`
+		ResourceRequirements          []BehaviorResourceRequirement  `json:"resourceRequirements,omitempty"`
+		MaxUsesPerGeneration          int                            `json:"maxUsesPerGeneration,omitempty"`
 		ProductionBox                 string                         `json:"productionBox,omitempty"`
 		Description                   string                         `json:"description,omitempty"`
 		Triggers                      []Trigger                      `json:"triggers,omitempty"`
@@ -287,6 +331,14 @@ func (cb *CardBehavior) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
+	cb.ID = raw.ID
+	cb.Dependency = raw.Dependency
+	cb.Scope = raw.Scope
+	cb.StateRequirements = raw.StateRequirements
+	cb.MaxUsesPerGeneration = raw.MaxUsesPerGeneration
+	cb.MaxUsesPerGame = raw.MaxUsesPerGame
+	cb.UsageGroup = raw.UsageGroup
+	cb.ResourceRequirements = raw.ResourceRequirements
 	cb.Description = raw.Description
 	cb.Triggers = raw.Triggers
 	cb.ChoicePolicy = raw.ChoicePolicy
@@ -298,9 +350,10 @@ func (cb *CardBehavior) UnmarshalJSON(data []byte) error {
 	cb.Choices = make([]Choice, len(raw.Choices))
 	for i, c := range raw.Choices {
 		cb.Choices[i] = Choice{
-			Inputs:       resourceConditionsToInterface(c.Inputs),
-			Outputs:      resourceConditionsToInterface(c.Outputs),
-			Requirements: c.Requirements,
+			Inputs:            resourceConditionsToInterface(c.Inputs),
+			Outputs:           resourceConditionsToInterface(c.Outputs),
+			Requirements:      c.Requirements,
+			StateRequirements: c.StateRequirements,
 		}
 	}
 	return nil
@@ -308,9 +361,10 @@ func (cb *CardBehavior) UnmarshalJSON(data []byte) error {
 
 // choiceJSON is the JSON deserialization format for Choice (uses flat resourceConditionJSON).
 type choiceJSON struct {
-	Inputs       []resourceConditionJSON `json:"inputs,omitempty"`
-	Outputs      []resourceConditionJSON `json:"outputs,omitempty"`
-	Requirements *ChoiceRequirements     `json:"requirements,omitempty"`
+	StateRequirements []StateRequirement      `json:"stateRequirements,omitempty"`
+	Inputs            []resourceConditionJSON `json:"inputs,omitempty"`
+	Outputs           []resourceConditionJSON `json:"outputs,omitempty"`
+	Requirements      *ChoiceRequirements     `json:"requirements,omitempty"`
 }
 
 // resourceConditionsToInterface converts a flat []resourceConditionJSON to []BehaviorCondition.

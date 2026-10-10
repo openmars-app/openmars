@@ -37,8 +37,21 @@ func (a *BehaviorApplier) applyBasicResourceOutput(ctx context.Context, o *share
 
 func (a *BehaviorApplier) applyProductionOutput(ctx context.Context, o *shared.ProductionCondition, amount int, log *slog.Logger) error {
 	rt := o.ResourceType
+	dependency := o.Dependency
+	if dependency == nil && a.behavior != nil && a.behavior.Dependency != "" {
+		card, err := a.cardRegistry.GetByID(a.sourceCardID)
+		if err != nil {
+			return err
+		}
+		dependency, err = DependencyForBehavior(card, *a.behavior)
+		if err != nil {
+			return err
+		}
+	}
 	if a.productionBox == "resolved" && a.player != nil {
-		a.player.Resources().RecordProductionBox(a.sourceCardID, *shared.NewProductionCondition(rt, amount, o.Target))
+		resolved := shared.NewProductionCondition(rt, amount, o.Target)
+		resolved.Dependency = dependency
+		a.player.Resources().RecordProductionBox(a.sourceCardID, *resolved)
 	}
 	if o.Target == "any-player" {
 		return a.applyAnyPlayerProduction(rt, amount, log)
@@ -46,7 +59,15 @@ func (a *BehaviorApplier) applyProductionOutput(ctx context.Context, o *shared.P
 	if a.player == nil {
 		return fmt.Errorf("cannot apply %s: no player context", rt)
 	}
-	a.player.Resources().AddProduction(map[shared.ResourceType]int{rt: amount})
+	if dependency != nil {
+		behaviorID := ""
+		if a.behavior != nil {
+			behaviorID = a.behavior.ID
+		}
+		a.player.Resources().AddDependentProduction(shared.ProductionContribution{CardID: a.sourceCardID, BehaviorID: behaviorID, Dependency: *dependency, Resource: rt, Amount: amount})
+	} else {
+		a.player.Resources().AddProduction(map[shared.ResourceType]int{rt: amount})
+	}
 	log.Debug("Added production", slog.String("type", string(rt)), slog.Int("amount", amount))
 	return nil
 }

@@ -24,22 +24,23 @@ import (
 )
 
 type Game struct {
-	resumeLobby          *ResumeLobby
-	mu                   sync.RWMutex
-	ds                   *datastore.DataStore
-	id                   string
-	globalParameters     *global_parameters.GlobalParameters
-	currentTurn          *Turn
-	board                *board.Board
-	colonies             *colonies.Colonies
-	deck                 *deck.Deck
-	players              map[string]*player.Player
-	eventBus             *events.EventBusImpl
-	milestones           *Milestones
-	awards               *Awards
-	vpCardLookup         VPCardLookup
-	firstActionExecutors map[string]func(context.Context, *Game, string) error
-	executingFirstAction atomic.Bool
+	modeBehaviorsRegistered bool
+	resumeLobby             *ResumeLobby
+	mu                      sync.RWMutex
+	ds                      *datastore.DataStore
+	id                      string
+	globalParameters        *global_parameters.GlobalParameters
+	currentTurn             *Turn
+	board                   *board.Board
+	colonies                *colonies.Colonies
+	deck                    *deck.Deck
+	players                 map[string]*player.Player
+	eventBus                *events.EventBusImpl
+	milestones              *Milestones
+	awards                  *Awards
+	vpCardLookup            VPCardLookup
+	firstActionExecutors    map[string]func(context.Context, *Game, string) error
+	executingFirstAction    atomic.Bool
 }
 
 func (g *Game) update(fn func(s *datastore.GameState)) {
@@ -89,7 +90,7 @@ func NewGame(
 		CreatedAt:                  now,
 		UpdatedAt:                  now,
 		Status:                     shared.GameStatusLobby,
-		Settings:                   settings,
+		Settings:                   settings.Clone(),
 		HostPlayerID:               hostPlayerID,
 		CurrentPhase:               shared.GamePhaseWaitingForGameStart,
 		Generation:                 1,
@@ -198,13 +199,13 @@ func (g *Game) Status() shared.GameStatus {
 
 func (g *Game) Settings() shared.GameSettings {
 	var v shared.GameSettings
-	g.read(func(s *datastore.GameState) { v = s.Settings })
+	g.read(func(s *datastore.GameState) { v = s.Settings.Clone() })
 	return v
 }
 
 func (g *Game) UpdateSettings(ctx context.Context, settings shared.GameSettings) {
 	g.update(func(s *datastore.GameState) {
-		s.Settings = settings
+		s.Settings = settings.Clone()
 		s.UpdatedAt = time.Now()
 	})
 }

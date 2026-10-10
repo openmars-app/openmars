@@ -16,7 +16,7 @@ import (
 func TestCreateGameAction_Success(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 
 	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, testutil.CreateTestMapRegistry(), logger)
@@ -24,7 +24,7 @@ func TestCreateGameAction_Success(t *testing.T) {
 	// Execute
 	settings := shared.GameSettings{
 		MaxPlayers: 4,
-		CardPacks:  []string{shared.PackBaseGame},
+		GameModeID: "classic", Features: []string{},
 	}
 
 	createdGame, err := createAction.Execute(context.Background(), settings)
@@ -44,7 +44,7 @@ func TestCreateGameAction_Success(t *testing.T) {
 func TestCreateGameAction_DefaultSettings(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 
 	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, testutil.CreateTestMapRegistry(), logger)
@@ -56,13 +56,13 @@ func TestCreateGameAction_DefaultSettings(t *testing.T) {
 	// Assert defaults are applied
 	testutil.AssertNoError(t, err, "Failed to create game with empty settings")
 	testutil.AssertEqual(t, game.DefaultMaxPlayers, createdGame.Settings().MaxPlayers, "Should use default max players")
-	testutil.AssertTrue(t, len(createdGame.Settings().CardPacks) > 0, "Should have default card packs")
+	testutil.AssertTrue(t, createdGame.Settings().GameModeID == "classic", "Should select Classic by default")
 }
 
 func TestCreateGameAction_DeckInitialization(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 
 	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, testutil.CreateTestMapRegistry(), logger)
@@ -70,7 +70,7 @@ func TestCreateGameAction_DeckInitialization(t *testing.T) {
 	// Execute
 	settings := shared.GameSettings{
 		MaxPlayers: 4,
-		CardPacks:  []string{shared.PackBaseGame},
+		GameModeID: "classic", Features: []string{},
 	}
 
 	createdGame, err := createAction.Execute(context.Background(), settings)
@@ -81,33 +81,42 @@ func TestCreateGameAction_DeckInitialization(t *testing.T) {
 	deck := createdGame.Deck()
 	testutil.AssertTrue(t, deck != nil, "Deck should be initialized")
 
-	// Verify deck has cards from the base pack
+	// Verify deck has cards from Classic
 	// (The deck should contain project cards from the registry)
 }
 
-func TestCreateGameAction_MultipleCardPacks(t *testing.T) {
+func TestCreateGameAction_PreludeFeature(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 
 	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, testutil.CreateTestMapRegistry(), logger)
 
-	packs := []string{shared.PackBaseGame, shared.PackPrelude}
-	createdGame, err := createAction.Execute(context.Background(), shared.GameSettings{MaxPlayers: 4, CardPacks: packs})
-	testutil.AssertNoError(t, err, "Failed to create game with multiple card packs")
+	// Execute with the Prelude feature
+	settings := shared.GameSettings{
+		MaxPlayers: 4,
+		GameModeID: "classic", Features: []string{"prelude"},
+	}
 
-	projects, corps, preludes := gamecards.GetCardIDsByPacks(cardRegistry, packs)
-	testutil.AssertEqual(t, len(projects), len(createdGame.Deck().ProjectCards()), "every project card of both packs is in the deck")
-	testutil.AssertEqual(t, len(corps), len(createdGame.Deck().Corporations()), "every corporation of both packs is in the deck")
+	createdGame, err := createAction.Execute(context.Background(), settings)
+
+	// Assert
+	testutil.AssertNoError(t, err, "Failed to create game with Preludes")
+
+	effective, err := gamecards.Resolve(cardRegistry, createdGame.Settings())
+	testutil.AssertNoError(t, err, "resolve selected mode")
+	projects, corps, preludes := gamecards.GetCardIDs(effective)
+	testutil.AssertEqual(t, len(projects), len(createdGame.Deck().ProjectCards()), "every selected project card is in the deck")
+	testutil.AssertEqual(t, len(corps), len(createdGame.Deck().Corporations()), "every selected corporation is in the deck")
 	testutil.AssertEqual(t, len(preludes), len(createdGame.Deck().PreludeCards()), "every prelude is in the deck")
-	testutil.AssertTrue(t, len(preludes) > 0, "the prelude pack has preludes")
+	testutil.AssertTrue(t, len(preludes) > 0, "the enabled Prelude feature supplies preludes")
 }
 
 func TestCreateGameAction_BoardInitialization(t *testing.T) {
 	// Setup
 	repo := testutil.NewTestGameRepository(t)
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	logger := testutil.TestLogger()
 
 	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, testutil.CreateTestMapRegistry(), logger)
@@ -115,7 +124,7 @@ func TestCreateGameAction_BoardInitialization(t *testing.T) {
 	// Execute
 	settings := shared.GameSettings{
 		MaxPlayers: 2,
-		CardPacks:  []string{shared.PackBaseGame},
+		GameModeID: "classic", Features: []string{},
 	}
 
 	createdGame, err := createAction.Execute(context.Background(), settings)
@@ -129,7 +138,7 @@ func TestCreateGameAction_BoardInitialization(t *testing.T) {
 
 func TestCreateGameRequestOptions(t *testing.T) {
 	repo := testutil.NewTestGameRepository(t)
-	registry := testutil.CreateTestCardRegistry()
+	registry := testutil.CreateTestModeCatalog()
 	action := gameAction.NewCreateGameAction(repo, registry, testutil.CreateTestMapRegistry(), testutil.TestLogger())
 	options := dto.MapGameOptions(action.Options())
 	if len(options.AvailableMaps) == 0 || len(options.AvailableMaps[0].Tiles) == 0 {
@@ -140,22 +149,22 @@ func TestCreateGameRequestOptions(t *testing.T) {
 	testutil.AssertEqual(t, options.Defaults.MapID, created.Settings().MapID, "map defaults match")
 	testutil.AssertEqual(t, options.Defaults.MaxPlayers, created.Settings().MaxPlayers, "player defaults match")
 	testutil.AssertEqual(t, options.Defaults.DevelopmentMode, created.Settings().DevelopmentMode, "development default matches")
-	if !slices.Equal(options.Defaults.CardPacks, created.Settings().CardPacks) {
-		t.Fatal("pack defaults differ")
+	if !slices.Equal(options.Defaults.Features, created.Settings().Features) {
+		t.Fatal("feature defaults differ")
 	}
 
 	setup := options.Defaults
 	setup.MapID = options.AvailableMaps[len(options.AvailableMaps)-1].ID
 	setup.MaxPlayers = 3
-	setup.CardPacks = []string{shared.PackBaseGame}
-	setup.VenusNextEnabled = true
+	setup.Features = []string{}
+	setup.GameModeID = "classic"
 	setup.DevelopmentMode = false
 	customized, err := action.ExecuteSetup(context.Background(), setup.ToSettings())
 	testutil.AssertNoError(t, err, "create configured game")
 	testutil.AssertEqual(t, setup.MapID, customized.Settings().MapID, "chosen map retained")
 	testutil.AssertEqual(t, 3, customized.Settings().MaxPlayers, "chosen player count retained")
 	testutil.AssertFalse(t, customized.Settings().DevelopmentMode, "explicit false retained")
-	testutil.AssertTrue(t, customized.Settings().VenusNextEnabled, "venus enabled")
+	testutil.AssertFalse(t, customized.Settings().HasVenus(), "classic excludes Venus")
 	testutil.AssertFalse(t, customized.Settings().HasPrelude(), "prelude can be omitted")
 }
 
@@ -167,13 +176,13 @@ func TestCreateGameRequestRejectsInvalidSetup(t *testing.T) {
 		{"map", func(s *dto.GameSetupDto) { s.MapID = "unknown" }},
 		{"zero players", func(s *dto.GameSetupDto) { s.MaxPlayers = 0 }},
 		{"too many players", func(s *dto.GameSetupDto) { s.MaxPlayers = 11 }},
-		{"empty packs", func(s *dto.GameSetupDto) { s.CardPacks = []string{} }},
-		{"missing base", func(s *dto.GameSetupDto) { s.CardPacks = []string{shared.PackPrelude} }},
+		{"unknown mode", func(s *dto.GameSetupDto) { s.GameModeID = "unknown" }},
+		{"unknown feature", func(s *dto.GameSetupDto) { s.Features = []string{"unknown"} }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := testutil.NewTestGameRepository(t)
-			action := gameAction.NewCreateGameAction(repo, testutil.CreateTestCardRegistry(), testutil.CreateTestMapRegistry(), testutil.TestLogger())
+			action := gameAction.NewCreateGameAction(repo, testutil.CreateTestModeCatalog(), testutil.CreateTestMapRegistry(), testutil.TestLogger())
 			setup := dto.MapGameOptions(action.Options()).Defaults
 			tt.change(&setup)
 			created, err := action.ExecuteSetup(context.Background(), setup.ToSettings())

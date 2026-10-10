@@ -8,6 +8,7 @@ import (
 type RequirementType string
 
 const (
+	RequirementState       RequirementType = "state"
 	RequirementTemperature RequirementType = "temperature"
 	RequirementOxygen      RequirementType = "oxygen"
 	RequirementOceans      RequirementType = "ocean"
@@ -29,12 +30,15 @@ type CardRequirements struct {
 
 // Requirement represents a single card requirement
 type Requirement struct {
-	Type     RequirementType      `json:"type"`
-	Min      *int                 `json:"min,omitempty"`
-	Max      *int                 `json:"max,omitempty"`
-	Location *CardApplyLocation   `json:"location,omitempty"`
-	Tag      *shared.CardTag      `json:"tag,omitempty"`
-	Resource *shared.ResourceType `json:"resource,omitempty"`
+	Permanent bool                 `json:"permanent,omitempty"`
+	State     string               `json:"state,omitempty"`
+	Equals    *int                 `json:"equals,omitempty"`
+	Type      RequirementType      `json:"type"`
+	Min       *int                 `json:"min,omitempty"`
+	Max       *int                 `json:"max,omitempty"`
+	Location  *CardApplyLocation   `json:"location,omitempty"`
+	Tag       *shared.CardTag      `json:"tag,omitempty"`
+	Resource  *shared.ResourceType `json:"resource,omitempty"`
 }
 
 // CardApplyLocation represents different locations

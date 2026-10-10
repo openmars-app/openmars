@@ -70,6 +70,10 @@ func (a *ConfirmAwardFundAction) Execute(ctx context.Context, gameID string, pla
 		return fmt.Errorf("invalid award type: %s", awardType)
 	}
 
+	if !g.Settings().AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
+		return fmt.Errorf("award is not available in this game mode")
+	}
+
 	if err := g.Awards().FundAward(ctx, shared.AwardType(awardType), playerID, 0); err != nil {
 		return fmt.Errorf("failed to fund award: %w", err)
 	}

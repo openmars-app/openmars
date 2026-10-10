@@ -22,7 +22,7 @@ func setupTradeStateGame(t *testing.T) (*game.Game, gamecards.CardRegistry, stri
 	cardRegistry := testutil.CreateTestCardRegistry()
 
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	ctx := context.Background()
 	testGame.UpdateSettings(ctx, settings)
 

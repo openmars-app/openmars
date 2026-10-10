@@ -21,6 +21,8 @@ type ColonyBonusLookup interface {
 // BehaviorApplier handles applying card behavior inputs and outputs
 // This is the single source of truth for all input/output application
 type BehaviorApplier struct {
+	behaviorValidated  bool
+	behavior           *shared.CardBehavior
 	productionBox      string
 	player             *player.Player // Player affected by the behavior (may be nil for game-only effects)
 	game               *game.Game     // Game context for global params/tiles (may be nil for player-only effects)
@@ -164,10 +166,16 @@ func (a *BehaviorApplier) ApplyInputs(
 	)
 
 	log.Debug("Processing behavior inputs")
+	if a.behavior != nil {
+		if err := BehaviorAvailable(a.game, a.player, a.sourceCardID, *a.behavior, a.cardRegistry); err != nil {
+			return err
+		}
+	}
 
 	if err := a.ValidateInputs(inputs); err != nil {
 		return err
 	}
+	a.behaviorValidated = true
 	inputSources, err := a.resolveInputSources(inputs)
 	if err != nil {
 		return err
@@ -239,7 +247,7 @@ func (a *BehaviorApplier) validateInputAmount(rt shared.ResourceType, amount int
 		}
 	default:
 		if shared.IsProductionResourceType(rt) {
-			production := a.player.Resources().Production()
+			production := a.player.Resources().PermanentProduction()
 			available := production.GetAmount(rt)
 			if available-amount < shared.ProductionMinimum(rt) {
 				return fmt.Errorf("insufficient %s: need %d, have %d", rt, amount, available)
@@ -290,6 +298,9 @@ func (a *BehaviorApplier) ApplyOutputsAndGetCalculated(
 ) ([]shared.CalculatedOutput, error) {
 	if len(outputs) == 0 {
 		return nil, nil
+	}
+	if err := a.ValidateModeOutputs(outputs); err != nil {
+		return nil, err
 	}
 
 	if err := a.ValidateResourceOutputs(outputs); err != nil {
@@ -421,6 +432,18 @@ func (a *BehaviorApplier) ApplyOutputsAndGetCalculated(
 		}
 	}
 
+	if a.behavior != nil && a.player != nil && a.game != nil {
+		if a.behavior.MaxUsesPerGeneration > 0 {
+			usageID := a.behavior.ID
+			if a.behavior.UsageGroup != "" {
+				usageID = a.behavior.UsageGroup
+			}
+			a.player.Resources().RecordBehaviorUse(a.sourceCardID, usageID, a.game.Generation())
+		}
+		if a.behavior.MaxUsesPerGame > 0 {
+			a.player.Resources().RecordBehaviorUse(a.sourceCardID, a.behavior.ID, 0)
+		}
+	}
 	return calculatedOutputs, nil
 }
 
@@ -735,6 +758,8 @@ func (a *BehaviorApplier) applyOutput(
 	log *slog.Logger,
 ) error {
 	switch o := output.(type) {
+	case *shared.StateCondition:
+		return a.applyStateOutput(ctx, o)
 	case *shared.PaymentSubstituteCondition:
 		if problems := shared.ValidateResourceCondition(o, false); len(problems) > 0 {
 			return fmt.Errorf("invalid payment substitute: %v", problems)

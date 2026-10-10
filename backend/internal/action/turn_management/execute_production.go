@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"openmars/internal/events"
 	"openmars/internal/game"
 	playerPkg "openmars/internal/game/player"
 	"openmars/internal/game/shared"
@@ -40,6 +41,13 @@ func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*player
 		return fmt.Errorf("game deck is nil")
 	}
 
+	beforeResources := make(map[string]shared.Resources, len(players))
+	for _, p := range players {
+		beforeResources[p.ID()] = p.Resources().Get()
+	}
+
+	g.ResolveModeBoundary(ctx, "production-start", false)
+	events.Publish(g.EventBus(), events.ProductionStartingEvent{GameID: g.ID(), Generation: g.Generation()})
 	for _, p := range players {
 		currentResources := p.Resources().Get()
 		energyConverted := currentResources.Energy
@@ -58,6 +66,21 @@ func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*player
 		p.Resources().Set(newResources)
 		p.SetPassed(false)
 
+		productionPhaseData := &shared.ProductionPhase{ProductionUsed: production, AvailableCards: []string{}, BeforeResources: beforeResources[p.ID()], AfterResources: newResources, EnergyConverted: energyConverted, CreditsIncome: newResources.Credits - beforeResources[p.ID()].Credits}
+		if err := g.SetProductionPhase(ctx, p.ID(), productionPhaseData); err != nil {
+			return err
+		}
+	}
+	g.ResolveModeBoundary(ctx, "production-end", false)
+	if err := completeProductionSnapshots(ctx, g, players); err != nil {
+		return err
+	}
+	if err := g.AdvanceGeneration(ctx); err != nil {
+		return err
+	}
+	g.ResolveModeBoundary(ctx, "research-start", false)
+	for _, p := range players {
+		productionPhaseData := g.GetProductionPhase(p.ID())
 		drawnCards := []string{}
 		for i := range 4 {
 			cardIDs, err := deck.DrawProjectCards(ctx, 1)
@@ -71,14 +94,7 @@ func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*player
 			drawnCards = append(drawnCards, cardIDs[0])
 		}
 
-		productionPhaseData := &shared.ProductionPhase{
-			AvailableCards:    drawnCards,
-			SelectionComplete: false,
-			BeforeResources:   currentResources,
-			AfterResources:    newResources,
-			EnergyConverted:   energyConverted,
-			CreditsIncome:     production.Credits + tr,
-		}
+		productionPhaseData.AvailableCards = drawnCards
 
 		log.Debug("Setting production phase data for player",
 			slog.String("player_id", p.ID()),
@@ -94,13 +110,10 @@ func ExecuteProductionPhase(ctx context.Context, g *game.Game, players []*player
 			slog.String("player_id", p.ID()),
 			slog.Int("cards_drawn", len(drawnCards)),
 			slog.Int("credits_income", productionPhaseData.CreditsIncome),
-			slog.Int("energy_converted", energyConverted))
+			slog.Int("energy_converted", productionPhaseData.EnergyConverted))
 	}
 
-	oldGeneration := g.Generation()
-	if err := g.AdvanceGeneration(ctx); err != nil {
-		return fmt.Errorf("failed to increment generation: %w", err)
-	}
+	oldGeneration := g.Generation() - 1
 	newGeneration := g.Generation()
 
 	turnOrder := g.TurnOrder()
@@ -198,6 +211,13 @@ func ExecuteFinalProductionPhase(ctx context.Context, g *game.Game, players []*p
 		log.Debug("Solar phase complete: colony markers advanced, trade fleets reset")
 	}
 
+	beforeResources := make(map[string]shared.Resources, len(players))
+	for _, p := range players {
+		beforeResources[p.ID()] = p.Resources().Get()
+	}
+
+	g.ResolveModeBoundary(ctx, "production-start", true)
+	events.Publish(g.EventBus(), events.ProductionStartingEvent{GameID: g.ID(), Generation: g.Generation()})
 	for _, p := range players {
 		currentResources := p.Resources().Get()
 		energyConverted := currentResources.Energy
@@ -215,12 +235,12 @@ func ExecuteFinalProductionPhase(ctx context.Context, g *game.Game, players []*p
 		p.SetPassed(false)
 
 		productionPhaseData := &shared.ProductionPhase{
-			AvailableCards:    []string{},
+			ProductionUsed: production, AvailableCards: []string{},
 			SelectionComplete: false,
-			BeforeResources:   currentResources,
+			BeforeResources:   beforeResources[p.ID()],
 			AfterResources:    newResources,
 			EnergyConverted:   energyConverted,
-			CreditsIncome:     production.Credits + tr,
+			CreditsIncome:     newResources.Credits - beforeResources[p.ID()].Credits,
 		}
 		if err := g.SetProductionPhase(ctx, p.ID(), productionPhaseData); err != nil {
 			log.Error("Failed to set final production phase", slog.Any("error", err))
@@ -228,15 +248,32 @@ func ExecuteFinalProductionPhase(ctx context.Context, g *game.Game, players []*p
 		}
 		log.Debug("Final production applied",
 			slog.String("player_id", p.ID()),
-			slog.Int("credits_income", production.Credits+tr),
-			slog.Int("energy_converted", energyConverted))
+			slog.Int("credits_income", productionPhaseData.CreditsIncome),
+			slog.Int("energy_converted", productionPhaseData.EnergyConverted))
 	}
 
+	g.ResolveModeBoundary(ctx, "production-end", true)
+	if err := completeProductionSnapshots(ctx, g, players); err != nil {
+		return err
+	}
 	if err := g.UpdatePhase(ctx, shared.GamePhaseProductionAndCardDraw); err != nil {
 		log.Error("Failed to update phase", slog.Any("error", err))
 		return fmt.Errorf("failed to update phase: %w", err)
 	}
 
 	log.Info("Final production phase set up, awaiting player confirmation")
+	return nil
+}
+
+// Capture rewards delivered at production boundaries before the next research phase.
+func completeProductionSnapshots(ctx context.Context, g *game.Game, players []*playerPkg.Player) error {
+	for _, p := range players {
+		phase := g.GetProductionPhase(p.ID())
+		phase.AfterResources = p.Resources().Get()
+		phase.CreditsIncome = phase.AfterResources.Credits - phase.BeforeResources.Credits
+		if err := g.SetProductionPhase(ctx, p.ID(), phase); err != nil {
+			return fmt.Errorf("failed to complete production snapshot: %w", err)
+		}
+	}
 	return nil
 }

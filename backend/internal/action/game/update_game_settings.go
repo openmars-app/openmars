@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
+	"reflect"
 
 	"openmars/internal/game"
 	"openmars/internal/game/board"
 	"openmars/internal/game/cards"
+	"openmars/internal/game/mode"
 	"openmars/internal/game/shared"
 )
 
@@ -16,15 +17,16 @@ import (
 // settings. The delivery layer maps its request DTO onto this so the action does not
 // depend on delivery/dto.
 type SettingsPatch struct {
-	MaxPlayers       *int
-	MapID            *string
-	VenusNextEnabled *bool
-	DevelopmentMode  *bool
-	DemoGame         *bool
-	AllowRandomBuy   *bool
-	CardPacks        *[]string
-	ClaudeOAuthToken *string
-	BotSpendCapUSD   *float64
+	MaxPlayers         *int
+	MapID              *string
+	DevelopmentMode    *bool
+	DemoGame           *bool
+	AllowRandomBuy     *bool
+	GameModeID         *string
+	GameModeParameters *map[string]int
+	Features           *[]string
+	ClaudeOAuthToken   *string
+	BotSpendCapUSD     *float64
 }
 
 // UpdateGameSettingsAction handles editing game settings during the lobby phase.
@@ -76,15 +78,14 @@ func (a *UpdateGameSettingsAction) Execute(
 	}
 
 	settings := g.Settings()
-	cardPacksChanged := false
-	venusChanged := false
+	selectionChanged := false
 	mapChanged := false
 	demoTurnedOff := false
 
 	if patch.MaxPlayers != nil {
 		newMax := *patch.MaxPlayers
-		if newMax < 1 || newMax > 10 {
-			return fmt.Errorf("max players must be between 1 and 10")
+		if newMax < 1 || newMax > 8 {
+			return fmt.Errorf("max players must be between 1 and 8")
 		}
 		joined := len(g.GetAllPlayers())
 		if newMax < joined {
@@ -103,9 +104,18 @@ func (a *UpdateGameSettingsAction) Execute(
 		}
 	}
 
-	if patch.VenusNextEnabled != nil && settings.VenusNextEnabled != *patch.VenusNextEnabled {
-		settings.VenusNextEnabled = *patch.VenusNextEnabled
-		venusChanged = true
+	if patch.GameModeID != nil && settings.GameModeID != *patch.GameModeID {
+		settings.GameModeID = *patch.GameModeID
+		settings.GameModeParameters = nil
+		selectionChanged = true
+	}
+	if patch.GameModeParameters != nil && !reflect.DeepEqual(settings.GameModeParameters, *patch.GameModeParameters) {
+		settings.GameModeParameters = *patch.GameModeParameters
+		selectionChanged = true
+	}
+	if patch.Features != nil && !reflect.DeepEqual(settings.Features, *patch.Features) {
+		settings.Features = *patch.Features
+		selectionChanged = true
 	}
 
 	if patch.DevelopmentMode != nil {
@@ -121,20 +131,6 @@ func (a *UpdateGameSettingsAction) Execute(
 
 	if patch.AllowRandomBuy != nil {
 		settings.AllowRandomBuy = *patch.AllowRandomBuy
-	}
-
-	if patch.CardPacks != nil {
-		packs := *patch.CardPacks
-		if len(packs) == 0 {
-			return fmt.Errorf("at least one card pack must be enabled")
-		}
-		if !slices.Contains(packs, shared.PackBaseGame) {
-			return fmt.Errorf("base game pack cannot be disabled")
-		}
-		if !equalStringSlices(settings.CardPacks, packs) {
-			settings.CardPacks = packs
-			cardPacksChanged = true
-		}
 	}
 
 	if patch.ClaudeOAuthToken != nil {
@@ -153,48 +149,44 @@ func (a *UpdateGameSettingsAction) Execute(
 		settings.Oceans = nil
 		settings.Venus = nil
 		settings.Generation = nil
+	}
+
+	settings, definition, err := mode.Normalize(cards.ModeDefinitions(a.cardRegistry), settings)
+	if err != nil {
+		return err
+	}
+	if err := validateSetup(settings, a.mapRegistry); err != nil {
+		return err
+	}
+	if settings.MaxPlayers < len(g.GetAllPlayers()) {
+		return fmt.Errorf("cannot reduce max players below current player count (%d)", len(g.GetAllPlayers()))
+	}
+	effective, err := cards.Resolve(a.cardRegistry, settings)
+	if err != nil {
+		return err
+	}
+	g.UpdateSettings(ctx, settings)
+	if demoTurnedOff {
 		for _, p := range g.GetAllPlayers() {
 			p.SetPendingDemoChoices(nil)
 		}
 	}
-
-	if err := validateSetup(settings, a.mapRegistry); err != nil {
-		return err
-	}
-	g.UpdateSettings(ctx, settings)
-
-	if cardPacksChanged || venusChanged {
-		effectivePacks := settings.CardPacks
-		if settings.VenusNextEnabled && !slices.Contains(effectivePacks, shared.PackVenus) {
-			effectivePacks = append(effectivePacks, shared.PackVenus)
+	if selectionChanged {
+		projects, corps, preludes := cards.GetCardIDs(effective)
+		g.InitDeck(projects, corps, preludes)
+		g.SetVPCardLookup(cards.NewVPCardLookupAdapter(effective))
+		if err := g.ConfigureModeRuntime(definition.Runtime, settings.GameModeParameters); err != nil {
+			return err
 		}
-		projectIDs, corpIDs, preludeIDs := cards.GetCardIDsByPacks(a.cardRegistry, effectivePacks)
-		g.InitDeck(projectIDs, corpIDs, preludeIDs)
-		log.Debug("Deck rebuilt",
-			slog.Int("project_cards", len(projectIDs)),
-			slog.Int("corporations", len(corpIDs)),
-			slog.Int("preludes", len(preludeIDs)))
+		for _, p := range g.GetAllPlayers() {
+			p.SetPendingDemoChoices(nil)
+		}
 	}
-
-	if mapChanged || venusChanged {
+	if mapChanged || selectionChanged {
 		mapDef, _ := a.mapRegistry.GetMap(settings.MapID)
-		initialTiles := board.GenerateBoardFromMap(mapDef, settings.VenusNextEnabled)
-		g.ReplaceBoard(ctx, initialTiles)
-		log.Debug("Board rebuilt", slog.String("map_id", settings.MapID))
+		g.ReplaceBoard(ctx, board.GenerateBoardFromMap(mapDef, settings.HasVenus()))
 	}
 
 	log.Info("Game settings updated")
 	return nil
-}
-
-func equalStringSlices(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }

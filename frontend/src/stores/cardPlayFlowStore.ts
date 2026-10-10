@@ -13,12 +13,14 @@ export interface CardStoragePending {
     resourceType: ResourceType;
     amount: number;
     selectorTags?: string[];
+    eligibleCardIds?: string[];
   }>;
   collectedTargets: string[];
   currentIndex: number;
   resourceType: ResourceType;
   amount: number;
   selectorTags?: string[];
+  eligibleCardIds?: string[];
 }
 
 export interface TargetPlayerPending {
@@ -44,12 +46,14 @@ export interface ActionStoragePending {
     resourceType: ResourceType;
     amount: number;
     selectorTags?: string[];
+    eligibleCardIds?: string[];
   }>;
   collectedTargets: string[];
   currentIndex: number;
   resourceType: ResourceType;
   amount: number;
   selectorTags?: string[];
+  eligibleCardIds?: string[];
 }
 
 export interface ActionTargetPlayerPending {

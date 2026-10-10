@@ -67,6 +67,11 @@ func (b *BaseAction) CardRegistry() cards.CardRegistry {
 	return b.cardRegistry
 }
 
+// CardRegistryForGame resolves this action's library for the game's selection.
+func (b *BaseAction) CardRegistryForGame(g *game.Game) cards.CardRegistry {
+	return cards.ForGame(b.cardRegistry, g)
+}
+
 // StateRepository returns the game state repository (may be nil)
 func (b *BaseAction) StateRepository() game.GameStateRepository {
 	return b.stateRepo

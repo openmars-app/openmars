@@ -557,3 +557,42 @@ func TestPerColonyVPCard(t *testing.T) {
 		t.Fatalf("expected CardVP=2 for Space Port Colony with 4 colonies, got %d", breakdown.CardVP)
 	}
 }
+
+func TestScenarioVPCountsOnlyPermanentProductionTypes(t *testing.T) {
+	g, _, _, playerID, _ := testutil.SetupTwoPlayerGame(t)
+	p, _ := g.GetPlayer(playerID)
+	cap := 5
+	card := gamecards.Card{ID: "scenario-vp", Name: "Independent economy", Type: gamecards.CardTypeAutomated, VPConditions: []gamecards.VictoryPointCondition{{Amount: 1, Condition: gamecards.VPConditionPer, MaxTrigger: &cap, Per: &shared.PerCondition{ResourceType: shared.ResourcePermanentProductionTypes, Amount: 1}, StateRequirements: []shared.StateRequirement{{State: "transition-complete", Equals: 1}}}}}
+	registry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{card})
+	p.PlayedCards().AddCard(card.ID, card.Name, "automated", nil)
+	p.Resources().SetProduction(shared.Production{Credits: -2, Steel: 8, Titanium: 1, Plants: 0, Energy: 0, Heat: 1})
+	dep := shared.DependencyGroup{ID: "supplied", State: "supply", Equals: 1, Importable: true}
+	p.Resources().AddDependentProduction(shared.ProductionContribution{CardID: "factory", BehaviorID: "supply", Dependency: dep, Resource: shared.ResourceEnergyProduction, Amount: 3})
+	score := func() int {
+		return gamecards.CalculatePlayerVP(p, g, nil, nil, g.GetAllPlayers(), registry, nil, nil).CardVP
+	}
+	configure := func(occurred int) {
+		t.Helper()
+		if err := g.ConfigureModeRuntime(shared.ModeRuntimeDefinition{State: map[string]int{"transition-complete": occurred, "supply": 1}}, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	configure(0)
+	if got := score(); got != 0 {
+		t.Fatalf("before transition got %d VP", got)
+	}
+	configure(1)
+	if got := score(); got != 3 {
+		t.Fatalf("temporary production must not score, got %d VP", got)
+	}
+	if err := p.Resources().SetDependencyStatus("factory", "supplied", true); err != nil {
+		t.Fatal(err)
+	}
+	if got := score(); got != 4 {
+		t.Fatalf("imported energy must score once, got %d VP", got)
+	}
+	p.Resources().SetProduction(shared.Production{Credits: 1, Steel: 1, Titanium: 1, Plants: 1, Energy: 1, Heat: 1})
+	if got := score(); got != 5 {
+		t.Fatalf("six types must respect cap5, got %d VP", got)
+	}
+}

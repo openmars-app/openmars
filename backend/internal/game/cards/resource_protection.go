@@ -141,6 +141,13 @@ func (a *BehaviorApplier) ValidateResourceOutputs(outputs []shared.BehaviorCondi
 			amount = output.GetAmount() * a.selectedAmount
 		}
 		switch o := output.(type) {
+		case *shared.ProductionCondition:
+			if amount >= 0 || a.player == nil || o.Target == "any-player" || o.Dependency != nil || (a.behavior != nil && a.behavior.Dependency != "") {
+				continue
+			}
+			if a.player.Resources().Production().GetAmount(o.ResourceType) > a.player.Resources().PermanentProduction().GetAmount(o.ResourceType) && a.player.Resources().PermanentProduction().GetAmount(o.ResourceType)+amount < shared.ProductionMinimum(o.ResourceType) {
+				return fmt.Errorf("insufficient permanent %s", o.ResourceType)
+			}
 		case *shared.BasicResourceCondition:
 			// Deferred selection revalidates after placement.
 			if o.TargetRestriction != nil {
@@ -165,14 +172,14 @@ func (a *BehaviorApplier) ValidateResourceOutputs(outputs []shared.BehaviorCondi
 			}
 		case *shared.CardStorageCondition:
 			id := a.sourceCardID
-			if o.Target == "any-card" || o.ResourceType == shared.ResourceCardResource {
+			if o.Target == "any-card" || (o.ResourceType == shared.ResourceCardResource && o.Target != "self-card") {
 				id = ""
 				if index < len(a.targetCardIDs) {
 					id = a.targetCardIDs[index]
 				}
 				index++
 			}
-			if amount > 0 && (o.Target == "any-card" || o.ResourceType == shared.ResourceCardResource) {
+			if amount > 0 && (o.Target == "any-card" || (o.ResourceType == shared.ResourceCardResource && o.Target != "self-card")) {
 				enteringID := ""
 				if a.player != nil && a.player.Hand().HasCard(a.sourceCardID) {
 					enteringID = a.sourceCardID
@@ -202,7 +209,7 @@ func (a *BehaviorApplier) ValidateResourceOutputs(outputs []shared.BehaviorCondi
 					if IsResourceProtected(a.player, owner, card.ResourceStorage.Type, card.ID) {
 						return fmt.Errorf("card resources are protected")
 					}
-				} else if o.Target == "any-card" || o.ResourceType == shared.ResourceCardResource {
+				} else if o.Target == "any-card" || (o.ResourceType == shared.ResourceCardResource && o.Target != "self-card") {
 					if _, err := a.removalStorageOwner(id, o.ResourceType, -amount, false); err != nil {
 						return err
 					}

@@ -1,4 +1,3 @@
-import { CARD_PACKS, VENUS_PACK } from "@/constants/cardPacks.ts";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
@@ -16,7 +15,6 @@ import { useNotifications } from "../../contexts/NotificationContext.tsx";
 
 const displayName = (id: string) =>
   id.replace(/[-_]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-const packLabels = new Map([...CARD_PACKS, VENUS_PACK].map((pack) => [pack.id, pack.label]));
 
 const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -206,9 +204,6 @@ const JoinGamePage: React.FC = () => {
         const playerSummary = resumeSeats
           ? `${ready.length}/${required.length} ready`
           : `${playerCount}/${maxPlayers} Players`;
-        const packs = (game.settings.cardPacks ?? [])
-          .map((id) => packLabels.get(id) ?? displayName(id))
-          .join(", ");
         const isActive = game.status === "active";
         return (
           <div
@@ -231,8 +226,12 @@ const JoinGamePage: React.FC = () => {
                 )}
               </span>
               <span className="text-white/50 text-xs">
-                {mapNames[game.settings.mapId] ?? displayName(game.settings.mapId)}
-                {packs && ` · ${packs}`}
+                {mapNames[game.settings.mapId] ?? displayName(game.settings.mapId)} ·{" "}
+                {game.settings.availableGameModes.find(
+                  (mode) => mode.id === game.settings.gameModeId,
+                )?.name ?? displayName(game.settings.gameModeId)}
+                {game.settings.features.length > 0 &&
+                  ` · ${game.settings.features.map(displayName).join(", ")}`}
               </span>
             </div>
             <div className="flex gap-2 shrink-0">

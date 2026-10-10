@@ -39,6 +39,7 @@ import CorporationShowcaseOverlay from "../../ui/overlay/CorporationShowcaseOver
 import LoadingOverlay from "../../game/view/LoadingOverlay.tsx";
 import GameEventBanner from "../../ui/overlay/GameEventBanner.tsx";
 import { useCardInspection, type CardInspectionDrag } from "@/hooks/useCardInspection.ts";
+import { useModeEvents } from "@/hooks/useModeEvents.ts";
 import { useGameEvent } from "@/hooks/useGameEvent.ts";
 import { usePlayedCardNotification } from "@/hooks/usePlayedCardNotification.ts";
 import ChatOverlay from "../../ui/overlay/ChatOverlay.tsx";
@@ -219,6 +220,7 @@ export default function GameInterface() {
   const isConnected = useGameStore((s) => s.isConnected);
   const isSpectator = useGameStore((s) => s.isSpectator);
   const isReconnecting = useGameStore((s) => s.isReconnecting);
+  useModeEvents(game, isConnected && !isReconnecting, enqueueGameEvent);
   const reconnectionStep = useGameStore((s) => s.reconnectionStep);
   const gameForSelection = useGameStore((s) => s.gameForSelection);
   const changedPaths = useGameStore((s) => s.changedPaths);
@@ -1264,6 +1266,7 @@ export default function GameInterface() {
             resourceType={pendingCardStorage.resourceType}
             amount={pendingCardStorage.amount}
             selectorTags={pendingCardStorage.selectorTags}
+            eligibleCardIds={pendingCardStorage.eligibleCardIds}
             playedCards={(() => {
               const played = currentPlayer?.playedCards || [];
               const cardBeingPlayed = currentPlayer?.cards?.find(
@@ -1308,6 +1311,7 @@ export default function GameInterface() {
             resourceType={pendingActionStorage.resourceType}
             amount={pendingActionStorage.amount}
             selectorTags={pendingActionStorage.selectorTags}
+            eligibleCardIds={pendingActionStorage.eligibleCardIds}
             playedCards={currentPlayer?.playedCards || []}
             corporationCard={currentPlayer?.corporation}
             resourceStorage={currentPlayer?.resourceStorage}

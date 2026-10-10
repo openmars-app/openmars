@@ -728,9 +728,9 @@ func TestCalculateChoiceErrors_TagRequirementMet(t *testing.T) {
 	p.PlayedCards().AddCard("venus-3", "Venus 3", "automated", []string{"venus"})
 
 	venusCards := []gamecards.Card{
-		{ID: "venus-1", Name: "Venus 1", Type: gamecards.CardTypeAutomated, Pack: "base", Tags: []shared.CardTag{shared.TagVenus}},
-		{ID: "venus-2", Name: "Venus 2", Type: gamecards.CardTypeAutomated, Pack: "base", Tags: []shared.CardTag{shared.TagVenus}},
-		{ID: "venus-3", Name: "Venus 3", Type: gamecards.CardTypeAutomated, Pack: "base", Tags: []shared.CardTag{shared.TagVenus}},
+		{ID: "venus-1", Name: "Venus 1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus}},
+		{ID: "venus-2", Name: "Venus 2", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus}},
+		{ID: "venus-3", Name: "Venus 3", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus}},
 	}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(venusCards)
 

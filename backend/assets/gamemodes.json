@@ -1,0 +1,199 @@
+[
+  {
+    "id": "classic",
+    "name": "Classic",
+    "summary": "Terraform Mars with the familiar core deck.",
+    "scenario": "Build your corporation, raise the global parameters, and compete to make Mars habitable.",
+    "rules": [
+      {
+        "title": "The race for Mars",
+        "text": "Standard terraforming, cities, greenery, milestones, awards, and scoring apply."
+      },
+      {
+        "title": "Curated core deck",
+        "text": "No Venus, colonies, politics, or Earth-withdrawal mechanics. Optional Preludes provide starting advantages."
+      }
+    ],
+    "minPlayers": 1,
+    "maxPlayers": 8,
+    "parameters": [],
+    "features": [
+      {
+        "id": "prelude",
+        "name": "Preludes",
+        "description": "Choose starting preludes curated for this mode.",
+        "experimental": false,
+        "default": true
+      },
+      {
+        "id": "project-funding",
+        "name": "Project Funding",
+        "description": "Experimental shared funding objectives; still undergoing balance testing.",
+        "experimental": true,
+        "default": false
+      }
+    ],
+    "systems": [],
+    "statuses": [],
+    "runtime": {}
+  },
+  {
+    "id": "earth-withdrawal",
+    "name": "Earth Withdrawal",
+    "summary": "Build with cheap Earth support before contact ends, then make your economy independent.",
+    "scenario": "Earth is winding down its support of Mars. Imported infrastructure accelerates the early settlement, but reliable contact has an announced end. Prepare local industry, negotiate the deadline, or import a limited set of technologies before the link closes.",
+    "rules": [
+      {
+        "title": "Terraforming continues",
+        "text": "Mars remains the objective. Normal end conditions, terraforming rating, cities, greenery, milestones, awards, and victory points apply."
+      },
+      {
+        "title": "Earth support",
+        "text": "While connected, each player gains 2 M€ during production. Marked Earth-dependent operations work only while contact is active. Earth tags alone do not create a dependency."
+      },
+      {
+        "title": "Withdrawal deadline",
+        "text": "Choose withdrawal after generation 4, 6, or 8; the default is 6. The final connected production happens before contact ends. Cards and corporations may move the original deadline by 1 generation, within 2 generations of its initial value. Each player may make one successful change each generation, and an advance must leave at least one full generation of notice."
+      },
+      {
+        "title": "What survives",
+        "text": "Keep your resources, cards, tags, tiles, and victory points. Only marked ongoing operations stop. A production operation includes all its gains and upkeep. Temporary production cannot pay permanent production reductions. Local benefits triggered by the first withdrawal stay active during reconnection."
+      },
+      {
+        "title": "Import technology",
+        "text": "Five one-use events can import an eligible technology on a project you own while contact is active. The whole marked operation, including costs and upkeep, becomes permanent. Initial gains do not repeat. The shared stipend, preludes, and unapproved operations cannot be imported."
+      },
+      {
+        "title": "Temporary reconnection",
+        "text": "Two events restore contact for the next generation, including research, actions, and production. Two events restore only the current production, with no action opportunity. Play them only while disconnected after the first withdrawal. Windows cannot overlap; a current-production pulse and a next-generation window can coexist. Closing a temporary link never repeats first-withdrawal rewards."
+      },
+      {
+        "title": "Deck and options",
+        "text": "The mode has its own curated projects, corporations, and optional Prelude pool. Project Funding is an independent experimental option."
+      }
+    ],
+    "minPlayers": 1,
+    "maxPlayers": 5,
+    "parameters": [
+      {
+        "id": "withdrawal-generation",
+        "label": "Withdrawal after generation",
+        "description": "Earth contact ends after this generation’s production, before later card adjustments.",
+        "default": 6,
+        "values": [
+          4,
+          6,
+          8
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "prelude",
+        "name": "Preludes",
+        "description": "Choose starting preludes curated for this mode.",
+        "experimental": false,
+        "default": true
+      },
+      {
+        "id": "project-funding",
+        "name": "Project Funding",
+        "description": "Experimental shared funding objectives; still undergoing balance testing.",
+        "experimental": true,
+        "default": false
+      }
+    ],
+    "systems": [],
+    "statuses": [
+      {
+        "state": "earth-contact",
+        "label": "Earth contact",
+        "labels": {
+          "0": "Disconnected",
+          "1": "Connected"
+        },
+        "kind": "connection",
+        "from": "earth",
+        "to": "mars"
+      },
+      {
+        "state": "withdrawal-generation",
+        "label": "Withdrawal after generation",
+        "kind": "counter"
+      }
+    ],
+    "runtime": {
+      "state": {
+        "earth-contact": 1,
+        "withdrawal-occurred": 0
+      },
+      "deadlines": [
+        {
+          "state": "withdrawal-generation",
+          "parameter": "withdrawal-generation",
+          "activeState": "earth-contact",
+          "occurredState": "withdrawal-occurred",
+          "activeValue": 1,
+          "inactiveValue": 0,
+          "maxParameterAdjustment": 2,
+          "minGenerationOffset": 1,
+          "perPlayerGenerationLimit": 1
+        }
+      ],
+      "behaviors": [
+        {
+          "id": "earth-stipend",
+          "triggers": [
+            {
+              "type": "auto",
+              "condition": {
+                "type": "production"
+              }
+            }
+          ],
+          "scope": "each-player",
+          "stateRequirements": [
+            {
+              "state": "earth-contact",
+              "equals": 1
+            }
+          ],
+          "outputs": [
+            {
+              "type": "credit",
+              "amount": 2,
+              "target": "self-player"
+            }
+          ],
+          "description": "While Earth is connected, each player gains 2 M€ during production."
+        }
+      ],
+      "presentationRules": [
+        {
+          "state": "earth-contact",
+          "to": 0,
+          "title": "Earth contact closed",
+          "description": "Earth-dependent operations pause. Local industry continues.",
+          "presentation": {
+            "kind": "connection",
+            "from": "earth",
+            "to": "mars",
+            "connected": false
+          }
+        },
+        {
+          "state": "earth-contact",
+          "to": 1,
+          "title": "Earth contact restored",
+          "description": "Earth-dependent operations are available for this contact window.",
+          "presentation": {
+            "kind": "connection",
+            "from": "earth",
+            "to": "mars",
+            "connected": true
+          }
+        }
+      ]
+    }
+  }
+]

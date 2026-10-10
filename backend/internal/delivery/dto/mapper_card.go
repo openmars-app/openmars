@@ -10,14 +10,15 @@ import (
 
 // ToCardDto converts a Card to CardDto
 func ToCardDto(card gamecards.Card) CardDto {
-	return CardDto{
-		ID:                 card.ID,
-		Style:              toCardStyleDto(card.Style),
-		Name:               card.Name,
-		Type:               CardType(card.Type),
-		Cost:               card.Cost,
-		Description:        toCardDescriptionDto(card.Description),
-		Pack:               card.Pack,
+	out := CardDto{
+		ID:          card.ID,
+		Style:       toCardStyleDto(card.Style),
+		Name:        card.Name,
+		Type:        CardType(card.Type),
+		Cost:        card.Cost,
+		Description: toCardDescriptionDto(card.Description),
+
+		GameModes: card.GameModes, RequiresFeatures: card.RequiresFeatures, RequiresSystems: card.RequiresSystems,
 		Tags:               mapSlice(card.Tags, func(t shared.CardTag) CardTag { return CardTag(t) }),
 		Requirements:       toCardRequirementsDto(card.Requirements),
 		Behaviors:          mapSlice(card.Behaviors, toCardBehaviorDto),
@@ -26,6 +27,8 @@ func ToCardDto(card gamecards.Card) CardDto {
 		StartingResources:  ptrCast(card.StartingResources, toResourceSetDto),
 		StartingProduction: ptrCast(card.StartingProduction, toResourceSetDto),
 	}
+	AnnotateCardDependencies(&out, card, nil)
+	return out
 }
 
 // toCardDescriptionDto converts a card description into its section DTOs
@@ -73,6 +76,7 @@ func getCorporationCard(p *player.Player, cardRegistry gamecards.CardRegistry) *
 	}
 
 	cardDto := ToCardDto(*card)
+	AnnotateCardDependencies(&cardDto, *card, p)
 	return &cardDto
 }
 
@@ -108,7 +112,8 @@ func toCardRequirementsDto(reqs *gamecards.CardRequirements) *CardRequirementsDt
 }
 
 func toRequirementDto(req gamecards.Requirement) RequirementDto {
-	return RequirementDto{
+	return RequirementDto{Permanent: req.Permanent,
+		State: req.State, Equals: req.Equals,
 		Type:     RequirementType(req.Type),
 		Min:      req.Min,
 		Max:      req.Max,
@@ -120,6 +125,9 @@ func toRequirementDto(req gamecards.Requirement) RequirementDto {
 
 func toCardBehaviorDto(behavior shared.CardBehavior) CardBehaviorDto {
 	return CardBehaviorDto{
+		ID: behavior.ID, Dependency: behavior.Dependency, MaxUsesPerGame: behavior.MaxUsesPerGame, UsageGroup: behavior.UsageGroup, ResourceRequirements: mapSlice(behavior.ResourceRequirements, func(r shared.BehaviorResourceRequirement) BehaviorResourceRequirementDto {
+			return BehaviorResourceRequirementDto{Location: r.Location, Type: ResourceType(r.Type), Min: r.Min, Max: r.Max, Permanent: r.Permanent, Target: r.Target}
+		}), MaxUsesPerGeneration: behavior.MaxUsesPerGeneration, StateRequirements: mapSlice(behavior.StateRequirements, toStateRequirementDto),
 		ProductionBox: behavior.ProductionBox,
 		Description:   behavior.Description,
 		Triggers:      mapSlice(behavior.Triggers, toTriggerDto),
@@ -181,6 +189,7 @@ func toTriggerDto(trigger shared.Trigger) TriggerDto {
 
 func toResourceTriggerConditionDto(cond shared.ResourceTriggerCondition) ResourceTriggerConditionDto {
 	return ResourceTriggerConditionDto{
+		State: cond.State, To: cond.To, Direction: cond.Direction,
 		Type:                 TriggerType(cond.Type),
 		ResourceTypes:        mapSlice(cond.ResourceTypes, func(rt shared.ResourceType) ResourceType { return ResourceType(rt) }),
 		Location:             ptrCast(cond.Location, func(l string) CardApplyLocation { return CardApplyLocation(l) }),
@@ -222,7 +231,7 @@ func toTargetRestrictionDto(tr shared.TargetRestriction) TargetRestrictionDto {
 }
 
 func toSelectorDto(sel shared.Selector) SelectorDto {
-	return SelectorDto{
+	return SelectorDto{Dependency: sel.Dependency,
 		TagCount:             ptrCast(sel.TagCount, toMinMaxValueDto),
 		Tags:                 mapSlice(sel.Tags, func(t shared.CardTag) CardTag { return CardTag(t) }),
 		CardTypes:            mapSlice(sel.CardTypes, func(ct string) CardType { return CardType(ct) }),
@@ -241,6 +250,14 @@ func toResourceConditionDto(bc shared.BehaviorCondition) any {
 	amount := bc.GetAmount()
 
 	switch c := bc.(type) {
+	case *shared.StateCondition:
+		return StateConditionDto{Description: stateOperationDescription(c), MinimumProduction: ptrCast(c.MinimumProduction, func(t shared.ProductionThreshold) ProductionThresholdDto {
+			return ProductionThresholdDto{Type: ResourceType(t.Type), Amount: t.Amount}
+		}), Type: rt, Amount: amount, Target: target, State: c.State, Value: c.Value, Dependency: c.Dependency, Start: ptrCast(c.Start, func(b shared.WindowBoundary) WindowBoundaryDto {
+			return WindowBoundaryDto{GenerationOffset: b.GenerationOffset, Boundary: b.Boundary}
+		}), End: ptrCast(c.End, func(b shared.WindowBoundary) WindowBoundaryDto {
+			return WindowBoundaryDto{GenerationOffset: b.GenerationOffset, Boundary: b.Boundary}
+		})}
 	case *shared.CardRevealCondition:
 		return CardRevealConditionDto{Type: rt, Amount: amount, Target: target, Destination: c.Destination, OnMatch: ptrCast(c.OnMatch, func(m shared.RevealMatch) RevealMatchDto {
 			return RevealMatchDto{Selectors: mapSlice(m.Selectors, toSelectorDto), Outputs: mapSlice(m.Outputs, toResourceConditionDto)}
@@ -344,7 +361,7 @@ func toChoiceDtos(choices []shared.Choice) []ChoiceDto {
 }
 
 func toChoiceDto(index int, choice shared.Choice) ChoiceDto {
-	return ChoiceDto{
+	return ChoiceDto{StateRequirements: mapSlice(choice.StateRequirements, toStateRequirementDto),
 		OriginalIndex: index,
 		Inputs:        mapSlice(choice.Inputs, toResourceConditionDto),
 		Outputs:       mapSlice(choice.Outputs, toResourceConditionDto),
@@ -398,11 +415,12 @@ func toResourceStorageDto(storage gamecards.ResourceStorage) ResourceStorageDto 
 
 func toVPConditionDto(vp gamecards.VictoryPointCondition) VPConditionDto {
 	return VPConditionDto{
-		Amount:      vp.Amount,
-		Condition:   VPConditionType(vp.Condition),
-		MaxTrigger:  vp.MaxTrigger,
-		Per:         ptrCast(vp.Per, toVPPerConditionDto),
-		Description: vp.Description,
+		StateRequirements: mapSlice(vp.StateRequirements, toStateRequirementDto),
+		Amount:            vp.Amount,
+		Condition:         VPConditionType(vp.Condition),
+		MaxTrigger:        vp.MaxTrigger,
+		Per:               ptrCast(vp.Per, toVPPerConditionDto),
+		Description:       vp.Description,
 	}
 }
 

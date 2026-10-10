@@ -897,7 +897,7 @@ export default function TileGrid({
       <NuclearDebrisRenderer sites={nuclearSites} transitions={nuclearTransitions} />
       <PrimitiveRenderer />
       {GRAPHICS.birds && <BirdRenderer livingGreeneryTiles={livingGreeneryTiles} />}
-      {gameState?.settings?.cardPacks?.includes("colonies") && (
+      {gameState?.settings?.systems.includes("colonies") && (
         <SpaceshipRenderer
           gameState={gameState}
           animateEntrance={animateHexEntrance}

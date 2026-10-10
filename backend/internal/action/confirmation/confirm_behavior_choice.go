@@ -62,26 +62,29 @@ func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string
 	selectedChoice := selection.Choices[choiceIndex]
 
 	// Validate choice requirements before applying
-	if choiceErrors := baseaction.CalculateResolutionChoiceErrors(selectedChoice, selection, p, g, a.CardRegistry()); len(choiceErrors) > 0 {
+	if choiceErrors := baseaction.CalculateResolutionChoiceErrors(selectedChoice, selection, p, g, a.CardRegistryForGame(g)); len(choiceErrors) > 0 {
 		log.Warn("Choice requirements not met",
 			slog.Int("choice_index", choiceIndex),
 			slog.String("error", choiceErrors[0].Message))
 		return fmt.Errorf("choice %d requirements not met: %s", choiceIndex, choiceErrors[0].Message)
 	}
 
-	if err := baseaction.ValidateResolutionStorageTargets(selectedChoice, cardStorageTargets, p, a.CardRegistry()); err != nil {
+	if err := baseaction.ValidateResolutionStorageTargets(selectedChoice, cardStorageTargets, p, a.CardRegistryForGame(g)); err != nil {
 		return err
 	}
 	applier := gamecards.NewBehaviorApplier(p, g, selection.Source, slog.Default()).
 		WithSourceCardID(selection.SourceCardID).
 		WithTriggeringCard(selection.TriggeringCardID, selection.TriggeringPlayerID).
-		WithCardRegistry(a.CardRegistry()).
+		WithCardRegistry(a.CardRegistryForGame(g)).
 		WithSourceType(shared.SourceTypePassiveEffect)
 
 	if len(cardStorageTargets) > 0 {
 		applier = applier.WithTargetCardIDs(cardStorageTargets)
 	}
 
+	if err := applier.ValidateModeOutputs(selectedChoice.Outputs); err != nil {
+		return err
+	}
 	if err := applier.ValidateResourceOutputs(selectedChoice.Outputs); err != nil {
 		return err
 	}

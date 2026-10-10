@@ -238,7 +238,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         playerId: player.id,
         playerName: player.name,
         playerColor: player.color,
-        production: player.production,
+        production: productionPhase.productionUsed,
         terraformRating: player.terraformRating,
         ...productionPhase,
       };

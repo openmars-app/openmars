@@ -1,3 +1,4 @@
+import { FormattedDescription } from "../../display/FormattedDescription.tsx";
 import React, { useMemo } from "react";
 import { BehaviorSectionProps, ClassifiedBehavior, BehaviorPresentation } from "./types.ts";
 import { CalculatedOutputDto } from "@/types/generated/api-types.ts";
@@ -32,7 +33,7 @@ function buildBehaviorLayout(
         (choice.inputs ?? []).concat(choice.outputs ?? []),
       ),
     ];
-    return resources.some(hasResourceVisual);
+    return resources.some(hasResourceVisual) || Boolean(behavior.description);
   });
   const merged = mergeTriggeredEffects(mergeAutoProductionBehaviors(classified));
   const layout = analyzeCardLayout(merged, presentation === "inspection" ? Infinity : undefined);
@@ -196,9 +197,38 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         break;
     }
 
+    const resources = [
+      ...(behavior.inputs ?? []),
+      ...(behavior.outputs ?? []),
+      ...(behavior.choices ?? []).flatMap((choice) => [
+        ...(choice.inputs ?? []),
+        ...(choice.outputs ?? []),
+      ]),
+    ];
+    const needsText =
+      resources.some((resource) => !hasResourceVisual(resource)) ||
+      resources.length === 0 ||
+      Boolean(behavior.stateRequirements?.length) ||
+      Boolean(behavior.maxUsesPerGeneration || behavior.maxUsesPerGame) ||
+      Boolean(
+        behavior.triggers?.some(
+          (trigger) =>
+            !["auto", "manual", "auto-corporation-start"].includes(trigger.type) ||
+            Boolean(trigger.condition?.state) ||
+            trigger.condition?.type === "production",
+        ),
+      );
+    if (needsText && behavior.description) {
+      content = (
+        <div className="text-[11px] leading-snug font-sans text-left px-1 py-0.5">
+          <FormattedDescription text={classifiedBehavior.description ?? behavior.description} />
+        </div>
+      );
+    }
+    const dependency = behavior.dependencyStatus;
     return (
       <BehaviorContainer
-        key={`behavior-${index}`}
+        key={`${behavior.id ?? "behavior"}-${index}`}
         classifiedBehavior={classifiedBehavior}
         index={index}
         description={classifiedBehavior.description}
@@ -206,7 +236,25 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         noContainer={noContainer}
         cardId={cardId}
       >
-        {content}
+        <div
+          className={`flex flex-col items-center gap-1 w-full ${dependency && !dependency.active ? "opacity-50" : ""}`}
+        >
+          {dependency && (
+            <span
+              className="font-sans text-[10px] leading-tight text-center text-sky-200"
+              aria-label={
+                dependency.imported
+                  ? "Technology imported, independent"
+                  : `${dependency.label ?? "Dependent operation"}: ${dependency.retired ? "retired" : dependency.active ? "online" : "offline"}`
+              }
+            >
+              {dependency.imported
+                ? "Technology imported · Independent"
+                : `${dependency.label ?? "Dependent operation"} · ${dependency.retired ? "Retired" : dependency.active ? "Online" : "Offline"}`}
+            </span>
+          )}
+          {content}
+        </div>
       </BehaviorContainer>
     );
   };

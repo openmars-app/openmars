@@ -925,9 +925,9 @@ func TestLightningHarvest_ProductionChanges(t *testing.T) {
 	ctx := context.Background()
 	card := testutil.GetCardByName("Lightning Harvest")
 	// Lightning Harvest requires 3 science tags
-	sci1 := gamecards.Card{ID: "sci1", Name: "Sci1", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
-	sci2 := gamecards.Card{ID: "sci2", Name: "Sci2", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
-	sci3 := gamecards.Card{ID: "sci3", Name: "Sci3", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
+	sci1 := gamecards.Card{ID: "sci1", Name: "Sci1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
+	sci2 := gamecards.Card{ID: "sci2", Name: "Sci2", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
+	sci3 := gamecards.Card{ID: "sci3", Name: "Sci3", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards([]gamecards.Card{sci1, sci2, sci3})
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -1215,12 +1215,12 @@ func TestInterstellarColonyShip_RequiresScienteTags(t *testing.T) {
 	additionalCards := []gamecards.Card{}
 	for i := 0; i < 5; i++ {
 		scienceCard := gamecards.Card{
-			ID:   "card-science-" + string(rune('a'+i)),
-			Name: "Science Card",
-			Type: gamecards.CardTypeAutomated,
-			Pack: "base",
-			Cost: 0,
-			Tags: []shared.CardTag{shared.TagScience},
+			ID:        "card-science-" + string(rune('a'+i)),
+			Name:      "Science Card",
+			Type:      gamecards.CardTypeAutomated,
+			GameModes: []string{"classic"},
+			Cost:      0,
+			Tags:      []shared.CardTag{shared.TagScience},
 		}
 		additionalCards = append(additionalCards, scienceCard)
 	}
@@ -2830,9 +2830,9 @@ func TestMediaArchives_GainCreditsPerEventTag(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Media Archives")
-	eventCard1 := gamecards.Card{ID: "event1", Name: "Sabotage", Type: gamecards.CardTypeEvent, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEvent}}
-	eventCard2 := gamecards.Card{ID: "event2", Name: "Virus", Type: gamecards.CardTypeEvent, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEvent}}
-	eventCard3 := gamecards.Card{ID: "event3", Name: "Asteroid", Type: gamecards.CardTypeEvent, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEvent}}
+	eventCard1 := gamecards.Card{ID: "event1", Name: "Sabotage", Type: gamecards.CardTypeEvent, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEvent}}
+	eventCard2 := gamecards.Card{ID: "event2", Name: "Virus", Type: gamecards.CardTypeEvent, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEvent}}
+	eventCard3 := gamecards.Card{ID: "event3", Name: "Asteroid", Type: gamecards.CardTypeEvent, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEvent}}
 	additionalCards := []gamecards.Card{eventCard1, eventCard2, eventCard3}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -2936,7 +2936,7 @@ func TestMediaGroup_Gain3Credits(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Media Group")
-	eventCard := gamecards.Card{ID: "test-event", Name: "Test Event", Type: gamecards.CardTypeEvent, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagEvent}}
+	eventCard := gamecards.Card{ID: "test-event", Name: "Test Event", Type: gamecards.CardTypeEvent, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagEvent}}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards([]gamecards.Card{eventCard})
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -3395,7 +3395,7 @@ func TestDecomposers_AddMicrobeOnPlay(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Decomposers")
-	microbeCard := gamecards.Card{ID: "test-microbe", Name: "Test Microbe", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagMicrobe}}
+	microbeCard := gamecards.Card{ID: "test-microbe", Name: "Test Microbe", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagMicrobe}}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards([]gamecards.Card{microbeCard})
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -3431,8 +3431,8 @@ func TestFusionPower_EnergyProduction(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Fusion Power")
-	powerCard1 := gamecards.Card{ID: "power1", Name: "Solar Power", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 11, Tags: []shared.CardTag{shared.TagBuilding, shared.TagPower}}
-	powerCard2 := gamecards.Card{ID: "power2", Name: "Power Plant", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 4, Tags: []shared.CardTag{shared.TagBuilding, shared.TagPower}}
+	powerCard1 := gamecards.Card{ID: "power1", Name: "Solar Power", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 11, Tags: []shared.CardTag{shared.TagBuilding, shared.TagPower}}
+	powerCard2 := gamecards.Card{ID: "power2", Name: "Power Plant", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 4, Tags: []shared.CardTag{shared.TagBuilding, shared.TagPower}}
 	additionalCards := []gamecards.Card{powerCard1, powerCard2}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -3526,9 +3526,9 @@ func TestAdvancedEcosystems_PlaysWithTagRequirements(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Advanced Ecosystems")
-	plantDummy := gamecards.Card{ID: "plant1", Name: "Moss", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 4, Tags: []shared.CardTag{shared.TagPlant}}
-	microbeDummy := gamecards.Card{ID: "microbe1", Name: "Decomposers", Type: gamecards.CardTypeActive, Pack: "base", Cost: 5, Tags: []shared.CardTag{shared.TagMicrobe}}
-	animalDummy := gamecards.Card{ID: "animal1", Name: "Fish", Type: gamecards.CardTypeActive, Pack: "base", Cost: 9, Tags: []shared.CardTag{shared.TagAnimal}}
+	plantDummy := gamecards.Card{ID: "plant1", Name: "Moss", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 4, Tags: []shared.CardTag{shared.TagPlant}}
+	microbeDummy := gamecards.Card{ID: "microbe1", Name: "Decomposers", Type: gamecards.CardTypeActive, GameModes: []string{"classic"}, Cost: 5, Tags: []shared.CardTag{shared.TagMicrobe}}
+	animalDummy := gamecards.Card{ID: "animal1", Name: "Fish", Type: gamecards.CardTypeActive, GameModes: []string{"classic"}, Cost: 9, Tags: []shared.CardTag{shared.TagAnimal}}
 	additionalCards := []gamecards.Card{plantDummy, microbeDummy, animalDummy}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -3592,8 +3592,8 @@ func TestCartel_CreditProductionPerEarthTag(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Cartel")
-	earthCard1 := gamecards.Card{ID: "earth1", Name: "Media Group", Type: gamecards.CardTypeActive, Pack: "corporate-era", Cost: 6, Tags: []shared.CardTag{shared.TagEarth}}
-	earthCard2 := gamecards.Card{ID: "earth2", Name: "Acquired Company", Type: gamecards.CardTypeAutomated, Pack: "corporate-era", Cost: 10, Tags: []shared.CardTag{shared.TagEarth}}
+	earthCard1 := gamecards.Card{ID: "earth1", Name: "Media Group", Type: gamecards.CardTypeActive, GameModes: []string{"classic"}, Cost: 6, Tags: []shared.CardTag{shared.TagEarth}}
+	earthCard2 := gamecards.Card{ID: "earth2", Name: "Acquired Company", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 10, Tags: []shared.CardTag{shared.TagEarth}}
 	additionalCards := []gamecards.Card{earthCard1, earthCard2}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -3822,8 +3822,8 @@ func TestTectonicStressPower_EnergyProduction(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Tectonic Stress Power")
-	sciCard1 := gamecards.Card{ID: "science1", Name: "Research", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 11, Tags: []shared.CardTag{shared.TagScience}}
-	sciCard2 := gamecards.Card{ID: "science2", Name: "Physics Complex", Type: gamecards.CardTypeActive, Pack: "base", Cost: 12, Tags: []shared.CardTag{shared.TagScience, shared.TagBuilding}}
+	sciCard1 := gamecards.Card{ID: "science1", Name: "Research", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 11, Tags: []shared.CardTag{shared.TagScience}}
+	sciCard2 := gamecards.Card{ID: "science2", Name: "Physics Complex", Type: gamecards.CardTypeActive, GameModes: []string{"classic"}, Cost: 12, Tags: []shared.CardTag{shared.TagScience, shared.TagBuilding}}
 	additionalCards := []gamecards.Card{sciCard1, sciCard2}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -3933,9 +3933,9 @@ func TestInsects_PlantProductionPerPlantTag(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Insects")
-	plantDummy1 := gamecards.Card{ID: "plant1", Name: "Moss", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 4, Tags: []shared.CardTag{shared.TagPlant}}
-	plantDummy2 := gamecards.Card{ID: "plant2", Name: "Farming", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 16, Tags: []shared.CardTag{shared.TagPlant}}
-	plantDummy3 := gamecards.Card{ID: "plant3", Name: "Nitrophilic Moss", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 8, Tags: []shared.CardTag{shared.TagPlant}}
+	plantDummy1 := gamecards.Card{ID: "plant1", Name: "Moss", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 4, Tags: []shared.CardTag{shared.TagPlant}}
+	plantDummy2 := gamecards.Card{ID: "plant2", Name: "Farming", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 16, Tags: []shared.CardTag{shared.TagPlant}}
+	plantDummy3 := gamecards.Card{ID: "plant3", Name: "Nitrophilic Moss", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 8, Tags: []shared.CardTag{shared.TagPlant}}
 	additionalCards := []gamecards.Card{plantDummy1, plantDummy2, plantDummy3}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -4175,12 +4175,12 @@ func TestAntiGravityTechnology_Discount(t *testing.T) {
 	scienceCards := make([]gamecards.Card, 7)
 	for i := 0; i < 7; i++ {
 		scienceCards[i] = gamecards.Card{
-			ID:   "science-dummy-" + string(rune('a'+i)),
-			Name: "Science Dummy",
-			Type: gamecards.CardTypeAutomated,
-			Pack: "base",
-			Cost: 1,
-			Tags: []shared.CardTag{shared.TagScience},
+			ID:        "science-dummy-" + string(rune('a'+i)),
+			Name:      "Science Dummy",
+			Type:      gamecards.CardTypeAutomated,
+			GameModes: []string{"classic"},
+			Cost:      1,
+			Tags:      []shared.CardTag{shared.TagScience},
 		}
 	}
 	additionalCards := append([]gamecards.Card{card}, scienceCards...)
@@ -5288,8 +5288,8 @@ func TestAICentral_OnPlay_DecreasesEnergyProduction(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	aiCentral := testutil.GetCardByName("AI Central")
-	sci1 := gamecards.Card{ID: "sci1", Name: "Sci1", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
-	sci2 := gamecards.Card{ID: "sci2", Name: "Sci2", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
+	sci1 := gamecards.Card{ID: "sci1", Name: "Sci1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
+	sci2 := gamecards.Card{ID: "sci2", Name: "Sci2", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards([]gamecards.Card{sci1, sci2})
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -5322,8 +5322,8 @@ func TestAICentral_Action_DrawTwoCards(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	aiCentral := testutil.GetCardByName("AI Central")
-	sci1 := gamecards.Card{ID: "sci1", Name: "Sci1", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
-	sci2 := gamecards.Card{ID: "sci2", Name: "Sci2", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
+	sci1 := gamecards.Card{ID: "sci1", Name: "Sci1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
+	sci2 := gamecards.Card{ID: "sci2", Name: "Sci2", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagScience}}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards([]gamecards.Card{sci1, sci2})
 	players := testGame.GetAllPlayers()
 	p := players[0]
@@ -5364,7 +5364,7 @@ func TestPowerSupplyConsortium_StealEnergyProduction(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	powerSupplyConsortium := testutil.GetCardByName("Power Supply Consortium")
-	power1 := gamecards.Card{ID: "power1", Name: "Power1", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 0, Tags: []shared.CardTag{shared.TagPower}}
+	power1 := gamecards.Card{ID: "power1", Name: "Power1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 0, Tags: []shared.CardTag{shared.TagPower}}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards([]gamecards.Card{power1})
 	players := testGame.GetAllPlayers()
 	attacker := players[0]

@@ -47,9 +47,11 @@ func (r *PlayerResources) Get() shared.Resources {
 }
 
 func (r *PlayerResources) Production() shared.Production {
+	var runtime shared.ModeRuntimeState
+	_ = r.ds.ReadGame(r.gameID, func(s *datastore.GameState) { runtime = s.ModeRuntime })
 	var prod shared.Production
 	r.read(func(s *datastore.PlayerState) {
-		prod = s.Production
+		prod = shared.EffectiveProduction(s.Production, s.ProductionContributions, s.DependencyStatuses, runtime)
 	})
 	return prod
 }

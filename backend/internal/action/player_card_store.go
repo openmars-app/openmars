@@ -22,7 +22,7 @@ func SetupPlayerCardStore(p *player.Player, g *game.Game, cardRegistry gamecards
 	}
 
 	recalculate := func(cardID string) player.EntityState {
-		card, err := cardRegistry.GetByID(cardID)
+		card, err := gamecards.ForGame(cardRegistry, g).GetByID(cardID)
 		if err != nil {
 			logger.Get().Warn("Card not found in registry during recalculation",
 				slog.String("card_id", cardID), slog.Any("error", err))
@@ -40,7 +40,7 @@ func SetupPlayerCardStore(p *player.Player, g *game.Game, cardRegistry gamecards
 		if e.PlayerID != p.ID() {
 			return
 		}
-		card, err := cardRegistry.GetByID(e.CardID)
+		card, err := gamecards.ForGame(cardRegistry, g).GetByID(e.CardID)
 		if err != nil {
 			logger.Get().Warn("Card not found in registry",
 				slog.String("card_id", e.CardID), slog.Any("error", err))

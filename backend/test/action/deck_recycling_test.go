@@ -263,7 +263,7 @@ func TestDeckRecycling_RealDeckNeverDealsPreludeOrCorporation(t *testing.T) {
 	ctx := context.Background()
 	registry := testutil.GetCardDB()
 
-	projectCardIDs, corpIDs, preludeIDs := gamecards.GetCardIDsByPacks(registry, []string{"base-game", "prelude"})
+	projectCardIDs, corpIDs, preludeIDs := gamecards.GetCardIDs(registry)
 	testutil.AssertTrue(t, len(projectCardIDs) > 0, "should have project cards")
 	testutil.AssertTrue(t, len(preludeIDs) > 0, "should have prelude cards")
 	testutil.AssertTrue(t, len(corpIDs) > 0, "should have corporation cards")

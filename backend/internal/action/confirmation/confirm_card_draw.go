@@ -104,7 +104,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 
 	totalCost := len(cardsToBuy) * selection.CardBuyCost
 
-	quote, err := cards.QuotePayment(p, g, a.CardRegistry(), cards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: totalCost}, Action: "card-buying"})
+	quote, err := cards.QuotePayment(p, g, a.CardRegistryForGame(g), cards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: totalCost}, Action: "card-buying"})
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	if selection.PlayAsPrelude {
 		// Play selected prelude cards instead of adding to hand
 		for _, preludeID := range allSelectedCards {
-			if err := turn_management.ApplyPreludeCard(ctx, g, p, preludeID, a.CardRegistry(), a.StateRepository(), log); err != nil {
+			if err := turn_management.ApplyPreludeCard(ctx, g, p, preludeID, a.CardRegistryForGame(g), a.StateRepository(), log); err != nil {
 				return fmt.Errorf("failed to play prelude card %s: %w", preludeID, err)
 			}
 		}

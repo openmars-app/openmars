@@ -84,7 +84,7 @@ func (a *SelectStartingChoicesAction) Execute(ctx context.Context, gameID string
 		return err
 	}
 
-	quote, err := gamecards.QuoteStartingPayment(a.cardRegistry, corporationID, len(cardIDs), g.Settings().DemoGame)
+	quote, err := gamecards.QuoteStartingPayment(gamecards.ForGame(a.cardRegistry, g), corporationID, len(cardIDs), g.Settings().DemoGame)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func (a *SelectStartingChoicesAction) validateCorporation(g *game.Game, p *playe
 		return fmt.Errorf("corporation %s not available", corporationID)
 	}
 
-	corpCard, err := a.cardRegistry.GetByID(corporationID)
+	corpCard, err := gamecards.ForGame(a.cardRegistry, g).GetByID(corporationID)
 	if err != nil {
 		return fmt.Errorf("corporation card not found: %s", corporationID)
 	}

@@ -147,7 +147,10 @@ export default function CreateGamePage() {
                         className="game-input w-20"
                         type="number"
                         min={1}
-                        max={10}
+                        max={
+                          options.gameModes.find((mode) => mode.id === setup.gameModeId)
+                            ?.maxPlayers ?? 5
+                        }
                         value={setup.maxPlayers}
                         onChange={(e) => setSetup({ ...setup, maxPlayers: Number(e.target.value) })}
                       />
@@ -174,16 +177,19 @@ export default function CreateGamePage() {
               )}
               {!isCompact && submitButton}
             </div>
-            {!isCompact && (
+            <div className="compact:mt-5">
               <GameSetupControls
                 maps={options.availableMaps}
                 mapId={setup.mapId}
-                cardPacks={setup.cardPacks}
-                venusNextEnabled={setup.venusNextEnabled}
+                modes={options.gameModes}
+                gameModeId={setup.gameModeId}
+                gameModeParameters={setup.gameModeParameters}
+                features={setup.features}
+                maxPlayers={setup.maxPlayers}
                 disabled={busy || !!created}
                 onChange={(patch) => setSetup({ ...setup, ...patch })}
               />
-            )}
+            </div>
           </form>
         )}
       </main>

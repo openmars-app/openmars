@@ -72,7 +72,7 @@ func (a *ConfirmColonyPlacementAction) Execute(ctx context.Context, gameID strin
 		if err != nil {
 			return err
 		}
-		if err := g.Colonies().AddTile(cards.InitializeColonyTile(g, *definition, a.CardRegistry())); err != nil {
+		if err := g.Colonies().AddTile(cards.InitializeColonyTile(g, *definition, a.CardRegistryForGame(g))); err != nil {
 			return err
 		}
 		p.Selection().SetPendingColonySelection(nil)
@@ -116,7 +116,7 @@ func (a *ConfirmColonyPlacementAction) Execute(ctx context.Context, gameID strin
 		source = "Card Effect"
 	}
 
-	if err := colonyaction.PlaceColonyOnTile(ctx, g, p, definition, tileState, a.CardRegistry(), source, log); err != nil {
+	if err := colonyaction.PlaceColonyOnTile(ctx, g, p, definition, tileState, a.CardRegistryForGame(g), source, log); err != nil {
 		return fmt.Errorf("failed to place colony: %w", err)
 	}
 

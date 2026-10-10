@@ -14,6 +14,7 @@ import (
 	"openmars/internal/game/award"
 	"openmars/internal/game/cards"
 	"openmars/internal/game/milestone"
+	"openmars/internal/game/mode"
 	"openmars/internal/game/shared"
 	"openmars/internal/logger"
 
@@ -202,18 +203,54 @@ func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	preview := queryParams.Get("preview")
+	if preview != "" && preview != "connected" && preview != "disconnected" && preview != "restored" {
+		http.Error(w, "unknown card preview", http.StatusBadRequest)
+		return
+	}
+	if preview != "" && queryParams.Get("gameModeId") == "" {
+		http.Error(w, "card preview requires gameModeId", http.StatusBadRequest)
+		return
+	}
 	// Execute query action
-	result, err := h.listCardsAction.Execute(ctx, offset, limit)
+	var selection *shared.GameSettings
+	if modeID := queryParams.Get("gameModeId"); modeID != "" {
+		selection = &shared.GameSettings{GameModeID: modeID}
+	}
+	result, err := h.listCardsAction.Execute(ctx, offset, limit, selection)
 	if err != nil {
 		log.Error("Failed to list cards", slog.Any("error", err))
-		http.Error(w, "Failed to list cards", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	previewState := map[string]int{}
+	if selection != nil {
+		_, definition, err := mode.Normalize(cards.ModeDefinitions(h.cardRegistry), *selection)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		for k, v := range definition.Runtime.State {
+			previewState[k] = v
+		}
+		for _, d := range definition.Runtime.Deadlines {
+			previewState[d.ActiveState] = d.ActiveValue
+			if preview == "disconnected" {
+				previewState[d.ActiveState] = d.InactiveValue
+			}
+			if preview == "disconnected" || preview == "restored" {
+				previewState[d.OccurredState] = 1
+			}
+		}
+	}
 	// Convert to DTOs
 	cardDtos := make([]dto.CardDto, len(result.Cards))
 	for i, card := range result.Cards {
 		cardDtos[i] = dto.ToCardDto(card)
+		if selection != nil {
+			dto.AnnotateCardDependencyPreview(&cardDtos[i], card, previewState)
+		}
 	}
 
 	response := dto.ListCardsResponse{
@@ -314,7 +351,7 @@ func (h *GameHandler) GetGameHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := dto.GetGameHistoryResponse{
-		Entries: dto.ToGameHistoryEntryDtos(entries),
+		Entries: dto.ToGameHistoryEntryDtos(entries, h.cardRegistry),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -367,5 +404,13 @@ func (h *GameHandler) GameOptions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(dto.MapGameOptions(h.createGameAction.Options())); err != nil {
 		logger.Get().Error("Failed to encode game options", slog.Any("error", err))
+	}
+}
+
+// GameModes exposes the data-driven mode catalog.
+func (h *GameHandler) GameModes(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(dto.GameModesResponse{GameModes: dto.MapGameModes(cards.ModeDefinitions(h.cardRegistry))}); err != nil {
+		logger.Get().Error("Failed to encode game modes", slog.Any("error", err))
 	}
 }

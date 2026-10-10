@@ -45,11 +45,11 @@ func saveFixture(t *testing.T) (*game.Game, game.GameRepository, *game.InMemoryG
 	t.Helper()
 	ctx := context.Background()
 	repo := testutil.NewTestGameRepository(t)
-	cards := testutil.GetCardDB()
+	cards := testutil.CreateTestModeCatalog()
 	maps := testutil.CreateTestMapRegistry()
 	log := testutil.TestLogger()
 	catalog := save.Catalog{StandardProjects: standardproject.NewInMemoryStandardProjectRegistry(nil), Cards: cards, Maps: maps, Colonies: colony.NewInMemoryColonyRegistry(nil), Projects: projectfunding.NewInMemoryProjectFundingRegistry(nil), Awards: testutil.CreateTestAwardRegistry(), Milestones: testutil.CreateTestMilestoneRegistry()}
-	g, err := gameaction.NewCreateGameAction(repo, cards, maps, log).Execute(ctx, shared.GameSettings{MaxPlayers: 2, CardPacks: []string{shared.PackBaseGame}, ClaudeOAuthToken: "secret-do-not-export"})
+	g, err := gameaction.NewCreateGameAction(repo, cards, maps, log).Execute(ctx, shared.GameSettings{MaxPlayers: 2, GameModeID: "classic", Features: []string{}, ClaudeOAuthToken: "secret-do-not-export"})
 	testutil.AssertNoError(t, err, "create")
 	g.SetSeed(math.MaxUint64)
 	for _, id := range []string{"alice", "bob"} {
@@ -57,7 +57,7 @@ func saveFixture(t *testing.T) (*game.Game, game.GameRepository, *game.InMemoryG
 		testutil.AssertNoError(t, err, "add player")
 	}
 	testutil.AssertNoError(t, g.SetHostPlayerID(ctx, "alice"), "host")
-	testutil.AssertNoError(t, turn.NewStartGameAction(repo, catalog.Colonies, catalog.Projects, catalog.Milestones, catalog.Awards, nil, log).Execute(ctx, g.ID(), "alice"), "start")
+	testutil.AssertNoError(t, turn.NewStartGameAction(repo, catalog.Colonies, catalog.Projects, catalog.Milestones, catalog.Awards, nil, log, cards).Execute(ctx, g.ID(), "alice"), "start")
 	logs := game.NewInMemoryGameStateRepository()
 	_, err = logs.Write(ctx, g.ID(), g, "start", shared.SourceTypeCardPlay, "alice", "Started game")
 	testutil.AssertNoError(t, err, "log")
@@ -472,7 +472,7 @@ func TestSaveBotsRequireFreshCredentialsAndReadiness(t *testing.T) {
 	doc, err := a.Validate(encodeSave(t, g, a))
 	testutil.AssertNoError(t, err, "validate bot")
 	bots := &saveTestBots{}
-	catalog := save.Catalog{StandardProjects: standardproject.NewInMemoryStandardProjectRegistry(nil), Cards: testutil.GetCardDB(), Maps: testutil.CreateTestMapRegistry(), Colonies: colony.NewInMemoryColonyRegistry(nil), Projects: projectfunding.NewInMemoryProjectFundingRegistry(nil), Awards: testutil.CreateTestAwardRegistry(), Milestones: testutil.CreateTestMilestoneRegistry()}
+	catalog := save.Catalog{StandardProjects: standardproject.NewInMemoryStandardProjectRegistry(nil), Cards: testutil.CreateTestModeCatalog(), Maps: testutil.CreateTestMapRegistry(), Colonies: colony.NewInMemoryColonyRegistry(nil), Projects: projectfunding.NewInMemoryProjectFundingRegistry(nil), Awards: testutil.CreateTestAwardRegistry(), Milestones: testutil.CreateTestMilestoneRegistry()}
 	a, err = gameaction.NewSaveGameAction(repo, logs, catalog, "test", bots, testutil.TestLogger())
 	testutil.AssertNoError(t, err, "bot action")
 	restored, err := importSave(t, a, doc, "alice", "alice")
@@ -781,8 +781,8 @@ func TestSaveBrowseMetadata(t *testing.T) {
 			t.Fatal("owner name unavailable in listing")
 		}
 		testutil.AssertEqual(t, restored.Settings().MapID, view.Settings.MapID, "map")
-		if !reflect.DeepEqual(restored.Settings().CardPacks, view.Settings.CardPacks) {
-			t.Fatal("missing expansion metadata")
+		if restored.Settings().GameModeID != view.Settings.GameModeID || !reflect.DeepEqual(restored.Settings().Features, view.Settings.Features) || !reflect.DeepEqual(restored.Settings().GameModeParameters, view.Settings.GameModeParameters) {
+			t.Fatal("missing game mode metadata")
 		}
 		if view.CurrentPlayer.ID != "" || len(view.OtherPlayers) > 0 || len(view.Board.Tiles) > 0 {
 			t.Fatal("resume listing exposes gameplay")

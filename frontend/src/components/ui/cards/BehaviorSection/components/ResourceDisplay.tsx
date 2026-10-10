@@ -45,6 +45,7 @@ interface ResourceDisplayProps {
 
 export function hasResourceVisual(resource: ResourceCondition): boolean {
   return (
+    ("description" in resource && Boolean(resource.description)) ||
     !!getIconPath(resource.type) ||
     [
       "copy",
@@ -225,6 +226,18 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
         </span>
         <GameIcon iconType={resource.type === "trade-fleet" ? "trade" : "colony"} size="behavior" />
         {resource.selectionGroup && <span>*</span>}
+      </span>
+    );
+  }
+  if (
+    resource &&
+    "description" in resource &&
+    resource.description &&
+    !getIconPath(resource.type)
+  ) {
+    return (
+      <span className="text-[11px] leading-tight font-sans text-white text-left max-w-[240px]">
+        {resource.description}
       </span>
     );
   }

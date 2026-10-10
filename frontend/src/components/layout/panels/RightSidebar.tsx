@@ -1,8 +1,15 @@
 import React, { useMemo } from "react";
-import { PlayerDto, OtherPlayerDto, GlobalParameterBonusDto } from "@/types/generated/api-types.ts";
+import {
+  PlayerDto,
+  OtherPlayerDto,
+  GlobalParameterBonusDto,
+  GameDto,
+} from "@/types/generated/api-types.ts";
 import GameIcon from "../../ui/display/GameIcon.tsx";
 import { Z_INDEX, getZIndex } from "@/constants/zIndex.ts";
 import { useTapReveal } from "@/hooks/useTapReveal.ts";
+
+import GameModeStatus from "../../ui/display/GameModeStatus.tsx";
 
 interface GlobalParameters {
   temperature: number;
@@ -15,6 +22,7 @@ interface GlobalParameters {
 
 interface RightSidebarProps {
   globalParameters?: GlobalParameters;
+  game?: GameDto;
   generation?: number;
   currentPlayer?: PlayerDto | OtherPlayerDto | null;
   showVenus?: boolean;
@@ -623,6 +631,7 @@ const OceansPanel: React.FC<OceansPanelProps> = ({ oceans, maxOceans, width, hei
 
 const RightSidebar: React.FC<RightSidebarProps> = ({
   globalParameters,
+  game,
   generation,
   currentPlayer: _currentPlayer,
   showVenus = false,
@@ -685,6 +694,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       )}
 
       <div className="flex flex-col h-full">
+        {game && (
+          <div style={{ width: currentWidth }}>
+            <GameModeStatus game={game} />
+          </div>
+        )}
         <div
           style={{
             marginBottom: -ANGLE_INDENT,

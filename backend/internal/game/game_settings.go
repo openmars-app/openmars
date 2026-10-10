@@ -6,7 +6,7 @@ import (
 
 // Default values for game settings
 const (
-	DefaultMaxPlayers  = 10
+	DefaultMaxPlayers  = 5
 	DefaultTemperature = global_parameters.MinTemperature // -30°C
 	DefaultOxygen      = global_parameters.MinOxygen      // 0%
 	DefaultOceans      = global_parameters.MinOceans      // 0

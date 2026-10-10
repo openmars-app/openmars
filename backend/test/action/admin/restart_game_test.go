@@ -24,15 +24,15 @@ func setupRestartableGame(t *testing.T, developmentMode bool) (*game.Game, game.
 	t.Helper()
 	ctx := context.Background()
 	logger := testutil.TestLogger()
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestModeCatalog()
 	repo := testutil.NewTestGameRepository(t)
 
 	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, testutil.CreateTestMapRegistry(), logger)
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 
 	g, err := createAction.Execute(ctx, shared.GameSettings{
-		MaxPlayers:      4,
-		CardPacks:       []string{"base-game", "prelude"},
+		MaxPlayers: 4,
+		GameModeID: "classic", Features: []string{"prelude"},
 		DevelopmentMode: developmentMode,
 	})
 	testutil.AssertNoError(t, err, "create game")

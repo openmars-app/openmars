@@ -94,6 +94,11 @@ func validateRequirement(cardID string, index int, req Requirement) error {
 
 func validateBehavior(cardID string, index int, behavior shared.CardBehavior) []error {
 	var errors []error
+	for _, r := range behavior.ResourceRequirements {
+		if r.Type == "" || r.Min == nil && r.Max == nil || r.Min != nil && r.Max != nil && *r.Min > *r.Max || r.Permanent && !shared.IsProductionResourceType(r.Type) {
+			errors = append(errors, fmt.Errorf("card %s: invalid resource requirement", cardID))
+		}
+	}
 	contextualTrade := false
 	for _, trigger := range behavior.Triggers {
 		if trigger.Type == shared.TriggerTypeAuto && trigger.Condition != nil && trigger.Condition.Type == "before-colony-trade" {
@@ -127,11 +132,11 @@ func validateBehavior(cardID string, index int, behavior shared.CardBehavior) []
 		if behavior.ProductionBox != "evaluate" && behavior.ProductionBox != "resolved" {
 			errors = append(errors, fmt.Errorf("card %s: unknown productionBox %q", cardID, behavior.ProductionBox))
 		}
-		if len(behavior.Inputs) > 0 || len(behavior.Choices) > 0 || len(behavior.Outputs) == 0 {
+		if behavior.ProductionBox == "evaluate" && (len(behavior.Inputs) > 0 || len(behavior.Choices) > 0 || len(behavior.Outputs) == 0) {
 			errors = append(errors, fmt.Errorf("card %s: production box must contain only production outputs", cardID))
 		}
 		for _, output := range behavior.Outputs {
-			if !shared.IsProductionResourceType(output.GetResourceType()) {
+			if behavior.ProductionBox == "evaluate" && !shared.IsProductionResourceType(output.GetResourceType()) {
 				errors = append(errors, fmt.Errorf("card %s: production box contains non-production output", cardID))
 			}
 		}
@@ -186,6 +191,11 @@ func validateBehavior(cardID string, index int, behavior shared.CardBehavior) []
 }
 
 func validateBehaviorCondition(cardID string, behaviorIndex int, condType string, index int, cond shared.BehaviorCondition) error {
+	if c, ok := cond.(*shared.StateCondition); ok {
+		if problems := shared.ValidateResourceCondition(c, strings.HasSuffix(condType, "input")); len(problems) > 0 {
+			return fmt.Errorf("card %s: %v", cardID, problems)
+		}
+	}
 	if c, ok := cond.(*shared.PaymentSubstituteCondition); ok {
 		if problems := shared.ValidateResourceCondition(c, strings.HasSuffix(condType, "input")); len(problems) > 0 {
 			return fmt.Errorf("card %s: %v", cardID, problems)
@@ -260,7 +270,7 @@ func isValidCardTag(tag shared.CardTag) bool {
 
 func isValidRequirementType(rt RequirementType) bool {
 	switch rt {
-	case RequirementTemperature, RequirementOxygen, RequirementOceans,
+	case RequirementState, RequirementTemperature, RequirementOxygen, RequirementOceans,
 		RequirementTags, RequirementProduction, RequirementTR,
 		RequirementResource, RequirementVenus, RequirementCities,
 		RequirementGreeneries:

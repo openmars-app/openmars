@@ -138,7 +138,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
           const delay = index * 0.05;
           const isAffordable = isChoiceAffordable(choice);
           const hasBackendErrors = choice.errors && choice.errors.length > 0;
-          const isSelectable = isAffordable && !hasBackendErrors;
+          const isSelectable = choice.available && isAffordable && !hasBackendErrors;
 
           return (
             <button

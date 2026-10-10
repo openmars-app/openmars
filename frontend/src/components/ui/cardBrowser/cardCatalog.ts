@@ -14,7 +14,8 @@ export interface CardBrowserView {
   ids: readonly string[];
   tags: readonly string[];
   types: readonly string[];
-  packs: readonly string[];
+  gameModeId: string;
+  preview: string;
   sort: CardSort;
   size: CardDisplaySize;
 }
@@ -23,7 +24,8 @@ export const EMPTY_VIEW: CardBrowserView = {
   ids: [],
   tags: [],
   types: [],
-  packs: [],
+  gameModeId: "",
+  preview: "connected",
   sort: "id",
   size: "small",
 };
@@ -69,21 +71,30 @@ export const useCardCatalog = create<CatalogState>(() => ({
   error: null,
 }));
 
-let pending: Promise<void> | null = null;
-export function loadCardCatalog(): Promise<void> {
-  if (pending) {
-    return pending;
-  }
-  if (useCardCatalog.getState().status === "ready") {
+let requestVersion = 0;
+let loadedKey = "";
+const pendingRequests = new Map<string, Promise<void>>();
+export function loadCardCatalog(gameModeId = "", preview = "connected"): Promise<void> {
+  const key = `${gameModeId}:${preview}`;
+  if (loadedKey === key && useCardCatalog.getState().status === "ready") {
     return Promise.resolve();
   }
-  useCardCatalog.setState({ status: "loading", error: null });
-  pending = (async () => {
+  const existing = pendingRequests.get(key);
+  if (existing && loadedKey === key) {
+    return existing;
+  }
+  const version = ++requestVersion;
+  loadedKey = key;
+  useCardCatalog.setState({ status: "loading", error: null, entries: [] });
+  const request = (async () => {
     try {
       const cards: CardDto[] = [];
       let total = Infinity;
       while (cards.length < total) {
-        const response = await apiService.listCards(cards.length, 1000);
+        const response = await apiService.listCards(cards.length, 1000, gameModeId, preview);
+        if (version !== requestVersion) {
+          return;
+        }
         total = response.totalCount;
         if (response.cards.length === 0 && cards.length < total) {
           throw new Error("The card catalog was incomplete. Please retry.");
@@ -106,15 +117,21 @@ export function loadCardCatalog(): Promise<void> {
         })),
       });
     } catch (error) {
+      if (version !== requestVersion) {
+        return;
+      }
       useCardCatalog.setState({
         status: "error",
         error: error instanceof Error ? error.message : "Unable to load cards.",
       });
     } finally {
-      pending = null;
+      if (version === requestVersion) {
+        pendingRequests.delete(key);
+      }
     }
   })();
-  return pending;
+  pendingRequests.set(key, request);
+  return request;
 }
 
 export interface CatalogFilters {
@@ -122,7 +139,6 @@ export interface CatalogFilters {
   ids: readonly string[];
   tags: ReadonlySet<string>;
   types: ReadonlySet<string>;
-  packs: ReadonlySet<string>;
   sort: CardSort;
 }
 
@@ -144,9 +160,6 @@ export function filterCatalog(entries: CatalogEntry[], filters: CatalogFilters) 
       continue;
     }
     if (filters.tags.size && !card.tags?.some((tag) => filters.tags.has(tag))) {
-      continue;
-    }
-    if (filters.packs.size && !filters.packs.has(card.pack)) {
       continue;
     }
     if (family === "project" && filters.types.size && !filters.types.has(card.type)) {

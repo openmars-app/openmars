@@ -181,7 +181,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			return nil, fmt.Errorf("failed to destroy tile: %w", err)
 		}
 
-		occupant := a.createTileOccupant(replacementTileType, pendingTileSelection.SourceCardID)
+		occupant := a.createTileOccupant(g, replacementTileType, pendingTileSelection.SourceCardID)
 		if err := g.Board().UpdateTileOccupancy(ctx, *coords, occupant, playerID); err != nil {
 			log.Warn("Failed to place replacement tile", slog.Any("error", err))
 			return nil, fmt.Errorf("failed to place replacement tile: %w", err)
@@ -317,7 +317,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 	}
 
-	occupant := a.createTileOccupant(tileType, pendingTileSelection.SourceCardID)
+	occupant := a.createTileOccupant(g, tileType, pendingTileSelection.SourceCardID)
 	if err := g.Board().UpdateTileOccupancy(ctx, *coords, occupant, playerID); err != nil {
 		log.Warn("Failed to place tile", slog.Any("error", err))
 		return nil, fmt.Errorf("failed to place tile: %w", err)
@@ -640,7 +640,7 @@ func mapTileTypeToResourceType(tileType string) shared.ResourceType {
 	}
 }
 
-func (a *SelectTileAction) createTileOccupant(tileType, sourceCardID string) board.TileOccupant {
+func (a *SelectTileAction) createTileOccupant(g *game.Game, tileType, sourceCardID string) board.TileOccupant {
 	occupant := board.TileOccupant{
 		Type: mapTileTypeToResourceType(tileType),
 		Tags: []string{},
@@ -649,10 +649,10 @@ func (a *SelectTileAction) createTileOccupant(tileType, sourceCardID string) boa
 		return occupant
 	}
 	occupant.Tags = append(occupant.Tags, "source:"+sourceCardID)
-	if occupant.Type != shared.ResourceCityTile || a.CardRegistry() == nil {
+	if occupant.Type != shared.ResourceCityTile || a.CardRegistryForGame(g) == nil {
 		return occupant
 	}
-	card, err := a.CardRegistry().GetByID(sourceCardID)
+	card, err := a.CardRegistryForGame(g).GetByID(sourceCardID)
 	if err != nil {
 		return occupant
 	}
