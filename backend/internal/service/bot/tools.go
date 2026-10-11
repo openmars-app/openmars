@@ -98,6 +98,11 @@ type cardDiscardInput struct {
 	CardsToDiscard []string `json:"cardsToDiscard"`
 }
 
+type optionalBehaviorInput struct {
+	ResolutionID string `json:"resolutionId"`
+	Accept       bool   `json:"accept"`
+}
+
 type behaviorChoiceInput struct {
 	ResolutionID       string   `json:"resolutionId"`
 	ChoiceIndex        int      `json:"choiceIndex"`
@@ -397,6 +402,11 @@ func (ts *ToolServer) registerActionTools(g *grant) {
 	addAction(ts, g, "confirm_card_discard", "Resolve a pending discard.",
 		func(ctx context.Context, _ *Snapshot, in cardDiscardInput) error {
 			return a.ConfirmCardDiscard.Execute(ctx, gid, pid, in.ResolutionID, in.CardsToDiscard)
+		})
+
+	addAction(ts, g, "confirm_optional_behavior", "Accept or skip a pending optional effect. Guaranteed card gains are already applied.",
+		func(ctx context.Context, _ *Snapshot, in optionalBehaviorInput) error {
+			return a.ConfirmBehaviorChoice.ExecuteOptional(ctx, gid, pid, in.ResolutionID, in.Accept)
 		})
 
 	addAction(ts, g, "confirm_behavior_choice", "Resolve a pending behavior choice.",

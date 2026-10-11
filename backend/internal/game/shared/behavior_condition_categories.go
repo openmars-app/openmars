@@ -40,6 +40,7 @@ func (c *BasicResourceCondition) deepCopyCondition() BehaviorCondition {
 
 // ProductionCondition covers credit-production through any-production.
 type ProductionCondition struct {
+	Dependency *DependencyGroup `json:"dependencyGroup,omitempty"`
 	ConditionBase
 	Per            *PerCondition `json:"per,omitempty"`
 	VariableAmount bool          `json:"variableAmount,omitempty"`
@@ -52,6 +53,14 @@ func NewProductionCondition(rt ResourceType, amount int, target string) *Product
 func (c *ProductionCondition) isBehaviorCondition() {}
 func (c *ProductionCondition) deepCopyCondition() BehaviorCondition {
 	cp := *c
+	if c.Dependency != nil {
+		d := *c.Dependency
+		if d.RetireOnState != nil {
+			r := *d.RetireOnState
+			d.RetireOnState = &r
+		}
+		cp.Dependency = &d
+	}
 	if c.Per != nil {
 		cp.Per = c.Per.Clone()
 	}
@@ -247,6 +256,8 @@ func (c *MiscCondition) deepCopyCondition() BehaviorCondition {
 // classifyResourceType maps a ResourceType to its category string.
 func classifyResourceType(rt ResourceType) string {
 	switch rt {
+	case ResourceStateChange, ResourceRemoveDependency, ResourceRetireDependency, ResourceScheduleStateWindow:
+		return "state"
 	case ResourceCardReveal:
 		return "card-reveal"
 	case ResourceCopy:
@@ -292,6 +303,8 @@ func categorizeCondition(rc resourceConditionJSON) BehaviorCondition {
 	}
 
 	switch classifyResourceType(rc.ResourceType) {
+	case "state":
+		return &StateCondition{Description: rc.Description, ConditionBase: base, MinimumProduction: rc.MinimumProduction, State: rc.State, Value: rc.Value, Dependency: rc.Dependency, Start: rc.Start, End: rc.End}
 	case "payment-substitute":
 		source := PaymentSource{}
 		if rc.Source != nil {
@@ -314,6 +327,7 @@ func categorizeCondition(rc resourceConditionJSON) BehaviorCondition {
 		}
 	case "production":
 		return &ProductionCondition{
+			Dependency:     rc.DependencyGroup,
 			ConditionBase:  base,
 			Per:            rc.Per,
 			VariableAmount: rc.VariableAmount,
@@ -378,6 +392,8 @@ func categorizeCondition(rc resourceConditionJSON) BehaviorCondition {
 // flattenCondition converts any typed condition back to a flat resourceConditionJSON.
 func flattenCondition(bc BehaviorCondition) resourceConditionJSON {
 	switch c := bc.(type) {
+	case *StateCondition:
+		return resourceConditionJSON{Description: c.Description, ResourceType: c.ResourceType, Amount: c.Amount, Target: c.Target, MinimumProduction: c.MinimumProduction, State: c.State, Value: c.Value, Dependency: c.Dependency, Start: c.Start, End: c.End}
 	case *PaymentSubstituteCondition:
 		return resourceConditionJSON{ResourceType: c.ResourceType, Amount: c.Amount, Target: c.Target, Source: &c.Source, TargetResource: c.TargetResource, Selectors: c.Selectors}
 	case *CardRevealCondition:
@@ -398,11 +414,12 @@ func flattenCondition(bc BehaviorCondition) resourceConditionJSON {
 		}
 	case *ProductionCondition:
 		return resourceConditionJSON{
-			ResourceType:   c.ResourceType,
-			Amount:         c.Amount,
-			Target:         c.Target,
-			Per:            c.Per,
-			VariableAmount: c.VariableAmount,
+			DependencyGroup: c.Dependency,
+			ResourceType:    c.ResourceType,
+			Amount:          c.Amount,
+			Target:          c.Target,
+			Per:             c.Per,
+			VariableAmount:  c.VariableAmount,
 		}
 	case *TilePlacementCondition:
 		return resourceConditionJSON{

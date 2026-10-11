@@ -42,6 +42,8 @@ const EffectsList: React.FC<EffectsListProps> = ({ effects, density }) => {
             <div className="relative w-full min-h-[32px] [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none">
               <BehaviorSection
                 behaviors={[effect.behavior]}
+                sourceBehaviorIndex={effect.behaviorIndex}
+                cardId={effect.cardId}
                 computedValues={effect.computedValues}
                 greyOutAll={false}
               />

@@ -50,14 +50,6 @@ export function useSoundEffects() {
     return audioService.playConstructionSound();
   }, []);
 
-  const playYourTurnSound = useCallback(() => {
-    return audioService.playYourTurnSound();
-  }, []);
-
-  const playAwardFundedSound = useCallback(() => {
-    return audioService.playAwardFundedSound();
-  }, []);
-
   const playGameStartSound = useCallback(() => {
     return audioService.playGameStartSound();
   }, []);
@@ -82,8 +74,6 @@ export function useSoundEffects() {
     playCardHoverSound,
     playCardPlayedSound,
     playConstructionSound,
-    playYourTurnSound,
-    playAwardFundedSound,
     playGameStartSound,
     playPlayerJoinedSound,
     playProductionScoreSound,

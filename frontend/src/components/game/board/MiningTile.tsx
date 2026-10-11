@@ -212,8 +212,8 @@ export default function MiningTile({
       emergenceRef.current = eased;
 
       const shakeIntensity = 0.01 * (1 - eased);
-      const shakeX = (Math.random() - 0.5) * 2 * shakeIntensity;
-      const shakeY = (Math.random() - 0.5) * 2 * shakeIntensity;
+      const shakeX = Math.sin(elapsed * 0.137 + seed) * shakeIntensity;
+      const shakeY = Math.sin(elapsed * 0.173 + seed * 1.3) * shakeIntensity;
       groupRef.current.position.set(shakeX, shakeY, 0);
 
       if (rawT >= 1) {
@@ -455,10 +455,11 @@ export default function MiningTile({
         </group>
       </group>
 
-      {emergenceComplete && <MiningDust />}
+      {emergenceComplete && <MiningDust seed={seed} />}
 
       {!nuclearImpacted && showDust && surfaceNormal && worldPosition && (
         <DustEffect
+          seed={seed}
           duration={2500}
           particleColor={new THREE.Color(0.45, 0.3, 0.15)}
           onComplete={() => setShowDust(false)}

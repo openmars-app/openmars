@@ -20,7 +20,7 @@ func TestStartGameAction_Success(t *testing.T) {
 		p.SetCorporationID(testutil.PlaceholderCorporationID)
 	}
 
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 
 	// Execute
 	err := startAction.Execute(context.Background(), testGame.ID(), testGame.HostPlayerID())
@@ -38,7 +38,7 @@ func TestStartGameAction_GameNotFound(t *testing.T) {
 	repo := testutil.NewTestGameRepository(t)
 	logger := testutil.TestLogger()
 
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 
 	// Execute
 	err := startAction.Execute(context.Background(), "non-existent-game", "some-player")
@@ -60,7 +60,7 @@ func TestStartGameAction_NotInLobby(t *testing.T) {
 	}
 
 	// Start game once using action
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 	testutil.AssertNoError(t, startAction.Execute(ctx, testGame.ID(), testGame.HostPlayerID()), "start game")
 
 	// Try to start again
@@ -81,7 +81,7 @@ func TestStartGameAction_NotHost(t *testing.T) {
 		p.SetCorporationID(testutil.PlaceholderCorporationID)
 	}
 
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 
 	// Get non-host player
 	nonHostPlayer := ""
@@ -108,7 +108,7 @@ func TestStartGameAction_MinimumPlayers(t *testing.T) {
 	players := testGame.GetAllPlayers()
 	players[0].SetCorporationID(testutil.PlaceholderCorporationID)
 
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 
 	// Execute - should allow solo play
 	err := startAction.Execute(context.Background(), testGame.ID(), testGame.HostPlayerID())
@@ -130,7 +130,7 @@ func TestStartGameAction_AssignsPlayerColors(t *testing.T) {
 		p.SetCorporationID(testutil.PlaceholderCorporationID)
 	}
 
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 	err := startAction.Execute(context.Background(), testGame.ID(), testGame.HostPlayerID())
 	testutil.AssertNoError(t, err, "Failed to start game")
 
@@ -157,7 +157,7 @@ func TestStartGameAction_InitialResourcesSet(t *testing.T) {
 		p.SetCorporationID(testutil.PlaceholderCorporationID)
 	}
 
-	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger)
+	startAction := turnAction.NewStartGameAction(repo, nil, nil, nil, nil, nil, logger, nil)
 
 	// Execute
 	err := startAction.Execute(context.Background(), testGame.ID(), testGame.HostPlayerID())

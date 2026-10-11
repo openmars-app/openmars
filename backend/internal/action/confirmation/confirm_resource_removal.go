@@ -41,7 +41,7 @@ func (a *ConfirmResourceRemovalAction) Execute(ctx context.Context, gameID, play
 	}
 	description := "Skipped resource removal from " + selection.Source
 	if amount > 0 {
-		targets, err := cards.ResourceRemovalTargets(g, p, selection.Output, selection.Placement, a.CardRegistry())
+		targets, err := cards.ResourceRemovalTargets(g, p, selection.Output, selection.Placement, a.CardRegistryForGame(g))
 		if err != nil {
 			return err
 		}

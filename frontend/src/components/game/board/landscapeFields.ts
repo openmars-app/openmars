@@ -8,7 +8,13 @@ import {
   hashSeed,
   nearestOnRoad,
 } from "./landscapeGeometry";
-import { insideBuilding, onEntrancePath, cityWallDistance, cityHexWallApothem } from "./cityLayout";
+import {
+  insideStructure,
+  insideBuilding,
+  onEntrancePath,
+  structureWallDistance,
+  structureHexWallApothem,
+} from "./structureLayout";
 import type {
   LandscapeInput,
   LandscapePatch,
@@ -190,11 +196,11 @@ export function createLandscapeSampler(input: LandscapeInput) {
       return [{ a, b, c, scale: orientation / Math.hypot(b.x - a.x, b.y - a.y) }];
     }),
   );
-  const cities = sources.filter((s) => s.kind === "city");
-  const cityMap = new Map(cities.map((s) => [s.key, s]));
-  const cityLinks = cities.flatMap((a) =>
+  const structures = sources.filter((s) => s.kind === "structure");
+  const structureMap = new Map(structures.map((s) => [s.key, s]));
+  const structureLinks = structures.flatMap((a) =>
     HexGrid2D.getNeighbors(a.coordinate).flatMap((c) => {
-      const b = cityMap.get(keyOf(c));
+      const b = structureMap.get(keyOf(c));
       return b &&
         a.key < b.key &&
         a.layout?.style.landmark !== "hall" &&
@@ -207,17 +213,17 @@ export function createLandscapeSampler(input: LandscapeInput) {
     ["greenery", "special-greenery", "volcano"].includes(s.kind),
   );
   const greeneryMap = new Map(greenery.map((s) => [s.key, s]));
-  const cityGreeneryLinks = cities.flatMap((city) =>
-    HexGrid2D.getNeighbors(city.coordinate).flatMap((coordinate) => {
+  const structureGreeneryLinks = structures.flatMap((structure) =>
+    HexGrid2D.getNeighbors(structure.coordinate).flatMap((coordinate) => {
       const green = greeneryMap.get(keyOf(coordinate));
       if (!green || green.kind === "volcano") {
         return [];
       }
-      const dx = green.x - city.x,
-        dy = green.y - city.y;
+      const dx = green.x - structure.x,
+        dy = green.y - structure.y;
       const length = Math.hypot(dx, dy);
-      const circular = city.layout && cityHexWallApothem(city.layout) === null;
-      return [{ city, circular, dx: dx / length, dy: dy / length, midpoint: length / 2 }];
+      const circular = structure.layout && structureHexWallApothem(structure.layout) === null;
+      return [{ structure, circular, dx: dx / length, dy: dy / length, midpoint: length / 2 }];
     }),
   );
   const greeneryLinks = greenery.flatMap((a) =>
@@ -280,7 +286,7 @@ export function createLandscapeSampler(input: LandscapeInput) {
       strongest = 0,
       source: Source | undefined;
     let blocked = false,
-      cityPad = 0,
+      structurePad = 0,
       foundation = 0,
       exclusion = 0;
     for (const s of sources) {
@@ -301,12 +307,12 @@ export function createLandscapeSampler(input: LandscapeInput) {
         blocked ||= distance < 0.008;
         continue;
       }
-      const city = s.kind === "city";
+      const structure = s.kind === "structure";
       const capital = s.layout?.style.landmark === "hall";
-      const circular = city && s.layout && cityHexWallApothem(s.layout) === null;
+      const circular = structure && s.layout && structureHexWallApothem(s.layout) === null;
       const footprintDistance =
-        circular && s.layout ? cityWallDistance(s.layout, lx, ly) : distance;
-      if (city) {
+        circular && s.layout ? structureWallDistance(s.layout, lx, ly) : distance;
+      if (structure) {
         const workedEdge =
           footprintDistance + (soil - 0.5) * (circular ? 0.006 : 0.018) + (fine - 0.5) * 0.004;
         if (!capital) {
@@ -324,7 +330,7 @@ export function createLandscapeSampler(input: LandscapeInput) {
       if (circular) {
         influence = 1 - smooth(0.004, 0.028, footprintDistance);
       }
-      if (!city) {
+      if (!structure) {
         // Ground spills irregularly into neighbouring tiles, like the beach around lakes.
         const edge =
           hexDistance(wx - s.x, wy - s.y, TILE_RADIUS) + (soil - 0.5) * 0.05 + (fine - 0.5) * 0.006;
@@ -333,8 +339,8 @@ export function createLandscapeSampler(input: LandscapeInput) {
       const canopy =
         (1 - smooth(-0.035, 0.006, warpedDistance)) *
         (0.65 + 0.35 * smooth(0.22, 0.66, soil + moisture * 0.18));
-      let fertility = city ? 0.48 : 1;
-      if (city && s.layout) {
+      let fertility = structure ? 0.48 : 1;
+      if (structure && s.layout) {
         const style = s.layout.style;
         const r = Math.hypot(lx, ly);
         const hole = style.ground === "recessed" ? 0.095 : 0;
@@ -347,14 +353,12 @@ export function createLandscapeSampler(input: LandscapeInput) {
         }
         if (capital) {
           fertility = 1;
-          influence = 1 - smooth(-0.015, 0.018, cityWallDistance(s.layout, lx, ly));
+          influence = 1 - smooth(-0.015, 0.018, structureWallDistance(s.layout, lx, ly));
         }
         if (placement || capital) {
           const road = nearestOnRoad({ x: lx, y: ly }, s.layout.roads);
-          const built = s.layout.buildings.some(
-            (b) => insideBuilding(b, lx, ly, 0.003) || onEntrancePath(b, lx, ly, 0.003),
-          );
-          const wallDistance = cityWallDistance(s.layout, lx, ly);
+          const built = insideStructure(s.layout, lx, ly, 0.003);
+          const wallDistance = structureWallDistance(s.layout, lx, ly);
           if (capital) {
             const paved = s.layout.buildings.some(
               (b) => insideBuilding(b, lx, ly, 0.0008) || onEntrancePath(b, lx, ly, 0.0018),
@@ -379,7 +383,7 @@ export function createLandscapeSampler(input: LandscapeInput) {
         const pad = circular
           ? 1 - smooth(0, 0.026, footprintDistance)
           : 1 - smooth(-0.028, 0.015, distance);
-        cityPad = Math.max(cityPad, pad);
+        structurePad = Math.max(structurePad, pad);
       }
       if (s.kind === "volcano" && Math.hypot(lx, ly) < 0.117) {
         exclusion = 1;
@@ -394,7 +398,7 @@ export function createLandscapeSampler(input: LandscapeInput) {
       if (s.kind === "greenery" || s.kind === "special-greenery") {
         greenery = Math.max(greenery, influence);
       }
-      forest = Math.max(forest, canopy * (city ? 0.12 : 1));
+      forest = Math.max(forest, canopy * (structure ? 0.12 : 1));
     }
     for (const { a, b } of greeneryLinks) {
       const distance = segmentDistance(x, y, a.x, a.y, b.x, b.y) + (soil - 0.5) * 0.012;
@@ -408,19 +412,19 @@ export function createLandscapeSampler(input: LandscapeInput) {
     }
     shoreGrowth *= smooth(0.001, 0.006, shore);
     growth = Math.max(growth, shoreGrowth);
-    for (const { a, b } of cityLinks) {
+    for (const { a, b } of structureLinks) {
       const distance = segmentDistance(x, y, a.x, a.y, b.x, b.y) + (soil - 0.5) * 0.008;
       const infill = 1 - smooth(0.085, 0.115, distance);
       foundation = Math.max(foundation, infill);
-      cityPad = Math.max(cityPad, infill);
+      structurePad = Math.max(structurePad, infill);
     }
-    for (const { city, circular, dx, dy, midpoint } of cityGreeneryLinks) {
-      const lx = x - city.x,
-        ly = y - city.y;
+    for (const { structure, circular, dx, dy, midpoint } of structureGreeneryLinks) {
+      const lx = x - structure.x,
+        ly = y - structure.y;
       const along = lx * dx + ly * dy + (soil - 0.5) * 0.006;
       const across = Math.abs(lx * dy - ly * dx);
-      const wall = city.layout
-        ? cityWallDistance(city.layout, lx, ly)
+      const wall = structure.layout
+        ? structureWallDistance(structure.layout, lx, ly)
         : hexDistance(lx, ly, TILE_RADIUS) + 0.01;
       if (circular) {
         const halfEdge = midpoint / Math.sqrt(3);
@@ -440,10 +444,10 @@ export function createLandscapeSampler(input: LandscapeInput) {
         (1 - smooth(midpoint + 0.04, midpoint + 0.08, along));
       const green = smooth(midpoint - 0.035, midpoint + 0.025, along);
       growth = Math.max(growth, edge * green);
-      if (city.layout?.style.landmark !== "hall") {
+      if (structure.layout?.style.landmark !== "hall") {
         const paving = edge * (1 - smooth(midpoint - 0.035, midpoint + 0.035, along));
         foundation = Math.max(foundation, paving);
-        cityPad = Math.max(cityPad, paving);
+        structurePad = Math.max(structurePad, paving);
       }
     }
     const shoreMeadow =
@@ -479,7 +483,7 @@ export function createLandscapeSampler(input: LandscapeInput) {
       relief * (1 - exclusion) + 0.0003 + coverage * (0.0012 + broad * 0.0048) + hummocks;
     let height = basinHeight(shore, beachWidth, naturalHeight);
     height = height * (1 - exclusion) + naturalHeight * exclusion;
-    height = height * (1 - cityPad) + 0.0003 * cityPad;
+    height = height * (1 - structurePad) + 0.0003 * structurePad;
     if (blocked) {
       forest = 0;
     }
@@ -541,21 +545,21 @@ function scatterPatch(
         if (!s || f.blocked || rocks.some((r) => Math.hypot(px - r.x, py - r.y) < r.r + 0.008)) {
           continue;
         }
-        const city = s.kind === "city";
-        const capital = city && s.layout?.style.landmark === "hall";
+        const structure = s.kind === "structure";
+        const capital = structure && s.layout?.style.landmark === "hall";
         if ((kind === "tree" || kind === "bush") && capital !== capitalOnly) {
           continue;
         }
         let threshold = 0;
         if (kind === "tree") {
           threshold = capital ? f.coverage * 0.95 : f.forest * 0.665;
-          if (!city) {
+          if (!structure) {
             const edge = hexDistance(px - s.x, py - s.y, TILE_RADIUS);
             threshold *= 1 - 0.92 * smooth(-0.025, 0.006, edge);
           }
         }
         // Hardy pines are the first trees. They grow in groves, with only a few strays between.
-        if (kind === "pine" && !city && s.kind !== "volcano") {
+        if (kind === "pine" && !structure && s.kind !== "volcano") {
           const edge = hexDistance(px - s.x, py - s.y, TILE_RADIUS);
           const grove = smooth(0.38, 0.64, fractal(px * 11, py * 11, seed + 41));
           threshold = f.coverage * 0.8 * (0.1 + 0.9 * grove) * (1 - smooth(-0.03, 0.0, edge));
@@ -569,21 +573,21 @@ function scatterPatch(
         if (kind === "flower" && s.kind === "special-greenery") {
           threshold = f.coverage * 0.5;
         }
-        if (kind === "rock" && !city && s.kind !== "volcano") {
+        if (kind === "rock" && !structure && s.kind !== "volcano") {
           threshold = f.coverage * 0.11;
         }
         if (h2 > threshold) {
           continue;
         }
         const cellSeed = hashSeed(`${seed}:${kind}:${ix}:${iy}`);
-        let scale = city ? 0.27 + h * 0.12 : 0.75 + h * 0.35;
-        if (!city && kind === "tree") {
+        let scale = structure ? 0.27 + h * 0.12 : 0.75 + h * 0.35;
+        if (!structure && kind === "tree") {
           scale *= 0.6;
         }
         if (kind === "pine") {
           scale *= 0.7;
         }
-        if (!city && kind === "bush") {
+        if (!structure && kind === "bush") {
           scale *= 0.75;
         }
         plants.push({
@@ -595,7 +599,7 @@ function scatterPatch(
           height: f.height,
           seed: cellSeed,
           scale,
-          rank: city || kind === "rock" ? 0 : h2 / threshold,
+          rank: structure || kind === "rock" ? 0 : h2 / threshold,
         });
         if (kind === "rock") {
           rocks.push({ x: px, y: py, r: 0.025 * scale });
@@ -730,7 +734,7 @@ export class LandscapeBuilder {
             y,
             sample,
             input.seed,
-            local.some((s) => s.kind === "city" && s.layout?.style.landmark === "hall"),
+            local.some((s) => s.kind === "structure" && s.layout?.style.landmark === "hall"),
           ),
           water,
         });

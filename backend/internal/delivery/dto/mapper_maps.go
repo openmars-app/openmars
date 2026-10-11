@@ -50,10 +50,10 @@ func MapGameOptions(options gameaction.GameOptions) GameOptionsDto {
 		previews = append(previews, mapPreview(definition))
 	}
 	return GameOptionsDto{Defaults: GameSetupDto{
-		MaxPlayers: settings.MaxPlayers, MapID: settings.MapID, CardPacks: settings.CardPacks,
-		VenusNextEnabled: settings.VenusNextEnabled, DevelopmentMode: settings.DevelopmentMode,
-		DemoGame: settings.DemoGame, AllowRandomBuy: settings.AllowRandomBuy,
-	}, AvailableMaps: previews}
+		MaxPlayers: settings.MaxPlayers, MapID: settings.MapID, GameModeID: settings.GameModeID, GameModeParameters: settings.GameModeParameters, Features: settings.Features,
+		DevelopmentMode: settings.DevelopmentMode,
+		DemoGame:        settings.DemoGame, AllowRandomBuy: settings.AllowRandomBuy,
+	}, AvailableMaps: previews, GameModes: MapGameModes(options.GameModes)}
 }
 
 // ToSettings maps an optional setup request into domain settings.
@@ -62,8 +62,8 @@ func (setup *GameSetupDto) ToSettings() *shared.GameSettings {
 		return nil
 	}
 	return &shared.GameSettings{
-		MaxPlayers: setup.MaxPlayers, MapID: setup.MapID, CardPacks: setup.CardPacks,
-		VenusNextEnabled: setup.VenusNextEnabled, DevelopmentMode: setup.DevelopmentMode,
-		DemoGame: setup.DemoGame, AllowRandomBuy: setup.AllowRandomBuy,
+		MaxPlayers: setup.MaxPlayers, MapID: setup.MapID, GameModeID: setup.GameModeID, GameModeParameters: setup.GameModeParameters, Features: setup.Features,
+		DevelopmentMode: setup.DevelopmentMode,
+		DemoGame:        setup.DemoGame, AllowRandomBuy: setup.AllowRandomBuy,
 	}
 }

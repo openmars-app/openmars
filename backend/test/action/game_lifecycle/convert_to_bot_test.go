@@ -26,7 +26,7 @@ func TestConvertToBot_Success(t *testing.T) {
 	g.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 
 	convert := newConvertAction(repo)
@@ -59,7 +59,7 @@ func TestConvertToBot_NotHost_Fails(t *testing.T) {
 	g.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 
 	convert := newConvertAction(repo)
@@ -86,7 +86,7 @@ func TestConvertToBot_Self_Fails(t *testing.T) {
 	g.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 
 	convert := newConvertAction(repo)
@@ -102,7 +102,7 @@ func TestConvertToBot_AlreadyBot_Fails(t *testing.T) {
 	g.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 
 	convert := newConvertAction(repo)
@@ -131,7 +131,7 @@ func TestConvertToBot_Exited_Fails(t *testing.T) {
 	g.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 
 	convert := newConvertAction(repo)
@@ -163,7 +163,7 @@ func TestPlayerTakeover_BlockedForBot(t *testing.T) {
 	g.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 
 	hostID := g.HostPlayerID()
@@ -198,7 +198,7 @@ func TestGameDeletedWhenLastHumanLeavesLobbyWithBots(t *testing.T) {
 	g.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 	cardRegistry := testutil.CreateTestCardRegistry()
 	addBotAction := gameaction.NewAddBotAction(repo, cardRegistry, newFakeBotLifecycle(t), testutil.TestLogger())
@@ -229,7 +229,7 @@ func TestHostReassignedToHumanNotBot(t *testing.T) {
 	g.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 	cardRegistry := testutil.CreateTestCardRegistry()
 	addBotAction := gameaction.NewAddBotAction(repo, cardRegistry, newFakeBotLifecycle(t), testutil.TestLogger())

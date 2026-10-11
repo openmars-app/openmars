@@ -1,55 +1,22 @@
-# Test Directory
+# Backend test instructions
 
-Tests mirror the `internal/` structure. Place tests in the matching subdirectory:
+Place tests in the matching area under this directory and reuse [testutil](testutil) for setup and assertions. Tests normally log errors only; set `OPENMARS_TEST_LOG_LEVEL=debug` when investigating a failure.
 
-- `action/behavior/` - Behavior condition tests by category (basic resource, production, tile placement, effects, etc.)
-- `action/card_packs/` - Card and corporation integration tests, organized by card pack
-- `action/card_effects/` - Passive effects, temporary effects, choice requirements
-- `action/colony/` - Colony system tests (trade, build)
-- `action/core/` - Core game mechanics (state calculator, variable amounts, generational events)
-- `action/play_card/` - Card play flow tests (any-player targeting, card play action)
-- `action/tiles/` - Tile placement bonus and special tile tests
-- `action/payment/` - Payment modifier tests (discounts, value modifiers)
-- `game/` - Game state and domain logic tests
-- `events/` - Event system tests
-- `e2e/` - Functional tests that run the real server (`internal/app`) and talk to it over HTTP and real WebSocket connections
-- `delivery/websocket/core/` - Hub tests with a hand-registered handler (panics, shutdown)
+From the repository root, `just backend test` runs the backend suite with race detection and random order. Arguments replace the default package pattern; use an explicit affected package during iteration.
 
-Use `testutil/` helpers for game setup and assertions. Tests log errors only; set
-`OPENMARS_TEST_LOG_LEVEL=debug` to see everything while investigating a failure.
+## Real-server functional tests
 
-## Functional Tests (`e2e/`)
+[e2e/harness](e2e/harness) starts production wiring on isolated `httptest` servers and uses real HTTP/WebSocket clients. These servers are separate from the user's development server.
 
-The `e2e/harness` package starts the production wiring on `httptest` and gives each test
-browser-like clients. Every test gets its own server and runs in parallel.
+- `srv.Play(t, edit, names...)` reaches the first action phase; `srv.Lobby` stops in the lobby. Set development-mode requirements explicitly through the harness options.
+- Send, then use `Await`, `AwaitState`, or `AwaitError`. Synchronize on events and barriers, not sleeps.
+- `c.Sync(t)` returns messages queued for that client so far. Different connections are not ordered: after one client acts, sync that client or await its reply before syncing others.
+- Use `ExpectQuiet` to verify that a client received nothing, and `srv.CloseAndWait(t, c)` to wait for the server to process a disconnect.
+- Use `harness.Timeout()` where a timeout is needed; it accounts for slower race/coverage runs.
+- Add rejection payloads for new client message types to [contract_test.go](e2e/contract_test.go). `TestContract_EveryMessageTypeIsCovered` checks registry coverage. Verify that rejected operations do not change state or notify unrelated players.
 
-- `srv.Play(t, edit, names...)` creates a game and plays it to the first action phase;
-  `srv.Lobby` stops in the lobby. `harness.DevMode` enables admin commands.
-- Clients `Send`, then `Await`/`AwaitState`/`AwaitError` with a timeout. Never sleep.
-- `c.Sync(t)` is a barrier: it returns everything the server queued for that client
-  so far. Messages from different connections are not ordered, so after one client acts,
-  sync that client (or await its reply) before syncing the others. `ExpectQuiet` asserts
-  a client received nothing.
-- `srv.CloseAndWait(t, c)` closes a client and waits until the server has handled it.
-- `contract_test.go` lists every client message type with payloads that must be rejected;
-  `TestContract_EveryMessageTypeIsCovered` fails when a registered type is missing.
-- Under `-race` or coverage the harness timeout is longer (`harness.Timeout()`), since the
-  server is an order of magnitude slower.
+## Behavior and card tests
 
-## Behavior Tests (`action/behavior/`)
+[Action behavior tests](action/behavior) use constructed conditions, grouped by category, to exercise individual fields and their interactions. Follow the [shared-condition checklist](../internal/game/shared/AGENTS.md) for new types or fields.
 
-One file per condition category. Tests exercise each field on the category struct using constructed behaviors (not card-based). See `internal/game/shared/CLAUDE.md` for the category definitions.
-
-| File | Category | Fields Tested |
-|------|----------|---------------|
-| `basic_resource_test.go` | BasicResourceCondition | PaymentAllowed, TargetRestriction, steal/any-player targets |
-| `production_test.go` | ProductionCondition | Per (tag scaling, integer division), any-player reduction |
-| `tile_placement_test.go` | TilePlacementCondition | TileRestrictions (adjacency, area, boardTags), TileType |
-| `global_parameter_test.go` | GlobalParameterCondition | Temperature/oxygen/venus increases, TR with Per |
-| `card_operation_test.go` | CardOperationCondition | Optional discard, all-opponents draw |
-| `card_storage_test.go` | CardStorageCondition | Self-card/any-card targeting, steal-from-any-card, Selectors |
-| `effect_test.go` | EffectCondition | Discount selectors, payment substitute, value modifier, lenience |
-| `colony_test.go` | ColonyCondition | Colony placement, AllowDuplicatePlayerColony |
-| `tile_modification_test.go` | TileModificationCondition | Tile destruction, replacement with TileType |
-| `misc_test.go` | MiscCondition | Extra actions, bonus tags with Per |
-| `per_condition_test.go` | Per field (cross-cutting) | City tile, tag, card resource, colony count, location |
+Card/corporation integration tests in [card_packs](action/card_packs/AGENTS.md) follow existing family files. Passive effects and mode lifecycle tests belong alongside their existing suites; not every test involving a card belongs in `card_packs`.

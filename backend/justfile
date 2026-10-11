@@ -33,7 +33,8 @@ serve: build
 [group('check')]
 [doc('Run tests with the race detector, in random order; args replace the default package pattern, e.g. `just backend test -v -run TestKick ./test/action/...`')]
 test *args="./test/...":
-    go test -race -shuffle=on {{ args }}
+    # Full save lifecycle checks can exceed Go's 10m default under race detection on CI.
+    go test -race -shuffle=on -timeout=20m {{ args }}
 
 [group('check')]
 [doc('Run tests with coverage and write coverage.out and coverage.html')]

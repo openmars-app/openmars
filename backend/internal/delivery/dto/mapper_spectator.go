@@ -15,6 +15,7 @@ func ToSpectatorGameDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegi
 	if g.ResumeLobby() != nil {
 		return ToResumeGameDto(g, "", cardRegistry)
 	}
+	cardRegistry = cards.ForGame(cardRegistry, g)
 	players := g.GetAllPlayers()
 
 	otherPlayers := make([]OtherPlayerDto, 0, len(players))
@@ -24,12 +25,11 @@ func ToSpectatorGameDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegi
 
 	settings := g.Settings()
 	settingsDto := GameSettingsDto{
-		MaxPlayers:            settings.MaxPlayers,
-		VenusNextEnabled:      settings.VenusNextEnabled,
-		DevelopmentMode:       settings.DevelopmentMode,
-		DemoGame:              settings.DemoGame,
-		AllowRandomBuy:        settings.AllowRandomBuy,
-		CardPacks:             settings.CardPacks,
+		MaxPlayers:      settings.MaxPlayers,
+		DevelopmentMode: settings.DevelopmentMode,
+		DemoGame:        settings.DemoGame,
+		AllowRandomBuy:  settings.AllowRandomBuy,
+		GameModeID:      settings.GameModeID, GameModeParameters: settings.GameModeParameters, Features: settings.Features, Systems: settings.Systems, AvailableGameModes: MapGameModes(cards.ModeDefinitions(cardRegistry)),
 		HasClaudeOAuthToken:   settings.ClaudeOAuthToken != "",
 		BotSpendCapUSD:        settings.EffectiveBotSpendCapUSD(),
 		BotSpendUSD:           g.BotSpendUSD(),
@@ -43,7 +43,7 @@ func ToSpectatorGameDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegi
 		Oceans:      globalParams.Oceans(),
 		MaxOceans:   globalParams.GetMaxOceans(),
 		Venus:       globalParams.Venus(),
-		Bonuses:     buildGlobalParameterBonuses(settings.VenusNextEnabled),
+		Bonuses:     buildGlobalParameterBonuses(settings.HasVenus()),
 	}
 
 	tiles := g.Board().Tiles()
@@ -107,6 +107,7 @@ func ToSpectatorGameDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegi
 	}
 
 	return GameDto{
+		ModeRuntime:      ToModeRuntimeDto(g),
 		ID:               g.ID(),
 		Status:           GameStatus(g.Status()),
 		Settings:         settingsDto,

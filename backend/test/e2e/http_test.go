@@ -23,11 +23,11 @@ func TestHTTP_ServerInformation(t *testing.T) {
 		t.Fatalf("meta: status %d, %+v", status, meta)
 	}
 	options := srv.GameOptions(t)
-	if options.Defaults.DevelopmentMode {
-		t.Fatalf("new games should not default to development mode")
+	if !options.Defaults.DevelopmentMode {
+		t.Fatalf("new games should default to development mode")
 	}
-	if len(options.Defaults.CardPacks) == 0 || len(options.AvailableMaps) == 0 {
-		t.Fatalf("game options should offer card packs and maps: %+v", options.Defaults)
+	if options.Defaults.GameModeID == "" || len(options.GameModes) == 0 || len(options.AvailableMaps) == 0 {
+		t.Fatalf("game options should offer game modes and maps: %+v", options.Defaults)
 	}
 	if status := srv.Request(t, http.MethodGet, "/api/v1/no-such-route", nil, nil); status != http.StatusNotFound {
 		t.Fatalf("an unknown route should be 404, got %d", status)
@@ -45,10 +45,11 @@ func TestHTTP_CreatingGamesValidatesSettings(t *testing.T) {
 	for name, edit := range map[string]func(*dto.GameSetupDto){
 		"no players allowed": func(s *dto.GameSetupDto) { s.MaxPlayers = 0 },
 		"an unknown map":     func(s *dto.GameSetupDto) { s.MapID = "no-such-map" },
-		"an unknown pack":    func(s *dto.GameSetupDto) { s.CardPacks = []string{"no-such-pack"} },
+		"an unknown mode":    func(s *dto.GameSetupDto) { s.GameModeID = "no-such-mode" },
+		"an unknown feature": func(s *dto.GameSetupDto) { s.Features = []string{"no-such-feature"} },
 	} {
 		settings := defaults
-		settings.CardPacks = append([]string(nil), defaults.CardPacks...)
+		settings.Features = append([]string(nil), defaults.Features...)
 		edit(&settings)
 		var rejected dto.ErrorResponse
 		if status := srv.Request(t, http.MethodPost, "/api/v1/games", dto.CreateGameRequest{Settings: &settings}, &rejected); status != http.StatusBadRequest || rejected.Error == "" {

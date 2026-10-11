@@ -25,7 +25,7 @@ func TestLoadAwardsFromJSON(t *testing.T) {
 	for _, def := range defs {
 		testutil.AssertTrue(t, def.Name != "", "Award name should not be empty for "+def.ID)
 		testutil.AssertTrue(t, def.Description != "", "Award description should not be empty for "+def.ID)
-		testutil.AssertTrue(t, def.Pack != "", "Award pack should not be empty for "+def.ID)
+		testutil.AssertTrue(t, def.GameModes != nil, "Award game mode membership must be explicit for "+def.ID)
 		testutil.AssertTrue(t, len(def.Costs) > 0, "Award should have costs for "+def.ID)
 		testutil.AssertTrue(t, len(def.Rewards) > 0, "Award should have rewards for "+def.ID)
 	}

@@ -21,6 +21,7 @@ Usage:
 import argparse
 import asyncio
 import sys
+from pathlib import Path
 
 from .card_generator import CardImageGenerator
 from .prompt_builder import build_prompt
@@ -48,7 +49,7 @@ def _get_target_cards(args: argparse.Namespace, gen: CardImageGenerator) -> list
 
 
 async def _run(args: argparse.Namespace) -> None:
-    gen = CardImageGenerator()
+    gen = CardImageGenerator(candidate_dir=args.candidate_dir)
     cards = _get_target_cards(args, gen)
 
     if args.dry_run:
@@ -74,9 +75,15 @@ def main() -> None:
     parser.add_argument("--end", help="End card ID for a range")
     parser.add_argument("--dry-run", action="store_true", help="Show prompts without generating")
     parser.add_argument("--seed", type=int, help="Fixed seed for reproducibility")
+    parser.add_argument("--candidate-dir", type=Path,
+                        help="Save review candidates and manifests without publishing assets")
     args = parser.parse_args()
 
-    asyncio.run(_run(args))
+    try:
+        asyncio.run(_run(args))
+    except (RuntimeError, ValueError, OSError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

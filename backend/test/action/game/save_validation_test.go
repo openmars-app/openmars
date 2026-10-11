@@ -18,6 +18,7 @@ import (
 	"openmars/internal/delivery/websocket/core"
 	"openmars/internal/game"
 	"openmars/internal/game/save"
+	"openmars/internal/game/shared"
 	"openmars/test/testutil"
 )
 
@@ -285,7 +286,7 @@ func (b *partialSaveBots) StartBot(_, id string) error {
 func (b *partialSaveBots) StopBot(_, id string) { b.stopped = append(b.stopped, id) }
 
 func TestSavePartialBotStartupRollback(t *testing.T) {
-	w := newSaveWorld(t, 3, []string{"base-game"})
+	w := newSaveWorld(t, 3, shared.GameSettings{Features: []string{}})
 	w.active(t)
 	for _, id := range []string{"p1", "p2"} {
 		w.g.State().Players[id].PlayerType = "bot"

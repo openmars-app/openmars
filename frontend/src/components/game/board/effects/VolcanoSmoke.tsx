@@ -1,3 +1,4 @@
+import { randomSequence } from "../structureLayout";
 import { useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -5,6 +6,7 @@ import { useTextures } from "../../../../hooks/useTextures";
 import { scaledParticleCount } from "@/utils/graphicsQuality.ts";
 
 interface VolcanoSmokeProps {
+  seed: number;
   craterHeight: number;
 }
 
@@ -18,35 +20,37 @@ interface SmokeParticle {
   delay: number;
 }
 
-export default function VolcanoSmoke({ craterHeight }: VolcanoSmokeProps) {
+export default function VolcanoSmoke({ craterHeight, seed }: VolcanoSmokeProps) {
+  const random = useRef(randomSequence(seed));
   const groupRef = useRef<THREE.Group>(null);
   const particlesRef = useRef<SmokeParticle[]>([]);
   const { smoke: smokeTexture } = useTextures();
 
   const resetParticle = (p: SmokeParticle) => {
-    const angle = Math.random() * Math.PI * 2;
-    const offset = Math.random() * 0.012;
+    const angle = random.current() * Math.PI * 2;
+    const offset = random.current() * 0.012;
     p.sprite.position.set(Math.cos(angle) * offset, Math.sin(angle) * offset, 0);
     p.age = 0;
-    p.maxAge = 9.0 + Math.random() * 6.0;
-    p.initialScale = 0.035 + Math.random() * 0.025;
+    p.maxAge = 9.0 + random.current() * 6.0;
+    p.initialScale = 0.035 + random.current() * 0.025;
     p.sprite.scale.setScalar(p.initialScale);
-    const spread = 0.001 + Math.random() * 0.002;
-    const newAngle = Math.random() * Math.PI * 2;
+    const spread = 0.001 + random.current() * 0.002;
+    const newAngle = random.current() * Math.PI * 2;
     p.velocity.set(
       Math.cos(newAngle) * spread,
       Math.sin(newAngle) * spread,
-      0.012 + Math.random() * 0.008,
+      0.012 + random.current() * 0.008,
     );
-    p.rotationSpeed = (Math.random() - 0.5) * 0.4;
+    p.rotationSpeed = (random.current() - 0.5) * 0.4;
     (p.sprite.material as THREE.SpriteMaterial).opacity = 0;
-    (p.sprite.material as THREE.SpriteMaterial).rotation = Math.random() * Math.PI * 2;
+    (p.sprite.material as THREE.SpriteMaterial).rotation = random.current() * Math.PI * 2;
   };
 
   useEffect(() => {
     const group = groupRef.current;
     if (!group) return;
 
+    random.current = randomSequence(seed);
     const particles: SmokeParticle[] = [];
     const particleCount = scaledParticleCount(28);
 
@@ -83,10 +87,12 @@ export default function VolcanoSmoke({ craterHeight }: VolcanoSmokeProps) {
 
     return () => {
       particles.forEach((p) => {
+        group.remove(p.sprite);
         (p.sprite.material as THREE.Material).dispose();
       });
+      particlesRef.current = [];
     };
-  }, [smokeTexture]);
+  }, [smokeTexture, seed]);
 
   useFrame((_state, delta) => {
     for (const p of particlesRef.current) {

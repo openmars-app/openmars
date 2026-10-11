@@ -13,7 +13,18 @@ import (
 // RequiredOriginalCost: card cost must satisfy min/max constraints
 // A selector must have at least one card-relevant criterion to match.
 func MatchesSelector(card *Card, selector shared.Selector) bool {
-	if len(selector.Tags) == 0 && len(selector.CardTypes) == 0 && selector.TagCount == nil && selector.RequiredOriginalCost == nil && selector.VP == nil && len(selector.Resources) == 0 {
+	if selector.Dependency != "" {
+		found := false
+		for _, d := range card.DependencyGroups {
+			if d.ID == selector.Dependency {
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	if selector.Dependency == "" && len(selector.Tags) == 0 && len(selector.CardTypes) == 0 && selector.TagCount == nil && selector.RequiredOriginalCost == nil && selector.VP == nil && len(selector.Resources) == 0 {
 		return false
 	}
 
@@ -171,7 +182,7 @@ func MatchesAnyStandardProjectSelector(project shared.StandardProject, selectors
 // HasCardSelectors returns true if any selector targets cards
 func HasCardSelectors(selectors []shared.Selector) bool {
 	for _, sel := range selectors {
-		if len(sel.Tags) > 0 || len(sel.CardTypes) > 0 || sel.TagCount != nil || sel.RequiredOriginalCost != nil || sel.VP != nil || len(sel.Resources) > 0 {
+		if sel.Dependency != "" || len(sel.Tags) > 0 || len(sel.CardTypes) > 0 || sel.TagCount != nil || sel.RequiredOriginalCost != nil || sel.VP != nil || len(sel.Resources) > 0 {
 			return true
 		}
 	}
@@ -183,7 +194,7 @@ func HasCardSelectors(selectors []shared.Selector) bool {
 // indicates the affected resource type rather than a card filter.
 func HasCardSelectorsExcludingResources(selectors []shared.Selector) bool {
 	for _, sel := range selectors {
-		if len(sel.Tags) > 0 || len(sel.CardTypes) > 0 || sel.TagCount != nil || sel.RequiredOriginalCost != nil || sel.VP != nil {
+		if sel.Dependency != "" || len(sel.Tags) > 0 || len(sel.CardTypes) > 0 || sel.TagCount != nil || sel.RequiredOriginalCost != nil || sel.VP != nil {
 			return true
 		}
 	}
@@ -193,7 +204,18 @@ func HasCardSelectorsExcludingResources(selectors []shared.Selector) bool {
 // MatchesSelectorExcludingResources checks if a card matches a selector, ignoring the Resources field.
 // Used for discount calculations where Resources indicates the discounted resource type, not a card filter.
 func MatchesSelectorExcludingResources(card *Card, selector shared.Selector) bool {
-	if len(selector.Tags) == 0 && len(selector.CardTypes) == 0 && selector.TagCount == nil && selector.RequiredOriginalCost == nil && selector.VP == nil {
+	if selector.Dependency != "" {
+		found := false
+		for _, d := range card.DependencyGroups {
+			if d.ID == selector.Dependency {
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	if selector.Dependency == "" && len(selector.Tags) == 0 && len(selector.CardTypes) == 0 && selector.TagCount == nil && selector.RequiredOriginalCost == nil && selector.VP == nil {
 		return false
 	}
 

@@ -21,12 +21,10 @@ import type {
   OtherPlayerDto,
 } from "@/types/generated/api-types.ts";
 import {
-  GamePhaseAction,
   GamePhaseInitApplyCorp,
   GamePhaseInitApplyPrelude,
   GameStatusLobby,
 } from "@/types/generated/api-types.ts";
-import type { GameEvent } from "@/hooks/useGameEvent.ts";
 import type { PlayedCardNotification } from "@/hooks/usePlayedCardNotification.ts";
 import { QUICK_MODE } from "@/utils/quickMode.ts";
 import { GRAPHICS } from "@/utils/graphicsQuality.ts";
@@ -36,7 +34,6 @@ function isPresent(player: OtherPlayerDto): boolean {
   return player.playerType === "bot" ? player.botStatus === "ready" : player.isConnected;
 }
 
-type GameEventInput = Omit<GameEvent, "id">;
 type PlayedCardNotificationInput = Omit<PlayedCardNotification, "id">;
 
 interface ShowNotificationOptions {
@@ -47,7 +44,6 @@ interface ShowNotificationOptions {
 
 export function useWebSocketConnection(
   navigate: NavigateFunction,
-  enqueueGameEvent: (input: GameEventInput) => void,
   enqueuePlayedCard: (input: PlayedCardNotificationInput) => void,
   notificationQueueDoneAt: MutableRefObject<number>,
   showNotification: (options: ShowNotificationOptions) => string,
@@ -59,8 +55,6 @@ export function useWebSocketConnection(
     playTemperatureSound,
     playOxygenSound,
     playVenusSound,
-    playYourTurnSound,
-    playAwardFundedSound,
     playCardPlayedSound,
     playPlayerJoinedSound,
   } = useSoundEffects();
@@ -171,85 +165,6 @@ export function useWebSocketConnection(
           );
           if (someoneJoined) {
             void playPlayerJoinedSound();
-          }
-        }
-
-        const prevTurn = previousGameRef.current.currentTurn;
-        const prevPhase = previousGameRef.current.currentPhase;
-        const newTurn = updatedGame.currentTurn;
-        const newPhase = updatedGame.currentPhase;
-        const isNowMyActionTurn = newTurn === myPlayerId && newPhase === GamePhaseAction;
-        const wasMyActionTurn = prevTurn === myPlayerId && prevPhase === GamePhaseAction;
-        if (isNowMyActionTurn && !wasMyActionTurn) {
-          void playYourTurnSound();
-          enqueueGameEvent({ title: "YOUR TURN", duration: 2500 });
-        }
-
-        const prevMilestones = previousGameRef.current.milestones;
-        const newMilestones = updatedGame.milestones;
-        if (prevMilestones && newMilestones) {
-          for (const ms of newMilestones) {
-            if (ms.isClaimed && ms.claimedBy) {
-              const prev = prevMilestones.find((p) => p.type === ms.type);
-              if (prev && !prev.isClaimed) {
-                void playAwardFundedSound();
-                const allPlayers = [updatedGame.currentPlayer, ...(updatedGame.otherPlayers ?? [])];
-                const claimPlayer = allPlayers.find((p) => p.id === ms.claimedBy);
-                enqueueGameEvent({
-                  title: "MILESTONE CLAIMED",
-                  achievementName: ms.name,
-                  playerName: claimPlayer?.name ?? "Unknown",
-                  playerColor: claimPlayer?.color ?? "#64c8ff",
-                  duration: 4000,
-                });
-              }
-            }
-          }
-        }
-
-        const prevAwards = previousGameRef.current.awards;
-        const newAwards = updatedGame.awards;
-        if (prevAwards && newAwards) {
-          for (const aw of newAwards) {
-            if (aw.isFunded && aw.fundedBy) {
-              const prev = prevAwards.find((p) => p.type === aw.type);
-              if (prev && !prev.isFunded) {
-                void playAwardFundedSound();
-                const allPlayers = [updatedGame.currentPlayer, ...(updatedGame.otherPlayers ?? [])];
-                const fundPlayer = allPlayers.find((p) => p.id === aw.fundedBy);
-                enqueueGameEvent({
-                  title: "AWARD FUNDED",
-                  achievementName: aw.name,
-                  playerName: fundPlayer?.name ?? "Unknown",
-                  playerColor: fundPlayer?.color ?? "#64c8ff",
-                  duration: 4000,
-                });
-              }
-            }
-          }
-        }
-
-        if (!previousGameRef.current.isLastRound && updatedGame.isLastRound) {
-          enqueueGameEvent({ title: "LAST ROUND", duration: 4000 });
-        }
-
-        const prevProjects = previousGameRef.current.projectFunding;
-        const newProjects = updatedGame.projectFunding;
-        if (prevProjects && newProjects) {
-          for (const proj of newProjects) {
-            const prev = prevProjects.find((p) => p.id === proj.id);
-            if (prev && proj.seatOwners.length > prev.seatOwners.length) {
-              const newOwner = proj.seatOwners[proj.seatOwners.length - 1];
-              const allPlayers = [updatedGame.currentPlayer, ...(updatedGame.otherPlayers ?? [])];
-              const fundPlayer = allPlayers.find((p) => p.id === newOwner.playerId);
-              enqueueGameEvent({
-                title: "PROJECT FUNDED",
-                achievementName: proj.name,
-                playerName: fundPlayer?.name ?? "Unknown",
-                playerColor: fundPlayer?.color ?? "#64c8ff",
-                duration: 4000,
-              });
-            }
           }
         }
 

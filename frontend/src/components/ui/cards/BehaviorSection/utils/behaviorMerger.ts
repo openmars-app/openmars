@@ -28,7 +28,18 @@ const getConditionKey = (behavior: any): string | null => {
       const type = trigger.condition.type;
       const target = trigger.condition.target || "any";
       const location = trigger.condition.location || "any";
-      return `${type}:${target}:${location}`;
+      return JSON.stringify({
+        type,
+        target,
+        location,
+        condition: trigger.condition,
+        dependency: behavior.dependency,
+        stateRequirements: behavior.stateRequirements,
+        resourceRequirements: behavior.resourceRequirements,
+        maxUsesPerGeneration: behavior.maxUsesPerGeneration,
+        maxUsesPerGame: behavior.maxUsesPerGame,
+        usageGroup: behavior.usageGroup,
+      });
     }
   }
   return null;
@@ -64,7 +75,7 @@ export const mergeTriggeredEffects = (
 
   triggeredEffects.forEach((effect) => {
     const groupKey = effect.behavior.group
-      ? `group:${effect.behavior.group}`
+      ? `group:${effect.behavior.group}:${JSON.stringify([effect.behavior.dependency, effect.behavior.stateRequirements, effect.behavior.resourceRequirements, effect.behavior.maxUsesPerGeneration, effect.behavior.maxUsesPerGame, effect.behavior.usageGroup])}`
       : getConditionKey(effect.behavior);
     if (groupKey) {
       const existing = groupedByCondition.get(groupKey) || [];
@@ -140,7 +151,13 @@ const mergeAutoProductionGroup = (
 
     // Check if behavior has a trigger condition (e.g., greenery-placed for Herbivores)
     const hasCondition =
-      behavior.triggers && behavior.triggers.some((trigger: any) => trigger.condition);
+      Boolean(behavior.dependency) ||
+      Boolean(behavior.stateRequirements?.length) ||
+      Boolean(behavior.resourceRequirements?.length) ||
+      Boolean(behavior.usageGroup) ||
+      Boolean(behavior.maxUsesPerGeneration) ||
+      Boolean(behavior.maxUsesPerGame) ||
+      (behavior.triggers && behavior.triggers.some((trigger: any) => trigger.condition));
 
     // Grouped behaviors skip auto merging — they'll be handled by mergeTriggeredEffects
     if (behavior.group) {
@@ -240,3 +257,144 @@ const mergeAutoProductionGroup = (
 
   return result;
 };
+
+export function groupBehaviorPresentation(behaviors: ClassifiedBehavior[]): ClassifiedBehavior[] {
+  const grouped: ClassifiedBehavior[] = [];
+  const dependencies = new Map<string, ClassifiedBehavior>();
+  for (const item of mergeDeferredRewards(behaviors)) {
+    const dependency = item.behavior.dependency;
+    if (!dependency) {
+      grouped.push(item);
+      continue;
+    }
+    const existing = dependencies.get(dependency);
+    if (existing) {
+      existing.members!.push(item);
+    } else {
+      const group: ClassifiedBehavior = {
+        ...item,
+        presentationGroup: "dependency",
+        members: [item],
+      };
+      dependencies.set(dependency, group);
+      grouped.push(group);
+    }
+  }
+  return sortPresentationGroups(groupSharedActions(grouped));
+}
+
+function presentationIndex(item: ClassifiedBehavior): number {
+  if (item.members?.length) {
+    return Math.min(...item.members.map(presentationIndex));
+  }
+  return Math.min(...(item.originalIndices ?? [item.originalIndex ?? Infinity]));
+}
+
+function sortPresentationGroups(behaviors: ClassifiedBehavior[]): ClassifiedBehavior[] {
+  return behaviors
+    .map((item) =>
+      item.members ? { ...item, members: sortPresentationGroups(item.members) } : item,
+    )
+    .sort((a, b) => presentationIndex(a) - presentationIndex(b));
+}
+
+function groupSharedActions(behaviors: ClassifiedBehavior[]): ClassifiedBehavior[] {
+  const grouped: ClassifiedBehavior[] = [];
+  const actions = new Map<string, ClassifiedBehavior>();
+  for (const item of behaviors) {
+    if (item.members) {
+      grouped.push({ ...item, members: groupSharedActions(item.members) });
+      continue;
+    }
+    const usageGroup = item.behavior.usageGroup;
+    if (!["manual-action", "triggered-effect"].includes(item.type) || !usageGroup) {
+      grouped.push(item);
+      continue;
+    }
+    const key = `${item.type}:${usageGroup}:${item.behavior.maxUsesPerGeneration ?? ""}`;
+    const existing = actions.get(key);
+    if (existing) {
+      existing.members!.push(item);
+    } else {
+      const group: ClassifiedBehavior = {
+        ...item,
+        presentationGroup: item.type === "manual-action" ? "shared-action" : "shared-effect",
+        members: [item],
+      };
+      actions.set(key, group);
+      grouped.push(group);
+    }
+  }
+  return grouped.map((item) => {
+    if (
+      ["shared-action", "shared-effect"].includes(item.presentationGroup ?? "") &&
+      item.members?.length === 1
+    ) {
+      return item.members[0];
+    }
+    if (item.members) {
+      return { ...item, ...mergedMetadata(item.members) };
+    }
+    return item;
+  });
+}
+
+function mergeDeferredRewards(behaviors: ClassifiedBehavior[]): ClassifiedBehavior[] {
+  const consumed = new Set<ClassifiedBehavior>();
+  const replacements = new Map<ClassifiedBehavior, ClassifiedBehavior>();
+  for (const event of behaviors) {
+    const behavior = event.behavior;
+    if (
+      event.mergedBehaviors?.length ||
+      behavior.triggers?.length !== 1 ||
+      behavior.inputs?.length ||
+      behavior.choices?.length ||
+      behavior.dependency ||
+      behavior.stateRequirements?.length ||
+      behavior.resourceRequirements?.length ||
+      behavior.usageGroup ||
+      behavior.maxUsesPerGeneration ||
+      behavior.maxUsesPerGame
+    ) {
+      continue;
+    }
+    const condition = behavior.triggers[0].condition;
+    if (condition?.type !== "state-changed" || condition.to === undefined) {
+      continue;
+    }
+    const immediate = behaviors.find((candidate) => {
+      const other = candidate.behavior;
+      return (
+        candidate !== event &&
+        !consumed.has(candidate) &&
+        !candidate.mergedBehaviors?.length &&
+        other.triggers?.length === 1 &&
+        other.triggers[0].type === "auto" &&
+        !other.triggers[0].condition &&
+        !other.inputs?.length &&
+        !other.choices?.length &&
+        !other.dependency &&
+        !other.resourceRequirements?.length &&
+        !other.usageGroup &&
+        !other.maxUsesPerGeneration &&
+        !other.maxUsesPerGame &&
+        other.stateRequirements?.length === 1 &&
+        other.stateRequirements[0].state === condition.state &&
+        other.stateRequirements[0].equals === condition.to &&
+        JSON.stringify(other.outputs) === JSON.stringify(behavior.outputs)
+      );
+    });
+    if (immediate) {
+      const metadata = mergedMetadata([event, immediate]);
+      replacements.set(event, {
+        ...event,
+        ...metadata,
+        alternativeOriginalIndices: metadata.originalIndices,
+      });
+      consumed.add(immediate);
+    }
+  }
+  return behaviors
+    .filter((behavior) => !consumed.has(behavior))
+    .map((behavior) => replacements.get(behavior) ?? behavior);
+}

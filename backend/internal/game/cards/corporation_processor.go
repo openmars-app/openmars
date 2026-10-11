@@ -41,20 +41,24 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 		slog.String("player_id", pl.ID()),
 	)
 
+	pl.Resources().RegisterDependencyGroups(card.ID, card.DependencyGroups)
 	log.Debug("Applying corporation starting effects")
 
 	applier := NewBehaviorApplier(pl, g, card.Name, p.logger).
 		WithSourceCardID(card.ID).
-		WithCardRegistry(p.cardRegistry)
+		WithCardRegistry(p.registryForGame(g))
 
 	// Process ONLY behaviors with auto-corporation-start trigger
 	for _, behavior := range card.Behaviors {
+		if !g.ModeRequirementsMet(behavior.StateRequirements) {
+			continue
+		}
 		for _, trigger := range behavior.Triggers {
 			if trigger.Type == string(ResourceTriggerAutoCorporationStart) && trigger.Condition == nil {
 				log.Debug("Found auto-corporation-start behavior",
 					slog.Int("outputs", len(behavior.Outputs)))
 
-				if err := applier.ApplyOutputs(ctx, behavior.Outputs); err != nil {
+				if err := applier.WithBehavior(behavior).ApplyOutputs(ctx, behavior.Outputs); err != nil {
 					return fmt.Errorf("failed to apply starting effects: %w", err)
 				}
 			}
@@ -83,10 +87,13 @@ func (p *CorporationProcessor) ApplyAutoEffects(
 
 	applier := NewBehaviorApplier(pl, g, card.Name, p.logger).
 		WithSourceCardID(card.ID).
-		WithCardRegistry(p.cardRegistry)
+		WithCardRegistry(p.registryForGame(g))
 
 	// Process behaviors with auto trigger WITHOUT conditions
 	for _, behavior := range card.Behaviors {
+		if !g.ModeRequirementsMet(behavior.StateRequirements) {
+			continue
+		}
 		for _, trigger := range behavior.Triggers {
 			// Handle auto trigger WITHOUT conditions (immediate effects like payment-substitute)
 			// Auto triggers WITH conditions are passive effects handled separately
@@ -94,7 +101,7 @@ func (p *CorporationProcessor) ApplyAutoEffects(
 				log.Debug("Found auto behavior (no condition)",
 					slog.Int("outputs", len(behavior.Outputs)))
 
-				if err := applier.ApplyOutputs(ctx, behavior.Outputs); err != nil {
+				if err := applier.WithBehavior(behavior).ApplyOutputs(ctx, behavior.Outputs); err != nil {
 					return fmt.Errorf("failed to apply auto effects: %w", err)
 				}
 			}
@@ -130,7 +137,7 @@ func (p *CorporationProcessor) SetupForcedFirstAction(ctx context.Context, card 
 
 func (p *CorporationProcessor) executeFirstAction(ctx context.Context, g *game.Game, playerID string) error {
 	pending := g.GetForcedFirstAction(playerID)
-	card, err := p.cardRegistry.GetByID(pending.CorporationID)
+	card, err := p.registryForGame(g).GetByID(pending.CorporationID)
 	if err != nil {
 		return err
 	}
@@ -143,7 +150,7 @@ func (p *CorporationProcessor) executeFirstAction(ctx context.Context, g *game.G
 		outputs = append(outputs, card.Behaviors[index].Outputs...)
 	}
 	applier := NewBehaviorApplier(pl, g, card.Name, p.logger).
-		WithSourceCardID(card.ID).WithCardRegistry(p.cardRegistry).
+		WithSourceCardID(card.ID).WithCardRegistry(p.registryForGame(g)).
 		WithSourceType(shared.SourceTypeCorporationFirstAction).WithAwardRegistry(p.awardRegistry)
 	return applier.ApplyOutputs(ctx, outputs)
 }
@@ -225,4 +232,11 @@ func (p *CorporationProcessor) GetManualActions(card *Card) []shared.CardAction 
 // RestoreFirstActionExecutor binds an existing continuation without scheduling or executing it.
 func (p *CorporationProcessor) RestoreFirstActionExecutor(g *game.Game, playerID string) {
 	g.SetFirstActionExecutor(playerID, p.executeFirstAction)
+}
+
+func (p *CorporationProcessor) registryForGame(g *game.Game) CardRegistryInterface {
+	if registry, ok := p.cardRegistry.(CardRegistry); ok {
+		return ForGame(registry, g)
+	}
+	return p.cardRegistry
 }

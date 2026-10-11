@@ -5,14 +5,14 @@ import CardIcon, { TaggedCardIcon } from "./CardIcon";
 import OrChip from "./OrChip";
 import Slash from "./Slash";
 import ChoiceRequirementBox from "./ChoiceRequirementBox";
-import { useBehaviorLayout } from "./BehaviorContainer";
+import { useBehaviorLayout, BehaviorBorderLabel } from "./BehaviorContainer";
 import {
   analyzeCardOutputs,
   coordinateDisplayModes,
   orderIndependentResources,
 } from "../utils/displayAnalysis";
 import type { IconDisplayInfo, TileScaleInfo } from "../types";
-import type { CalculatedOutputDto, CardBehaviorDto } from "@/types/generated/api-types";
+import type { CalculatedOutputDto, CardBehaviorDto, ChoiceDto } from "@/types/generated/api-types";
 import {
   type ResourceCondition,
   isProduction,
@@ -28,6 +28,7 @@ interface ImmediateResourceLayoutProps {
   isResourceAffordable: (resource: ResourceCondition, isInput: boolean) => boolean;
   tileScaleInfo: TileScaleInfo;
   computedOutputs?: CalculatedOutputDto[];
+  productionLabel?: React.ReactNode;
 }
 
 const productionClass =
@@ -38,14 +39,36 @@ export default function ImmediateResourceLayout({
   isResourceAffordable,
   tileScaleInfo,
   computedOutputs,
+  productionLabel,
 }: ImmediateResourceLayoutProps) {
   const { compact } = useBehaviorLayout();
-  const choices = behavior.choices ?? [];
-  const numberedChoices = choices.some((choice) =>
-    choice.outputs?.some(
-      (resource) => !resource.type.startsWith("credit") && Math.abs(resource.amount ?? 1) > 3,
-    ),
-  );
+  const choices = (
+    behavior.optional
+      ? [
+          {
+            originalIndex: 0,
+            available: true,
+            errors: [],
+            inputs: behavior.inputs,
+            outputs: behavior.outputs,
+            stateRequirements: behavior.stateRequirements,
+          } as ChoiceDto,
+        ]
+      : (behavior.choices ?? [])
+  ).filter((choice) => (choice.inputs?.length ?? 0) + (choice.outputs?.length ?? 0) > 0);
+  const optional = behavior.optional === true;
+  const compactExchange =
+    choices.length === 1 &&
+    choices[0].inputs?.length === 1 &&
+    choices[0].outputs?.length === 1 &&
+    choices[0].outputs[0].type === "state-change";
+  const numberedChoices =
+    choices.length >= 3 ||
+    choices.some((choice) =>
+      choice.outputs?.some(
+        (resource) => !resource.type.startsWith("credit") && Math.abs(resource.amount ?? 1) > 3,
+      ),
+    );
 
   const renderResource = (
     resource: ResourceCondition,
@@ -58,10 +81,11 @@ export default function ImmediateResourceLayout({
       displayInfo={displayInfo}
       isInput={input}
       isGroupedWithOtherNegatives={grouped}
-      context="standalone"
+      context={input ? "action" : "standalone"}
       isAffordable={isResourceAffordable(resource, input)}
       tileScaleInfo={tileScaleInfo}
       computedOutputs={computedOutputs}
+      productionLabel={getPer(resource) ? productionLabel : undefined}
     />
   );
 
@@ -91,7 +115,17 @@ export default function ImmediateResourceLayout({
       : undefined;
     const rows = negative.length ? [negative, positive].filter((row) => row.length) : [positive];
     return (
-      <div className={production ? productionClass : "max-w-full"} style={quantityColumns}>
+      <div
+        className={
+          production
+            ? `${productionClass} relative ${productionLabel ? "mt-2.5 pt-3" : ""}`
+            : "max-w-full"
+        }
+        style={quantityColumns}
+      >
+        {production && productionLabel && (
+          <BehaviorBorderLabel>{productionLabel}</BehaviorBorderLabel>
+        )}
         <div className="flex flex-col items-stretch gap-[3px]">
           {rows.map((row, index) => (
             <div key={index} className="flex items-center gap-[3px] max-w-full">
@@ -110,7 +144,7 @@ export default function ImmediateResourceLayout({
     );
   };
 
-  const renderOutputs = (outputs: ResourceCondition[]) => {
+  const renderOutputs = (outputs: ResourceCondition[], choiceOutput = false) => {
     const production = outputs.filter((resource) => isProduction(resource) && !getPer(resource));
     const perProduction = outputs.filter((resource) => isProduction(resource) && getPer(resource));
     const cards = outputs.filter(
@@ -128,7 +162,7 @@ export default function ImmediateResourceLayout({
       ? others.filter((resource) => !basic.includes(resource as (typeof basic)[number]))
       : others;
     const modes = coordinateDisplayModes(independent, compact);
-    if (numberedChoices && choices.some((choice) => choice.outputs === outputs)) {
+    if (numberedChoices && choiceOutput) {
       for (const [resource, info] of modes) {
         if (Math.abs(resource.amount ?? 1) > 1) {
           modes.set(resource, { ...info, displayMode: "number", iconCount: 1 });
@@ -137,7 +171,7 @@ export default function ImmediateResourceLayout({
     }
     const cardGroups = analyzeCardOutputs(cards);
     return (
-      <div className="behavior-flow flex items-center justify-center gap-x-3 gap-y-1 max-w-full">
+      <div className="behavior-flow flex flex-wrap items-center justify-center gap-x-2 gap-y-1 max-w-full">
         {production.length > 0 && renderSignedGroup(production, true)}
         {perProduction.map((resource, index) => (
           <React.Fragment key={`per-${index}`}>
@@ -188,17 +222,29 @@ export default function ImmediateResourceLayout({
     sharedSelectors.every((target) => JSON.stringify(target) === JSON.stringify(commonTarget));
 
   const choiceContent = (
-    <div className="behavior-flow flex items-center justify-center gap-[3px] max-w-full">
+    <div
+      className={`behavior-flow flex ${choices.some((choice) => (choice.outputs?.length ?? 0) > 2) ? "flex-col" : "flex-wrap"} items-center justify-center gap-[3px] max-w-full`}
+    >
       {choices.map((choice, index) => (
-        <div key={index} className="flex items-center gap-[3px] max-w-full">
+        <div
+          key={index}
+          data-choice-index={behavior.choices?.indexOf(choice)}
+          className="flex items-center gap-[3px] max-w-full"
+        >
           {index > 0 && (choices.length >= 3 ? <Slash /> : <OrChip />)}
-          <ChoiceRequirementBox requirements={choice.requirements}>
-            <div className="flex flex-wrap items-center justify-center gap-1 max-w-full">
+          <ChoiceRequirementBox
+            requirements={choice.requirements}
+            stateRequirements={compactExchange ? undefined : choice.stateRequirements}
+          >
+            <div
+              className={`flex ${compactExchange ? "flex-nowrap" : "flex-wrap"} items-center justify-center gap-1 max-w-full`}
+              data-compact-exchange={compactExchange || undefined}
+            >
               {choice.inputs?.map((resource, inputIndex) => (
                 <React.Fragment key={inputIndex}>
                   {renderResource(
                     resource,
-                    coordinateDisplayModes([resource], compact).get(resource)!,
+                    coordinateDisplayModes([resource], compact || compactExchange).get(resource)!,
                     false,
                     true,
                   )}
@@ -214,6 +260,12 @@ export default function ImmediateResourceLayout({
                       return resource;
                     })
                   : (choice.outputs ?? []),
+                true,
+              )}
+              {compactExchange && (optional || Boolean(choice.stateRequirements?.length)) && (
+                <span data-rule-exception className="font-bold">
+                  *
+                </span>
               )}
             </div>
           </ChoiceRequirementBox>
@@ -223,7 +275,11 @@ export default function ImmediateResourceLayout({
   );
 
   return (
-    <div className="flex flex-col items-center gap-1 max-w-full min-w-0">
+    <div
+      className="flex flex-col items-center gap-1 max-w-full min-w-0"
+      data-optional-choice={optional || undefined}
+    >
+      {optional && <span className="font-orbitron text-[9px] text-white/70">MAY</span>}
       {choices.length > 0 &&
         (shareTarget ? (
           <div
@@ -236,7 +292,7 @@ export default function ImmediateResourceLayout({
         ) : (
           choiceContent
         ))}
-      {!!behavior.outputs?.length && renderOutputs(behavior.outputs)}
+      {!optional && !!behavior.outputs?.length && renderOutputs(behavior.outputs)}
     </div>
   );
 }

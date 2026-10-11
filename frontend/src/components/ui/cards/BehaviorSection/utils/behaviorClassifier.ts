@@ -53,6 +53,10 @@ export const classifyBehaviors = (behaviors: CardBehaviorDto[]): ClassifiedBehav
       return { behavior, type: "defense", description, originalIndex };
     }
 
+    if (behavior.optional) {
+      return { behavior, type: "immediate-effect", description, originalIndex };
+    }
+
     if (triggerType === "manual") {
       return { behavior, type: "manual-action", description, originalIndex };
     }

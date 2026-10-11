@@ -1,4 +1,6 @@
 import React from "react";
+import { getCardStateIcon } from "./CardStateIcon.tsx";
+import SemanticIcon, { hasSemanticIcon } from "./SemanticIcon.tsx";
 import { ResourceType, ResourceTypeCredit, CardTag } from "@/types/generated/api-types.ts";
 import { getIconPath } from "@/utils/iconStore.ts";
 
@@ -21,6 +23,7 @@ interface GameIconProps {
    * - For other resources: Shows number in bottom-right corner (if > 1)
    */
   amount?: number | string;
+  amountPlacement?: "badge" | "center";
   /**
    * Whether to display attack/threat indicator with red glow animation.
    * Only applicable for resource icons when showing enemy attacks or resource removal.
@@ -69,6 +72,7 @@ interface GameIconProps {
 const GameIcon: React.FC<GameIconProps> = ({
   iconType,
   amount,
+  amountPlacement = "badge",
   isAttack = false,
   size = "medium",
   className = "",
@@ -84,11 +88,24 @@ const GameIcon: React.FC<GameIconProps> = ({
 
   const iconUrl = baseType ? getIconPath(baseType) : null;
   const displayType = baseType || "";
+  const customIcon = getCardStateIcon(displayType);
 
-  if (!iconUrl) {
+  if (!iconUrl && !customIcon) {
+    const dimension =
+      size === "behavior"
+        ? "var(--behavior-icon-size,26px)"
+        : `${{ small: 24, medium: 32, large: 40 }[size]}px`;
     return (
-      <span className="text-xs font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-        {displayType}
+      <span
+        className={`inline-flex items-center gap-0.5 ${className}`}
+        data-unsupported-icon={hasSemanticIcon(displayType) ? undefined : displayType}
+      >
+        {amount !== undefined && amount !== 1 && (
+          <span className="font-orbitron text-[12px] font-bold">{amount}</span>
+        )}
+        <span style={{ width: dimension, height: dimension }} className="inline-flex shrink-0">
+          <SemanticIcon icon={displayType} className="h-full w-full" />
+        </span>
       </span>
     );
   }
@@ -129,7 +146,7 @@ const GameIcon: React.FC<GameIconProps> = ({
   const renderCoreIcon = () => {
     const glowEffect = attackGlow || cardOutline;
 
-    if (isCredits && amount !== undefined) {
+    if ((isCredits || amountPlacement === "center") && amount !== undefined) {
       return (
         <div
           className={`relative inline-flex items-center justify-center ${glowEffect} ${behaviorClass} ${isProduction ? "" : className}`}
@@ -138,13 +155,24 @@ const GameIcon: React.FC<GameIconProps> = ({
             height: iconSize,
           }}
         >
-          <img
-            src={iconUrl}
-            alt={displayType}
-            className="w-full h-full object-contain [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-          />
+          {customIcon ? (
+            <span
+              className="inline-flex h-full w-full"
+              role="img"
+              aria-label={displayType}
+              data-semantic-icon={displayType}
+            >
+              {customIcon}
+            </span>
+          ) : (
+            <img
+              src={iconUrl ?? undefined}
+              alt={displayType}
+              className="w-full h-full object-contain [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
+            />
+          )}
           <span
-            className="absolute top-0 left-0 right-0 bottom-0 text-black font-black font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:0_0_2px_rgba(255,255,255,0.3)] tracking-[0.5px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]"
+            className={`absolute top-0 left-0 right-0 bottom-0 ${isCredits ? "text-black" : "text-white"} font-black font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:0_0_2px_rgba(255,255,255,0.3)] tracking-[0.5px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]`}
             style={{ fontSize: creditFontSize() }}
           >
             {amount}
@@ -161,11 +189,22 @@ const GameIcon: React.FC<GameIconProps> = ({
           height: iconSize,
         }}
       >
-        <img
-          src={iconUrl}
-          alt={displayType}
-          className="w-full h-full object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
-        />
+        {customIcon ? (
+          <span
+            className="inline-flex h-full w-full"
+            role="img"
+            aria-label={displayType}
+            data-semantic-icon={displayType}
+          >
+            {customIcon}
+          </span>
+        ) : (
+          <img
+            src={iconUrl ?? undefined}
+            alt={displayType}
+            className="w-full h-full object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+          />
+        )}
         {amount !== undefined && typeof amount === "number" && amount > 1 && !isCredits && (
           <span
             className="absolute bottom-0 right-0 text-white font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] bg-black/50 rounded-full px-1 min-w-[16px] text-center leading-none"

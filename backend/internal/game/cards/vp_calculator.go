@@ -15,6 +15,7 @@ import (
 type BoardContext interface {
 	Board() *board.Board
 	CountAllColonies() int
+	ModeRequirementsMet([]shared.StateRequirement) bool
 }
 
 // CardVPConditionDetail represents the detailed calculation of a single VP condition
@@ -189,6 +190,10 @@ func evaluateVPConditionDetailed(
 		Amount:        vpCond.Amount,
 	}
 
+	if !bc.ModeRequirementsMet(vpCond.StateRequirements) {
+		detail.Explanation = "Scenario condition not met"
+		return detail
+	}
 	switch vpCond.Condition {
 	case VPConditionFixed:
 		detail.ActualTriggers = 1
@@ -248,6 +253,8 @@ func getPerConditionTypeName(per *shared.PerCondition) string {
 		return string(*per.Tag) + " tags"
 	}
 	switch per.ResourceType {
+	case shared.ResourcePermanentProductionTypes:
+		return "permanent production types"
 	case shared.ResourceOceanTile:
 		return "ocean tiles"
 	case shared.ResourceCityTile:

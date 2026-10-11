@@ -177,9 +177,9 @@ func TestAtalantaPlanitiaLab_SucceedsWithScienceTags(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Atalanta Planitia Lab")
-	sciCard1 := gamecards.Card{ID: "sci-1", Name: "Sci 1", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
-	sciCard2 := gamecards.Card{ID: "sci-2", Name: "Sci 2", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
-	sciCard3 := gamecards.Card{ID: "sci-3", Name: "Sci 3", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
+	sciCard1 := gamecards.Card{ID: "sci-1", Name: "Sci 1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
+	sciCard2 := gamecards.Card{ID: "sci-2", Name: "Sci 2", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
+	sciCard3 := gamecards.Card{ID: "sci-3", Name: "Sci 3", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
 	additionalCards := []gamecards.Card{sciCard1, sciCard2, sciCard3}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -213,12 +213,12 @@ func TestCorroderSuits_CreditProductionIncrease(t *testing.T) {
 	ctx := context.Background()
 	card := testutil.GetCardByName("Corroder Suits")
 	venusTargetCard := gamecards.Card{
-		ID:   "venus-target-card",
-		Name: "Venus Target",
-		Type: gamecards.CardTypeActive,
-		Pack: "venus-next",
-		Cost: 1,
-		Tags: []shared.CardTag{shared.TagVenus},
+		ID:        "venus-target-card",
+		Name:      "Venus Target",
+		Type:      gamecards.CardTypeActive,
+		GameModes: []string{"classic"},
+		Cost:      1,
+		Tags:      []shared.CardTag{shared.TagVenus},
 		ResourceStorage: &gamecards.ResourceStorage{
 			Type:     shared.ResourceFloater,
 			Starting: 0,
@@ -939,8 +939,8 @@ func TestLunaMetropolis_CreditProductionPerEarthTag(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Luna Metropolis")
-	earthCard1 := gamecards.Card{ID: "earth-1", Name: "Earth Card 1", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
-	earthCard2 := gamecards.Card{ID: "earth-2", Name: "Earth Card 2", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
+	earthCard1 := gamecards.Card{ID: "earth-1", Name: "Earth Card 1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
+	earthCard2 := gamecards.Card{ID: "earth-2", Name: "Earth Card 2", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
 	additionalCards := []gamecards.Card{earthCard1, earthCard2}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -1018,9 +1018,9 @@ func TestLuxuryFoods_SucceedsWithAllTags(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Luxury Foods")
-	earthCard := gamecards.Card{ID: "earth-tag-card", Name: "Earth Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
-	jovianCard := gamecards.Card{ID: "jovian-tag-card", Name: "Jovian Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagJovian}}
-	venusCard := gamecards.Card{ID: "venus-tag-card", Name: "Venus Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
+	earthCard := gamecards.Card{ID: "earth-tag-card", Name: "Earth Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
+	jovianCard := gamecards.Card{ID: "jovian-tag-card", Name: "Jovian Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagJovian}}
+	venusCard := gamecards.Card{ID: "venus-tag-card", Name: "Venus Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
 	additionalCards := []gamecards.Card{earthCard, jovianCard, venusCard}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -1056,9 +1056,9 @@ func TestGyropolis_ProductionAndCityPlacement(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Gyropolis")
-	earthCard := gamecards.Card{ID: "earth-g", Name: "Earth Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
-	venusCard1 := gamecards.Card{ID: "venus-g1", Name: "Venus Card 1", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
-	venusCard2 := gamecards.Card{ID: "venus-g2", Name: "Venus Card 2", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
+	earthCard := gamecards.Card{ID: "earth-g", Name: "Earth Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
+	venusCard1 := gamecards.Card{ID: "venus-g1", Name: "Venus Card 1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
+	venusCard2 := gamecards.Card{ID: "venus-g2", Name: "Venus Card 2", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
 	additionalCards := []gamecards.Card{earthCard, venusCard1, venusCard2}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -1102,9 +1102,9 @@ func TestMiningQuota_IncreaseSteelProduction(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Mining Quota")
-	earthHelper := gamecards.Card{ID: "earth-1", Name: "Earth Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
-	jovianHelper := gamecards.Card{ID: "jovian-1", Name: "Jovian Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagJovian}}
-	venusHelper := gamecards.Card{ID: "venus-1", Name: "Venus Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
+	earthHelper := gamecards.Card{ID: "earth-1", Name: "Earth Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
+	jovianHelper := gamecards.Card{ID: "jovian-1", Name: "Jovian Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagJovian}}
+	venusHelper := gamecards.Card{ID: "venus-1", Name: "Venus Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
 	additionalCards := []gamecards.Card{earthHelper, jovianHelper, venusHelper}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -1183,9 +1183,9 @@ func TestOmnicourt_IncreaseTR(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Omnicourt")
-	earthHelper := gamecards.Card{ID: "earth-1", Name: "Earth Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
-	jovianHelper := gamecards.Card{ID: "jovian-1", Name: "Jovian Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagJovian}}
-	venusHelper := gamecards.Card{ID: "venus-1", Name: "Venus Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
+	earthHelper := gamecards.Card{ID: "earth-1", Name: "Earth Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
+	jovianHelper := gamecards.Card{ID: "jovian-1", Name: "Jovian Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagJovian}}
+	venusHelper := gamecards.Card{ID: "venus-1", Name: "Venus Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
 	additionalCards := []gamecards.Card{earthHelper, jovianHelper, venusHelper}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -1324,9 +1324,9 @@ func TestSolarnet_Draw2Cards(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Solarnet")
-	venusHelper := gamecards.Card{ID: "venus-1", Name: "Venus Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
-	earthHelper := gamecards.Card{ID: "earth-1", Name: "Earth Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
-	jovianHelper := gamecards.Card{ID: "jovian-1", Name: "Jovian Card", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagJovian}}
+	venusHelper := gamecards.Card{ID: "venus-1", Name: "Venus Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
+	earthHelper := gamecards.Card{ID: "earth-1", Name: "Earth Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagEarth}}
+	jovianHelper := gamecards.Card{ID: "jovian-1", Name: "Jovian Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagJovian}}
 	additionalCards := []gamecards.Card{venusHelper, earthHelper, jovianHelper}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -1473,8 +1473,8 @@ func TestSulphurExports_CreditProductionPerVenusTag(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Sulphur Exports")
-	venusHelper1 := gamecards.Card{ID: "venus-1", Name: "Venus Card 1", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
-	venusHelper2 := gamecards.Card{ID: "venus-2", Name: "Venus Card 2", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
+	venusHelper1 := gamecards.Card{ID: "venus-1", Name: "Venus Card 1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
+	venusHelper2 := gamecards.Card{ID: "venus-2", Name: "Venus Card 2", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagVenus}}
 	additionalCards := []gamecards.Card{venusHelper1, venusHelper2}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -1860,8 +1860,8 @@ func TestStratopolis_CityPlacement(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Stratopolis")
-	sciHelper1 := gamecards.Card{ID: "science-1", Name: "Science Card 1", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
-	sciHelper2 := gamecards.Card{ID: "science-2", Name: "Science Card 2", Type: gamecards.CardTypeAutomated, Pack: "base", Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
+	sciHelper1 := gamecards.Card{ID: "science-1", Name: "Science Card 1", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
+	sciHelper2 := gamecards.Card{ID: "science-2", Name: "Science Card 2", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: 1, Tags: []shared.CardTag{shared.TagScience}}
 	additionalCards := []gamecards.Card{sciHelper1, sciHelper2}
 	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards(additionalCards)
 	players := testGame.GetAllPlayers()
@@ -2103,12 +2103,12 @@ func TestVenusRequirement_BlocksWhenTooLow(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := gamecards.Card{
-		ID:   "card-venus-req-low-test",
-		Name: "Venus Req Low Test",
-		Type: gamecards.CardTypeAutomated,
-		Pack: "venus-next",
-		Cost: 5,
-		Tags: []shared.CardTag{shared.TagVenus},
+		ID:        "card-venus-req-low-test",
+		Name:      "Venus Req Low Test",
+		Type:      gamecards.CardTypeAutomated,
+		GameModes: []string{"classic"},
+		Cost:      5,
+		Tags:      []shared.CardTag{shared.TagVenus},
 		Requirements: &gamecards.CardRequirements{
 			Items: []gamecards.Requirement{
 				{Type: gamecards.RequirementVenus, Min: testutil.IntPtr(8)},
@@ -2144,12 +2144,12 @@ func TestVenusRequirement_BlocksWhenTooHigh(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := gamecards.Card{
-		ID:   "card-venus-req-high-test",
-		Name: "Venus Req High Test",
-		Type: gamecards.CardTypeAutomated,
-		Pack: "venus-next",
-		Cost: 5,
-		Tags: []shared.CardTag{shared.TagVenus},
+		ID:        "card-venus-req-high-test",
+		Name:      "Venus Req High Test",
+		Type:      gamecards.CardTypeAutomated,
+		GameModes: []string{"classic"},
+		Cost:      5,
+		Tags:      []shared.CardTag{shared.TagVenus},
 		Requirements: &gamecards.CardRequirements{
 			Items: []gamecards.Requirement{
 				{Type: gamecards.RequirementVenus, Max: testutil.IntPtr(14)},
@@ -2185,12 +2185,12 @@ func TestVenusIncrease_RaisesGlobalParameter(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := gamecards.Card{
-		ID:   "card-venus-raise-test",
-		Name: "Venus Raise Test",
-		Type: gamecards.CardTypeAutomated,
-		Pack: "venus-next",
-		Cost: 5,
-		Tags: []shared.CardTag{shared.TagVenus},
+		ID:        "card-venus-raise-test",
+		Name:      "Venus Raise Test",
+		Type:      gamecards.CardTypeAutomated,
+		GameModes: []string{"classic"},
+		Cost:      5,
+		Tags:      []shared.CardTag{shared.TagVenus},
 		Behaviors: []shared.CardBehavior{
 			{
 				Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
@@ -2230,12 +2230,12 @@ func TestVenusStateCalculator_RequirementValidation(t *testing.T) {
 	testGame, repo := testutil.CreateTestGameWithPlayers(t, 1)
 	ctx := context.Background()
 	card := gamecards.Card{
-		ID:   "card-venus-state-calc-test",
-		Name: "Venus State Calc Test",
-		Type: gamecards.CardTypeAutomated,
-		Pack: "venus-next",
-		Cost: 5,
-		Tags: []shared.CardTag{shared.TagVenus},
+		ID:        "card-venus-state-calc-test",
+		Name:      "Venus State Calc Test",
+		Type:      gamecards.CardTypeAutomated,
+		GameModes: []string{"classic"},
+		Cost:      5,
+		Tags:      []shared.CardTag{shared.TagVenus},
 		Requirements: &gamecards.CardRequirements{
 			Items: []gamecards.Requirement{
 				{Type: gamecards.RequirementVenus, Min: testutil.IntPtr(10)},

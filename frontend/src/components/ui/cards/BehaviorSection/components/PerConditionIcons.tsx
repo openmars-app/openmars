@@ -1,8 +1,33 @@
+import { useCardResourceStorage } from "../../CardStateVisuals.tsx";
+import GameIcon from "../../../display/GameIcon.tsx";
 import React from "react";
 import type { PerConditionDto } from "@/types/generated/api-types";
 import { getIconPath, getTagIconPath } from "@/utils/iconStore";
 
 export default function PerConditionIcons({ per }: { per: PerConditionDto }) {
+  const storage = useCardResourceStorage();
+  if (storage?.icon && per.target === "self-card" && per.type === storage.type) {
+    return (
+      <span className="inline-flex items-center gap-0.5">
+        {per.amount > 1 && per.amount}
+        <GameIcon iconType={storage.icon} size="behavior" />
+      </span>
+    );
+  }
+  if (per.type === "permanent-production-types") {
+    return (
+      <span
+        className="relative inline-flex items-center"
+        role="img"
+        aria-label="Distinct positive permanent production types"
+      >
+        <GameIcon iconType="standard-resource-production" size="behavior" />
+        <span className="absolute -bottom-1 -right-1.5 inline-flex [--behavior-icon-size:12px]">
+          <GameIcon iconType="permanent" size="behavior" />
+        </span>
+      </span>
+    );
+  }
   const tags = [...new Set([...(per.tags ?? []), ...(per.tag ? [per.tag] : [])])];
   const icons = tags.length
     ? tags.map((tag) => ({ name: tag, src: getTagIconPath(tag) }))

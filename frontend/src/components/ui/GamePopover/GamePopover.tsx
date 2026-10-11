@@ -60,7 +60,10 @@ function computeLayout(
       const bottom = viewportHeight - rect.top + ANCHOR_GAP;
       return {
         bottom,
-        left: clampLeft(rightAlignedLeft, width),
+        left: clampLeft(
+          position.align === "center" ? rect.left + (rect.width - width) / 2 : rightAlignedLeft,
+          width,
+        ),
         width,
         maxHeight: fitHeight(maxHeight, viewportHeight - bottom),
       };
@@ -68,7 +71,10 @@ function computeLayout(
 
     const top = rect.bottom + ANCHOR_GAP;
     const wouldOverflowRight = rect.left + width > viewportWidth - ANCHOR_EDGE_PADDING;
-    const left = wouldOverflowRight ? rightAlignedLeft : Math.max(ANCHOR_EDGE_PADDING, rect.left);
+    let left = wouldOverflowRight ? rightAlignedLeft : Math.max(ANCHOR_EDGE_PADDING, rect.left);
+    if (position.align === "center") {
+      left = rect.left + (rect.width - width) / 2;
+    }
     return {
       top,
       left: clampLeft(left, width),

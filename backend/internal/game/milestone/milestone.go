@@ -7,14 +7,17 @@ import (
 
 // MilestoneDefinition is the static template loaded from JSON
 type MilestoneDefinition struct {
-	ID          string               `json:"id"`
-	Name        string               `json:"name"`
-	Description string               `json:"description"`
-	Pack        string               `json:"pack"`
-	ClaimCost   int                  `json:"claimCost"`
-	Reward      []award.RewardOutput `json:"reward"`
-	Requirement MilestoneRequirement `json:"requirement"`
-	Style       shared.Style         `json:"style"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+
+	GameModes        []string             `json:"gameModes"`
+	RequiresSystems  []string             `json:"requiresSystems,omitempty"`
+	RequiresFeatures []string             `json:"requiresFeatures,omitempty"`
+	ClaimCost        int                  `json:"claimCost"`
+	Reward           []award.RewardOutput `json:"reward"`
+	Requirement      MilestoneRequirement `json:"requirement"`
+	Style            shared.Style         `json:"style"`
 }
 
 const (

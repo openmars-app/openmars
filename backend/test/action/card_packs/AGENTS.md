@@ -1,14 +1,8 @@
-# Card Pack Tests
+# Card-family integration tests
 
-Tests are organized by the card's `pack` field in the card database JSON.
+Use package `card_packs_test`. Keep related card and corporation cases together in the existing family files, such as `play_card_base_test.go` and `corporations_colonies_test.go`.
 
-## File naming conventions
-
-- **Project card tests:** `play_card_<pack>_test.go` (e.g., `play_card_base_test.go`, `play_card_colonies_test.go`)
-- **Corporation tests:** `corporations_<pack>_test.go` (e.g., `corporations_colonies_test.go`)
-
-## Rules
-
-- All card tests go in the file matching their card pack. Do not create standalone files for individual cards.
-- Check the card's `pack` field in `backend/assets/cards.json` to determine the correct file.
-- All files use package `card_packs_test`.
+- Locate related card tests to select the family file; the current card database has no `pack` field.
+- Add cases to an existing matching family file instead of creating one file per card. Create a family file only when no existing one fits.
+- This convention applies to this directory. Condition, passive-effect, and mode-lifecycle tests remain in their own suites.
+- Use the parent [test guide](../../AGENTS.md) for setup and synchronization, and [asset instructions](../../../assets/AGENTS.md) for card semantics.

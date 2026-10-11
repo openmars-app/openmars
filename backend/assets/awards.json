@@ -3,7 +3,7 @@
     "id": "landlord",
     "name": "Landlord",
     "description": "Most tiles on Mars",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -22,7 +22,7 @@
     "id": "banker",
     "name": "Banker",
     "description": "Highest MC production",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -41,7 +41,7 @@
     "id": "scientist",
     "name": "Scientist",
     "description": "Most science tags in play",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -60,7 +60,7 @@
     "id": "thermalist",
     "name": "Thermalist",
     "description": "Most heat resources",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -79,7 +79,7 @@
     "id": "miner",
     "name": "Miner",
     "description": "Most steel and titanium resources",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -99,7 +99,8 @@
     "id": "venuphile",
     "name": "Venuphile",
     "description": "Most Venus tags in play",
-    "pack": "venus-next",
+    "gameModes": ["classic"],
+    "requiresSystems": ["venus"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -118,7 +119,7 @@
     "id": "cultivator",
     "name": "Cultivator",
     "description": "Most greenery tiles",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -137,7 +138,7 @@
     "id": "magnate",
     "name": "Magnate",
     "description": "Most automated cards played",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -156,7 +157,7 @@
     "id": "space-baron",
     "name": "Space Baron",
     "description": "Most space tags in play",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -175,7 +176,7 @@
     "id": "excentric",
     "name": "Excentric",
     "description": "Most resources on cards",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -194,7 +195,7 @@
     "id": "contractor",
     "name": "Contractor",
     "description": "Most building tags in play",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -213,7 +214,7 @@
     "id": "celebrity",
     "name": "Celebrity",
     "description": "Most cards in play with cost of at least 20 MC",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -232,7 +233,7 @@
     "id": "industrialist",
     "name": "Industrialist",
     "description": "Most steel and energy resources",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -252,7 +253,7 @@
     "id": "desert-settler",
     "name": "Desert Settler",
     "description": "Most tiles on the four bottom rows",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -271,7 +272,7 @@
     "id": "estate-dealer",
     "name": "Estate Dealer",
     "description": "Most tiles adjacent to ocean tiles",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },
@@ -290,7 +291,7 @@
     "id": "benefactor",
     "name": "Benefactor",
     "description": "Highest terraform rating",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },
       { "awardsBought": 1, "cost": 14 },

@@ -18,6 +18,8 @@ type VPRecalculationContext interface {
 	CountAdjacentTilesForCard(cardID string, tileType shared.ResourceType) int
 	CountAdjacentTilesToTileType(playerID string, countType, adjacentToType shared.ResourceType) int
 	CountAllColonies() int
+	ModeRequirementsMet([]shared.StateRequirement) bool
+	CountPermanentProductionTypes(playerID string) int
 }
 
 // VPGranters manages VP-granting cards.
@@ -133,6 +135,9 @@ func evaluateGranterVP(granter *shared.VPGranter, playerID string, ctx VPRecalcu
 }
 
 func evaluateVPCondition(cond shared.VPCondition, cardID string, playerID string, ctx VPRecalculationContext) int {
+	if !ctx.ModeRequirementsMet(cond.StateRequirements) {
+		return 0
+	}
 	switch cond.Condition {
 	case "fixed", "once":
 		return cond.Amount
@@ -176,6 +181,8 @@ func countPerCondition(per *shared.PerCondition, cardID string, playerID string,
 	}
 
 	switch per.ResourceType {
+	case shared.ResourcePermanentProductionTypes:
+		return ctx.CountPermanentProductionTypes(playerID)
 	case shared.ResourceCityTile:
 		if per.Target != nil && *per.Target == "self-player" {
 			return ctx.CountPlayerTilesOfType(playerID, shared.ResourceCityTile)

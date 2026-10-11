@@ -593,7 +593,7 @@ func TestHelion_AllCreditPaymentContexts(t *testing.T) {
 				p.Selection().SetPendingCardDrawSelection(&shared.PendingCardDrawSelection{AvailableCards: intent.CardsToBuy, MaxBuyCount: 1, CardBuyCost: 3})
 			case "build-colony", "colony-trade":
 				settings := g.Settings()
-				settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+				settings.Systems = append(settings.Systems, "colonies")
 				g.UpdateSettings(ctx, settings)
 				g.Colonies().SetStates([]*colony.ColonyState{{DefinitionID: "ganymede", MarkerPosition: 0}})
 				g.Colonies().AddTradeFleets(id, 1)

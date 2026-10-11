@@ -1,3 +1,6 @@
+import { CardCatalogPresentation } from "./cards/CardStateVisuals.tsx";
+import type { GameModeDto } from "@/types/generated/api-types.ts";
+import { apiService } from "@/services/apiService.ts";
 import type { ReactNode } from "react";
 import { useLayoutMode } from "@/hooks/useLayoutMode.ts";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
@@ -30,7 +33,7 @@ interface CardBrowserProps {
   headerStart?: ReactNode;
 }
 
-type ContentView = Pick<CardBrowserView, "sort" | "size" | "tags" | "types" | "packs"> & {
+type ContentView = Pick<CardBrowserView, "sort" | "size" | "tags" | "types"> & {
   family: CardFamily;
 };
 
@@ -40,17 +43,12 @@ function sameContent(a: ContentView, b: ContentView) {
     a.sort === b.sort &&
     a.size === b.size &&
     a.tags === b.tags &&
-    a.types === b.types &&
-    a.packs === b.packs
+    a.types === b.types
   );
 }
 
-function toFilters(
-  tags: readonly string[],
-  types: readonly string[],
-  packs: readonly string[],
-): BrowserFilters {
-  return { tags: new Set(tags), types: new Set(types), packs: new Set(packs) };
+function toFilters(tags: readonly string[], types: readonly string[]): BrowserFilters {
+  return { tags: new Set(tags), types: new Set(types) };
 }
 
 export default function CardBrowser({
@@ -74,17 +72,32 @@ export default function CardBrowser({
     [onViewChange],
   );
   const { entries, status, error } = useCardCatalog();
-  const filters = useMemo(
-    () => toFilters(view.tags, view.types, view.packs),
-    [view.tags, view.types, view.packs],
-  );
+  const [modes, setModes] = useState<GameModeDto[]>([]);
+  const [modeError, setModeError] = useState("");
+  const filters = useMemo(() => toFilters(view.tags, view.types), [view.tags, view.types]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [visitedFamilies, setVisitedFamilies] = useState<ReadonlySet<CardFamily>>(() => new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const query = useDeferredValue(view.query);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   useEffect(() => {
-    void loadCardCatalog();
+    void loadCardCatalog(view.gameModeId, view.preview);
+  }, [view.gameModeId, view.preview]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void apiService
+      .getGameModes(controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setModes(data);
+        }
+      })
+      .catch((reason: Error) => {
+        if (!controller.signal.aborted) {
+          setModeError(reason.message);
+        }
+      });
+    return () => controller.abort();
   }, []);
   useEffect(() => {
     const breakpoint = window.matchMedia("(min-width: 1024px)");
@@ -116,9 +129,8 @@ export default function CardBrowser({
       size: view.size,
       tags: view.tags,
       types: view.types,
-      packs: view.packs,
     }),
-    [family, view.sort, view.size, view.tags, view.types, view.packs],
+    [family, view.sort, view.size, view.tags, view.types],
   );
   const [shown, setShown] = useState(content);
   useEffect(() => {
@@ -129,10 +141,7 @@ export default function CardBrowser({
     return afterNextPaint(() => setShown(content));
   }, [content, shown]);
   const shownFamily = shown.family;
-  const shownFilters = useMemo(
-    () => toFilters(shown.tags, shown.types, shown.packs),
-    [shown.tags, shown.types, shown.packs],
-  );
+  const shownFilters = useMemo(() => toFilters(shown.tags, shown.types), [shown.tags, shown.types]);
   useEffect(() => {
     setVisitedFamilies((previous) => {
       if (previous.has(shownFamily)) {
@@ -163,10 +172,9 @@ export default function CardBrowser({
     }),
     [groups],
   );
-  const { tags, packs } = useMemo(
+  const { tags } = useMemo(
     () => ({
       tags: [...new Set(entries.flatMap(({ card }) => card.tags ?? []))].sort(),
-      packs: [...new Set(entries.map(({ card }) => card.pack))].sort(),
     }),
     [entries],
   );
@@ -186,9 +194,13 @@ export default function CardBrowser({
         ? family
         : (CARD_FAMILIES.find((item) => selectedCounts[item] > 0) ?? "project");
     params.set("family", sharedFamily);
+    if (view.gameModeId) {
+      params.set("mode", view.gameModeId);
+      params.set("preview", view.preview);
+    }
     [...selected].sort().forEach((id) => params.append("cId", id));
     return serverLink(`/cards?${params}`);
-  }, [selected, selectedCounts, family]);
+  }, [selected, selectedCounts, family, view.gameModeId, view.preview]);
   const toggleSelection = useCallback((id: string) => {
     setSelected((previous) => {
       const next = new Set(previous);
@@ -214,7 +226,7 @@ export default function CardBrowser({
     [updateView],
   );
   const clearFilters = useCallback(
-    () => updateView({ query: "", tags: [], types: [], packs: [] }),
+    () => updateView({ query: "", tags: [], types: [] }),
     [updateView],
   );
   const changeCardSize = useCallback((size: CardDisplaySize) => updateView({ size }), [updateView]);
@@ -228,89 +240,103 @@ export default function CardBrowser({
   const exitShared = useCallback(() => updateView({ ids: [] }), [updateView]);
 
   return (
-    <div
-      className="relative flex h-dvh min-h-0 w-full overflow-hidden bg-black text-white"
-      style={{ zIndex: Z_INDEX.UI_BASE }}
-      onKeyDown={(event) => {
-        if (event.key !== "Escape") {
-          event.stopPropagation();
-        }
-      }}
-    >
-      <CardBrowserSidebar
-        family={family}
-        query={view.query}
-        sort={view.sort}
-        cardSize={view.size}
-        onCardSize={changeCardSize}
-        filters={filters}
-        tags={tags}
-        packs={packs}
-        counts={counts}
-        selectedCounts={selectedCounts}
-        selectedCount={selected.size}
-        shareUrl={shareUrl}
-        shared={view.ids.length > 0}
-        open={drawerOpen && !isCompact}
-        persistent={isCompact}
-        headerStart={headerStart}
-        backLabel={backLabel}
-        onBack={onBack}
-        onClose={closeDrawer}
-        onFamily={changeFamily}
-        onQuery={changeQuery}
-        onSort={changeSort}
-        onToggle={toggleFilter}
-        onClearFilters={clearFilters}
-        onClearSelection={clearSelection}
-        onExitShared={exitShared}
-      />
-      <main
-        className={
-          isCompact
-            ? "relative min-h-0 min-w-0 flex-1 pt-[var(--safe-top)] pr-[var(--safe-right)] pb-[var(--safe-bottom)]"
-            : "relative min-h-0 min-w-0 flex-1 pt-[calc(4rem+var(--safe-top))] pr-[var(--safe-right)] pb-[var(--safe-bottom)] max-lg:pl-[var(--safe-left)] lg:pt-[var(--safe-top)]"
-        }
-        inert={drawerOpen && !isCompact}
+    <CardCatalogPresentation modes={modes} modeId={view.gameModeId}>
+      <div
+        className="relative flex h-dvh min-h-0 w-full overflow-hidden bg-black text-white"
+        style={{ zIndex: Z_INDEX.UI_BASE }}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") {
+            event.stopPropagation();
+          }
+        }}
       >
-        {!isCompact && (
-          <div className="absolute left-[calc(1rem+var(--safe-left))] top-[calc(0.75rem+var(--safe-top))] lg:hidden">
-            <GameButton size="sm" emphasis="secondary" onClick={() => setDrawerOpen(true)}>
-              Browse cards
-            </GameButton>
-          </div>
-        )}
-        {(status === "idle" || status === "loading") && (
-          <div role="status" className="p-8 text-left text-white/60">
-            Loading cards…
-          </div>
-        )}
-        {status === "error" && (
-          <div role="alert" className="space-y-4 p-8 text-left">
-            <p>{error}</p>
-            <GameButton emphasis="secondary" onClick={() => void loadCardCatalog()}>
-              Retry
-            </GameButton>
-          </div>
-        )}
-        {status === "ready" && groups[shownFamily].length === 0 && (
-          <div className="space-y-4 p-8 text-left">
-            <h2 className="font-orbitron text-lg">No matching cards</h2>
-            <p className="text-white/60">Try another family or clear your search and filters.</p>
-            <GameButton emphasis="secondary" onClick={clearFilters}>
-              Clear filters
-            </GameButton>
-            {view.ids.length > 0 && (
-              <GameButton emphasis="quiet" onClick={() => updateView({ ids: [] })}>
-                Exit shared selection
+        <CardBrowserSidebar
+          family={family}
+          query={view.query}
+          sort={view.sort}
+          cardSize={view.size}
+          onCardSize={changeCardSize}
+          filters={filters}
+          tags={tags}
+          modes={modes}
+          gameModeId={view.gameModeId}
+          preview={view.preview}
+          onMode={(gameModeId) => updateView({ gameModeId, preview: "connected" })}
+          onPreview={(preview) => updateView({ preview })}
+          counts={counts}
+          selectedCounts={selectedCounts}
+          selectedCount={selected.size}
+          shareUrl={shareUrl}
+          shared={view.ids.length > 0}
+          open={drawerOpen && !isCompact}
+          persistent={isCompact}
+          headerStart={headerStart}
+          backLabel={backLabel}
+          onBack={onBack}
+          onClose={closeDrawer}
+          onFamily={changeFamily}
+          onQuery={changeQuery}
+          onSort={changeSort}
+          onToggle={toggleFilter}
+          onClearFilters={clearFilters}
+          onClearSelection={clearSelection}
+          onExitShared={exitShared}
+        />
+        <main
+          className={
+            isCompact
+              ? "relative min-h-0 min-w-0 flex-1 pt-[var(--safe-top)] pr-[var(--safe-right)] pb-[var(--safe-bottom)]"
+              : "relative min-h-0 min-w-0 flex-1 pt-[calc(4rem+var(--safe-top))] pr-[var(--safe-right)] pb-[var(--safe-bottom)] max-lg:pl-[var(--safe-left)] lg:pt-[var(--safe-top)]"
+          }
+          inert={drawerOpen && !isCompact}
+        >
+          {!isCompact && (
+            <div className="absolute left-[calc(1rem+var(--safe-left))] top-[calc(0.75rem+var(--safe-top))] lg:hidden">
+              <GameButton size="sm" emphasis="secondary" onClick={() => setDrawerOpen(true)}>
+                Browse cards
               </GameButton>
-            )}
-          </div>
-        )}
-        {status === "ready" && (
-          <div className="relative h-full min-h-0" hidden={groups[shownFamily].length === 0}>
-            {CARD_FAMILIES.filter((item) => item === shownFamily || visitedFamilies.has(item)).map(
-              (item) => (
+            </div>
+          )}
+          {modeError && (
+            <p role="alert" className="p-4 text-amber-200">
+              {modeError}
+            </p>
+          )}
+          {(status === "idle" || status === "loading") && (
+            <div role="status" className="p-8 text-left text-white/60">
+              Loading cards…
+            </div>
+          )}
+          {status === "error" && (
+            <div role="alert" className="space-y-4 p-8 text-left">
+              <p>{error}</p>
+              <GameButton
+                emphasis="secondary"
+                onClick={() => void loadCardCatalog(view.gameModeId, view.preview)}
+              >
+                Retry
+              </GameButton>
+            </div>
+          )}
+          {status === "ready" && groups[shownFamily].length === 0 && (
+            <div className="space-y-4 p-8 text-left">
+              <h2 className="font-orbitron text-lg">No matching cards</h2>
+              <p className="text-white/60">Try another family or clear your search and filters.</p>
+              <GameButton emphasis="secondary" onClick={clearFilters}>
+                Clear filters
+              </GameButton>
+              {view.ids.length > 0 && (
+                <GameButton emphasis="quiet" onClick={() => updateView({ ids: [] })}>
+                  Exit shared selection
+                </GameButton>
+              )}
+            </div>
+          )}
+          {status === "ready" && (
+            <div className="relative h-full min-h-0" hidden={groups[shownFamily].length === 0}>
+              {CARD_FAMILIES.filter(
+                (item) => item === shownFamily || visitedFamilies.has(item),
+              ).map((item) => (
                 <CachedCardFamily
                   key={item}
                   active={item === shownFamily}
@@ -320,11 +346,11 @@ export default function CardBrowser({
                   selected={selected}
                   onSelect={toggleSelection}
                 />
-              ),
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </CardCatalogPresentation>
   );
 }

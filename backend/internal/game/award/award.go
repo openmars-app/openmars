@@ -8,14 +8,17 @@ import (
 
 // AwardDefinition is the static template loaded from JSON
 type AwardDefinition struct {
-	ID          string                `json:"id"`
-	Name        string                `json:"name"`
-	Description string                `json:"description"`
-	Pack        string                `json:"pack"`
-	Costs       []AwardCost           `json:"costs"`
-	Rewards     []AwardReward         `json:"rewards"`
-	Quantifier  []shared.PerCondition `json:"quantifier"`
-	Style       shared.Style          `json:"style"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+
+	GameModes        []string              `json:"gameModes"`
+	RequiresSystems  []string              `json:"requiresSystems,omitempty"`
+	RequiresFeatures []string              `json:"requiresFeatures,omitempty"`
+	Costs            []AwardCost           `json:"costs"`
+	Rewards          []AwardReward         `json:"rewards"`
+	Quantifier       []shared.PerCondition `json:"quantifier"`
+	Style            shared.Style          `json:"style"`
 }
 
 // AwardCost defines the funding cost at a given number of already-funded awards

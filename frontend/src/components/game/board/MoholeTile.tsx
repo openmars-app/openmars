@@ -534,8 +534,8 @@ export default function MoholeTile({
     setFenceTransforms(computeFenceMatrices(fenceProgress));
 
     const shakeIntensity = 0.012 * (1 - easeOutCubic(t));
-    const shakeX = (Math.random() - 0.5) * 2 * shakeIntensity;
-    const shakeY = (Math.random() - 0.5) * 2 * shakeIntensity;
+    const shakeX = Math.sin(elapsed * 0.137 + seed) * shakeIntensity;
+    const shakeY = Math.sin(elapsed * 0.173 + seed * 1.3) * shakeIntensity;
     groupRef.current.position.set(shakeX, shakeY, 0);
 
     if (t >= 1) {
@@ -593,11 +593,12 @@ export default function MoholeTile({
       </group>
 
       {!nuclearImpacted && showSmoke && tileWorldMatrix && (
-        <MoholeSmoke isNewlyPlaced={isNewlyPlaced} tileWorldMatrix={tileWorldMatrix} />
+        <MoholeSmoke seed={seed} isNewlyPlaced={isNewlyPlaced} tileWorldMatrix={tileWorldMatrix} />
       )}
 
       {!nuclearImpacted && showDust && surfaceNormal && worldPosition && (
         <DustEffect
+          seed={seed}
           duration={2800}
           particleColor={new THREE.Color(0.35, 0.15, 0.1)}
           onComplete={() => setShowDust(false)}

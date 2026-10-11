@@ -4,19 +4,21 @@ import "encoding/json"
 
 // GameSetupDto contains settings selected before creating a lobby.
 type GameSetupDto struct {
-	MaxPlayers       int      `json:"maxPlayers"`
-	MapID            string   `json:"mapId"`
-	CardPacks        []string `json:"cardPacks"`
-	VenusNextEnabled bool     `json:"venusNextEnabled"`
-	DevelopmentMode  bool     `json:"developmentMode"`
-	DemoGame         bool     `json:"demoGame"`
-	AllowRandomBuy   bool     `json:"allowRandomBuy"`
+	GameModeID         string         `json:"gameModeId"`
+	GameModeParameters map[string]int `json:"gameModeParameters"`
+	Features           []string       `json:"features"`
+	MaxPlayers         int            `json:"maxPlayers"`
+	MapID              string         `json:"mapId"`
+	DevelopmentMode    bool           `json:"developmentMode"`
+	DemoGame           bool           `json:"demoGame"`
+	AllowRandomBuy     bool           `json:"allowRandomBuy"`
 }
 
 // GameOptionsDto provides authoritative defaults and map previews for setup.
 type GameOptionsDto struct {
-	Defaults      GameSetupDto `json:"defaults"`
-	AvailableMaps []MapInfoDto `json:"availableMaps"`
+	GameModes     []GameModeDto `json:"gameModes"`
+	Defaults      GameSetupDto  `json:"defaults"`
+	AvailableMaps []MapInfoDto  `json:"availableMaps"`
 }
 
 // CreateGameRequest selects initial settings; omission uses server defaults.
@@ -27,15 +29,16 @@ type CreateGameRequest struct {
 // UpdateGameSettingsRequest represents a partial settings update sent from the
 // lobby. Pointer fields distinguish "leave alone" from "set to zero value".
 type UpdateGameSettingsRequest struct {
-	MaxPlayers       *int      `json:"maxPlayers,omitempty"`
-	MapID            *string   `json:"mapId,omitempty"`
-	VenusNextEnabled *bool     `json:"venusNextEnabled,omitempty"`
-	DevelopmentMode  *bool     `json:"developmentMode,omitempty"`
-	DemoGame         *bool     `json:"demoGame,omitempty"`
-	AllowRandomBuy   *bool     `json:"allowRandomBuy,omitempty"`
-	CardPacks        *[]string `json:"cardPacks,omitempty"`
-	ClaudeOAuthToken *string   `json:"claudeOAuthToken,omitempty"`
-	BotSpendCapUSD   *float64  `json:"botSpendCapUsd,omitempty"`
+	GameModeID         *string         `json:"gameModeId,omitempty"`
+	GameModeParameters *map[string]int `json:"gameModeParameters,omitempty"`
+	Features           *[]string       `json:"features,omitempty"`
+	MaxPlayers         *int            `json:"maxPlayers,omitempty"`
+	MapID              *string         `json:"mapId,omitempty"`
+	DevelopmentMode    *bool           `json:"developmentMode,omitempty"`
+	DemoGame           *bool           `json:"demoGame,omitempty"`
+	AllowRandomBuy     *bool           `json:"allowRandomBuy,omitempty"`
+	ClaudeOAuthToken   *string         `json:"claudeOAuthToken,omitempty"`
+	BotSpendCapUSD     *float64        `json:"botSpendCapUsd,omitempty"`
 }
 
 // CreateGameResponse represents the response for creating a game

@@ -86,7 +86,7 @@ func (a *SelectDemoChoicesAction) Execute(
 	if request.CorporationID == "" {
 		return fmt.Errorf("corporation ID is required")
 	}
-	corpCard, err := a.cardRegistry.GetByID(request.CorporationID)
+	corpCard, err := cards.ForGame(a.cardRegistry, g).GetByID(request.CorporationID)
 	if err != nil {
 		return fmt.Errorf("corporation not found: %s", request.CorporationID)
 	}
@@ -100,7 +100,7 @@ func (a *SelectDemoChoicesAction) Execute(
 			return fmt.Errorf("must select exactly 2 prelude cards, got %d", len(request.PreludeIDs))
 		}
 		for _, id := range request.PreludeIDs {
-			card, err := a.cardRegistry.GetByID(id)
+			card, err := cards.ForGame(a.cardRegistry, g).GetByID(id)
 			if err != nil {
 				return fmt.Errorf("prelude card not found: %s", id)
 			}
@@ -113,7 +113,7 @@ func (a *SelectDemoChoicesAction) Execute(
 	}
 
 	for _, id := range request.CardIDs {
-		card, err := a.cardRegistry.GetByID(id)
+		card, err := cards.ForGame(a.cardRegistry, g).GetByID(id)
 		if err != nil {
 			return fmt.Errorf("card not found: %s", id)
 		}

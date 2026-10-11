@@ -49,6 +49,7 @@ func calculateResourceDelta(before, after shared.Resources) ResourcesDto {
 
 // ToPlayerDto converts Player to PlayerDto
 func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry, stdProjRegistry standardproject.StandardProjectRegistry, awardRegistry award.AwardRegistry, milestoneRegistry milestone.MilestoneRegistry) PlayerDto {
+	cardRegistry = gamecards.ForGame(cardRegistry, g)
 	resourcesComponent := p.Resources()
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
@@ -56,6 +57,11 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegi
 	corporation := getCorporationCard(p, cardRegistry)
 	playedCardIDs := p.PlayedCards().Cards()
 	playedCards := getPlayedCards(playedCardIDs, cardRegistry)
+	for i := range playedCards {
+		if c, err := cardRegistry.GetByID(playedCards[i].ID); err == nil {
+			AnnotateCardDependencies(&playedCards[i], *c, p)
+		}
+	}
 	handCards := mapPlayerCards(p, g, cardRegistry)
 	standardProjects := mapPlayerStandardProjects(p, g, cardRegistry, stdProjRegistry)
 	milestones := mapPlayerMilestones(p, g, cardRegistry, milestoneRegistry)
@@ -89,6 +95,8 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegi
 		removalTargets = append(removalTargets, ResourceRemovalTargetDto{PlayerID: target.PlayerID, CardID: target.CardID, ResourceType: ResourceType(target.ResourceType), Amount: target.Amount})
 	}
 	return PlayerDto{
+		ModeProduction:         modeProductionPreview(p, g),
+		PermanentProduction:    toProductionDto(p.Resources().PermanentProduction()),
 		CardReceipts:           convertCardReceipts(p.Selection().CardReceipts(), cardRegistry),
 		ResourceRemovalTargets: removalTargets,
 		PendingCardReveal:      convertPendingCardReveal(p.Selection().GetPendingCardReveal(), cardRegistry),
@@ -149,6 +157,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegi
 
 // ToOtherPlayerDto converts Player to OtherPlayerDto
 func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) OtherPlayerDto {
+	cardRegistry = gamecards.ForGame(cardRegistry, g)
 	resourcesComponent := p.Resources()
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
@@ -156,30 +165,36 @@ func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry gamecards.Car
 	corporation := getCorporationCard(p, cardRegistry)
 	playedCardIDs := p.PlayedCards().Cards()
 	playedCards := getPlayedCards(playedCardIDs, cardRegistry)
+	for i := range playedCards {
+		if c, err := cardRegistry.GetByID(playedCards[i].ID); err == nil {
+			AnnotateCardDependencies(&playedCards[i], *c, p)
+		}
+	}
 	handCardCount := len(p.Hand().Cards())
 
 	return OtherPlayerDto{
-		ID:               p.ID(),
-		Name:             p.Name(),
-		PlayerType:       string(p.PlayerType()),
-		BotStatus:        string(p.BotStatus()),
-		BotPersona:       p.BotPersona(),
-		BotError:         p.BotError(),
-		Color:            p.Color(),
-		Resources:        toResourcesDto(resources),
-		Production:       toProductionDto(production),
-		TerraformRating:  resourcesComponent.TerraformRating(),
-		Status:           playerStatus(p, g),
-		Corporation:      corporation,
-		HandCardCount:    handCardCount,
-		PlayedCards:      playedCards,
-		Passed:           p.HasPassed(),
-		AvailableActions: getAvailableActionsForPlayer(g, p.ID()),
-		TotalActions:     getTotalActionsForPlayer(g, p.ID()),
-		IsConnected:      p.IsConnected(),
-		IsExited:         p.HasExited(),
-		Effects:          convertPlayerEffects(p.Effects().List(), p, g, cardRegistry),
-		Actions:          convertPlayerActions(p.Actions().List(), p, g, cardRegistry),
+		PermanentProduction: toProductionDto(p.Resources().PermanentProduction()),
+		ID:                  p.ID(),
+		Name:                p.Name(),
+		PlayerType:          string(p.PlayerType()),
+		BotStatus:           string(p.BotStatus()),
+		BotPersona:          p.BotPersona(),
+		BotError:            p.BotError(),
+		Color:               p.Color(),
+		Resources:           toResourcesDto(resources),
+		Production:          toProductionDto(production),
+		TerraformRating:     resourcesComponent.TerraformRating(),
+		Status:              playerStatus(p, g),
+		Corporation:         corporation,
+		HandCardCount:       handCardCount,
+		PlayedCards:         playedCards,
+		Passed:              p.HasPassed(),
+		AvailableActions:    getAvailableActionsForPlayer(g, p.ID()),
+		TotalActions:        getTotalActionsForPlayer(g, p.ID()),
+		IsConnected:         p.IsConnected(),
+		IsExited:            p.HasExited(),
+		Effects:             convertPlayerEffects(p.Effects().List(), p, g, cardRegistry),
+		Actions:             convertPlayerActions(p.Actions().List(), p, g, cardRegistry),
 
 		DemoReady: p.HasPendingDemoChoices(),
 
@@ -310,6 +325,7 @@ func convertProductionPhase(phase *shared.ProductionPhase, cardRegistry gamecard
 	}
 
 	return &ProductionPhaseDto{
+		ProductionUsed:    toProductionDto(phase.ProductionUsed),
 		AvailableCards:    getPlayedCards(phase.AvailableCards, cardRegistry),
 		SelectionComplete: phase.SelectionComplete,
 		BeforeResources:   toResourcesDto(phase.BeforeResources),
@@ -327,6 +343,7 @@ func convertProductionPhaseForOtherPlayer(phase *shared.ProductionPhase) *Produc
 	}
 
 	return &ProductionPhaseOtherPlayerDto{
+		ProductionUsed:    toProductionDto(phase.ProductionUsed),
 		SelectionComplete: phase.SelectionComplete,
 		BeforeResources:   toResourcesDto(phase.BeforeResources),
 		AfterResources:    toResourcesDto(phase.AfterResources),
@@ -402,6 +419,13 @@ func convertPlayerActions(actions []shared.CardAction, p *player.Player, g *game
 		)
 
 		behaviorDto := toCardBehaviorDto(act.Behavior)
+		if card, err := cardRegistry.GetByID(act.CardID); err == nil {
+			view := ToCardDto(*card)
+			AnnotateCardDependencies(&view, *card, p)
+			if act.BehaviorIndex >= 0 && act.BehaviorIndex < len(view.Behaviors) {
+				behaviorDto.DependencyStatus = view.Behaviors[act.BehaviorIndex].DependencyStatus
+			}
+		}
 		populateInputOptions(&behaviorDto, act.Behavior, act.CardID, p, g, cardRegistry)
 
 		if act.Behavior.ChoicePolicy != nil && len(behaviorDto.Choices) > 0 {
@@ -425,6 +449,7 @@ func convertPlayerActions(actions []shared.CardAction, p *player.Player, g *game
 		}
 
 		dtos[i] = PlayerActionDto{
+			DependencyTargets:       dependencyTargets(state),
 			ReuseOptions:            reuseOptions,
 			CardID:                  act.CardID,
 			CardName:                act.CardName,
@@ -550,6 +575,10 @@ func convertPendingBehaviorResolutions(resolutions []*shared.PendingBehaviorReso
 				item.TriggeringCardName = card.Name
 			}
 		}
+		if resolution.OptionalBehavior != nil {
+			errors := action.CalculateOptionalEffectErrors(resolution, p, g, registry)
+			item.OptionalEffect = &OptionalEffectDto{Behavior: toCardBehaviorDto(*resolution.OptionalBehavior), Available: len(errors) == 0, Errors: convertStateErrors(errors)}
+		}
 		for i, choice := range resolution.Choices {
 			dto := toChoiceDtoWithState(i, choice, p, g, registry)
 			errors := action.CalculateResolutionChoiceErrors(choice, resolution, p, g, registry)
@@ -597,12 +626,14 @@ func convertPendingColonyResourceFromQueue(queue []shared.PendingColonyResourceS
 func toChoiceDtoWithState(index int, choice shared.Choice, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry) ChoiceDto {
 	errors := action.CalculateChoiceErrors(choice, p, g, cardRegistry)
 	return ChoiceDto{
-		OriginalIndex: index,
-		Inputs:        mapSlice(choice.Inputs, toResourceConditionDto),
-		Outputs:       mapSlice(choice.Outputs, toResourceConditionDto),
-		Requirements:  toChoiceRequirementsDto(choice.Requirements),
-		Available:     len(errors) == 0,
-		Errors:        convertStateErrors(errors),
+		OriginalIndex:     index,
+		StateRequirements: mapSlice(choice.StateRequirements, toStateRequirementDto),
+		StorageTargets:    action.ResolutionStorageTargets(choice, p, cardRegistry),
+		Inputs:            mapSlice(choice.Inputs, toResourceConditionDto),
+		Outputs:           mapSlice(choice.Outputs, toResourceConditionDto),
+		Requirements:      toChoiceRequirementsDto(choice.Requirements),
+		Available:         len(errors) == 0,
+		Errors:            convertStateErrors(errors),
 	}
 }
 
@@ -773,12 +804,14 @@ func ToPlayerCardDto(card *gamecards.Card, state player.EntityState) PlayerCardD
 	}
 
 	return PlayerCardDto{
-		ID:              card.ID,
-		Name:            card.Name,
-		Type:            CardType(card.Type),
-		Cost:            card.Cost,
-		Description:     toCardDescriptionDto(card.Description),
-		Pack:            card.Pack,
+		DependencyTargets: dependencyTargets(state),
+		ID:                card.ID,
+		Name:              card.Name,
+		Type:              CardType(card.Type),
+		Cost:              card.Cost,
+		Description:       toCardDescriptionDto(card.Description),
+
+		GameModes: card.GameModes, RequiresFeatures: card.RequiresFeatures, RequiresSystems: card.RequiresSystems,
 		Tags:            tags,
 		Requirements:    requirements,
 		Behaviors:       behaviors,
@@ -810,6 +843,9 @@ func mapPlayerCards(p *player.Player, g *game.Game, cardRegistry gamecards.CardR
 		}
 
 		dto := ToPlayerCardDto(card, state)
+		dependencyView := CardDto{Behaviors: dto.Behaviors}
+		AnnotateCardDependencies(&dependencyView, *card, p)
+		dto.Behaviors = dependencyView.Behaviors
 
 		// Enrich choices with computed errors and apply choice policy filtering
 		for bi, behavior := range card.Behaviors {
@@ -855,18 +891,11 @@ func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry game
 	}
 	allDefinitions := stdProjRegistry.GetAll()
 	settings := g.Settings()
-	enabledPacks := make(map[string]bool, len(settings.CardPacks))
-	for _, pack := range settings.CardPacks {
-		enabledPacks[pack] = true
-	}
-	if settings.VenusNextEnabled {
-		enabledPacks[shared.PackVenus] = true
-	}
 
 	result := make([]PlayerStandardProjectDto, 0, len(allDefinitions))
 
 	for _, def := range allDefinitions {
-		if def.Pack != "" && !enabledPacks[def.Pack] {
+		if !settings.AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
 			continue
 		}
 		projectType := shared.StandardProject(def.ID)
@@ -1167,4 +1196,24 @@ func convertCardReceipts(receipts []shared.CardReceipt, registry gamecards.CardR
 		result = append(result, item)
 	}
 	return result
+}
+
+func dependencyTargets(state player.EntityState) []string {
+	targets, _ := state.Metadata["dependencyTargets"].([]string)
+	return targets
+}
+
+func modeProductionPreview(p *player.Player, g *game.Game) *ModeProductionDto {
+	runtime := g.ModeRuntime()
+	if len(runtime.Definition.Deadlines) == 0 {
+		return nil
+	}
+	deadline := runtime.Definition.Deadlines[0]
+	runtime.Windows = nil
+	runtime.Values[deadline.ActiveState] = deadline.ActiveValue
+	connected := p.Resources().ProductionForMode(runtime)
+	runtime.Values[deadline.ActiveState] = deadline.InactiveValue
+	runtime.Values[deadline.OccurredState] = 1
+	disconnected := p.Resources().ProductionForMode(runtime)
+	return &ModeProductionDto{Connected: toProductionDto(connected), Disconnected: toProductionDto(disconnected)}
 }

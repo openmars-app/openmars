@@ -18,7 +18,7 @@ func TestColony_PlacementCreatesPendingSelection(t *testing.T) {
 
 	// Enable colonies expansion
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	testGame.UpdateSettings(context.Background(), settings)
 
 	// Set up colony tiles on the game
@@ -42,7 +42,7 @@ func TestColony_AllowDuplicatePlayerColony(t *testing.T) {
 
 	// Enable colonies expansion
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	testGame.UpdateSettings(context.Background(), settings)
 
 	// Player already has a colony on luna
@@ -78,7 +78,7 @@ func TestColony_PlacementNoColoniesAvailable(t *testing.T) {
 
 	// Enable colonies expansion
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	testGame.UpdateSettings(context.Background(), settings)
 
 	// Set up all colony tiles as fully colonized (3 colonies each = max)
@@ -99,7 +99,7 @@ func TestColonyTileAddResolvesMultipleTilesWithoutBuildingColonies(t *testing.T)
 	ctx := context.Background()
 	g, repo, registry, id, _ := testutil.SetupTwoPlayerGame(t)
 	settings := g.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	g.UpdateSettings(ctx, settings)
 	definitions := []colony.ColonyDefinition{{ID: "first", Name: "First"}, {ID: "second", Name: "Second"}}
 	g.Colonies().SetDefinitions(definitions)

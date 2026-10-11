@@ -2,6 +2,7 @@ package cards
 
 import (
 	"openmars/internal/game/shared"
+	"slices"
 )
 
 // CardType represents different types of cards in Open Mars
@@ -17,18 +18,22 @@ const (
 
 // Card represents a game card
 type Card struct {
-	Style           *shared.CardStyle       `json:"style,omitempty"`
-	ID              string                  `json:"id"`
-	Name            string                  `json:"name"`
-	Type            CardType                `json:"type"`
-	Cost            int                     `json:"cost"`
-	Description     CardDescription         `json:"description"`
-	Pack            string                  `json:"pack"`
-	Tags            []shared.CardTag        `json:"tags"`
-	Requirements    *CardRequirements       `json:"requirements,omitempty"`
-	Behaviors       []shared.CardBehavior   `json:"behaviors"`
-	ResourceStorage *ResourceStorage        `json:"resourceStorage"`
-	VPConditions    []VictoryPointCondition `json:"vpConditions"`
+	Style            *shared.CardStyle        `json:"style,omitempty"`
+	ID               string                   `json:"id"`
+	Name             string                   `json:"name"`
+	Type             CardType                 `json:"type"`
+	Cost             int                      `json:"cost"`
+	Description      CardDescription          `json:"description"`
+	GameModes        []string                 `json:"gameModes"`
+	RequiresFeatures []string                 `json:"requiresFeatures,omitempty"`
+	RequiresSystems  []string                 `json:"requiresSystems,omitempty"`
+	Modifiers        []ModeModifier           `json:"modifiers,omitempty"`
+	DependencyGroups []shared.DependencyGroup `json:"dependencyGroups,omitempty"`
+	Tags             []shared.CardTag         `json:"tags"`
+	Requirements     *CardRequirements        `json:"requirements,omitempty"`
+	Behaviors        []shared.CardBehavior    `json:"behaviors"`
+	ResourceStorage  *ResourceStorage         `json:"resourceStorage"`
+	VPConditions     []VictoryPointCondition  `json:"vpConditions"`
 
 	StartingResources  *shared.ResourceSet `json:"startingResources"`
 	StartingProduction *shared.ResourceSet `json:"startingProduction"`
@@ -39,15 +44,7 @@ func (c Card) DeepCopy() Card {
 	tags := make([]shared.CardTag, len(c.Tags))
 	copy(tags, c.Tags)
 
-	var requirements *CardRequirements
-	if c.Requirements != nil {
-		items := make([]Requirement, len(c.Requirements.Items))
-		copy(items, c.Requirements.Items)
-		requirements = &CardRequirements{
-			Description: c.Requirements.Description,
-			Items:       items,
-		}
-	}
+	requirements := cloneJSON(c.Requirements)
 
 	behaviors := make([]shared.CardBehavior, len(c.Behaviors))
 	for i, behavior := range c.Behaviors {
@@ -57,6 +54,7 @@ func (c Card) DeepCopy() Card {
 	vpConditions := make([]VictoryPointCondition, len(c.VPConditions))
 	for i, vpc := range c.VPConditions {
 		vpConditions[i] = vpc
+		vpConditions[i].StateRequirements = append([]shared.StateRequirement(nil), vpc.StateRequirements...)
 		if vpc.MaxTrigger != nil {
 			mt := *vpc.MaxTrigger
 			vpConditions[i].MaxTrigger = &mt
@@ -108,7 +106,11 @@ func (c Card) DeepCopy() Card {
 		Type:               c.Type,
 		Cost:               c.Cost,
 		Description:        c.Description.DeepCopy(),
-		Pack:               c.Pack,
+		GameModes:          slices.Clone(c.GameModes),
+		RequiresFeatures:   slices.Clone(c.RequiresFeatures),
+		RequiresSystems:    slices.Clone(c.RequiresSystems),
+		Modifiers:          cloneModifiers(c.Modifiers),
+		DependencyGroups:   cloneJSON(c.DependencyGroups),
 		Tags:               tags,
 		Requirements:       requirements,
 		Behaviors:          behaviors,

@@ -51,6 +51,12 @@ func ValidateResolutionStorageTargets(choice shared.Choice, targets []string, p 
 		}
 		id := targets[index]
 		index++
+		if operation, ok := output.(*shared.StateCondition); ok {
+			if err := gamecards.ValidateDependencyTarget(p, registry, id, operation.Dependency, operation.ResourceType == shared.ResourceRemoveDependency, operation.MinimumProduction); err != nil {
+				return err
+			}
+			continue
+		}
 		if err := gamecards.ValidateStorageDestination(p, registry, output, id, ""); err != nil {
 			return err
 		}
@@ -69,10 +75,31 @@ func ResolutionStorageTargets(choice shared.Choice, p *player.Player, registry g
 			continue
 		}
 		eligible := gamecards.StorageDestinations(p, registry, output, "")
+		if operation, ok := output.(*shared.StateCondition); ok {
+			eligible = nil
+			for _, id := range p.PlayedCards().Cards() {
+				if gamecards.ValidateDependencyTarget(p, registry, id, operation.Dependency, operation.ResourceType == shared.ResourceRemoveDependency, operation.MinimumProduction) == nil {
+					eligible = append(eligible, id)
+				}
+			}
+		}
 		if eligible == nil {
 			eligible = []string{}
 		}
 		result = append(result, eligible)
 	}
 	return result
+}
+
+func CalculateOptionalEffectErrors(resolution *shared.PendingBehaviorResolution, p *player.Player, g *game.Game, registry gamecards.CardRegistry) []player.StateError {
+	behavior := resolution.OptionalBehavior
+	if behavior == nil {
+		return []player.StateError{{Code: player.ErrorCodeInvalidRequirement, Category: player.ErrorCategoryRequirement, Message: "No optional effect to resolve"}}
+	}
+	errors := CalculateChoiceErrors(shared.Choice{StateRequirements: behavior.StateRequirements, Outputs: behavior.Outputs}, p, g, registry)
+	applier := gamecards.NewBehaviorApplier(p, g, resolution.Source, nil).WithSourceCardID(resolution.SourceCardID).WithCardRegistry(registry)
+	if err := applier.ValidateInputs(behavior.Inputs); err != nil {
+		errors = append(errors, player.StateError{Code: player.ErrorCodeInsufficientResources, Category: player.ErrorCategoryInput, Message: err.Error()})
+	}
+	return errors
 }

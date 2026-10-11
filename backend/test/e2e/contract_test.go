@@ -54,6 +54,10 @@ var contracts = map[dto.MessageType][]any{
 	dto.MessageTypeActionConfirmProductionCards: {map[string]any{"selectedCardIds": []any{1}}, map[string]any{"randomBuy": "yes"}},
 	dto.MessageTypeActionCardDrawConfirmed:      {map[string]any{"cardsToTake": []any{1}, "cardsToBuy": "x"}},
 	dto.MessageTypeActionCardDiscardConfirmed:   {map[string]any{"resolutionId": "x", "cardIds": []any{nil}}},
+	dto.MessageTypeActionConfirmOptionalBehavior: {
+		map[string]any{"resolutionId": "x", "accept": "yes"},
+		map[string]any{"resolutionId": "x", "accept": true},
+	},
 	dto.MessageTypeActionBehaviorChoiceConfirmed: {
 		map[string]any{"resolutionId": "x", "choiceIndex": -1},
 		map[string]any{"resolutionId": "x", "choiceIndex": "first"},

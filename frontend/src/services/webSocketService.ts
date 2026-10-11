@@ -45,6 +45,7 @@ import {
   MessageTypeGameEnded,
   MessageTypeConvertToBot,
   MessageTypeActionBehaviorChoiceConfirmed,
+  MessageTypeActionConfirmOptionalBehavior,
   MessageTypeActionConfirmResourceRemoval,
   MessageTypeActionConfirmColonyResource,
   MessageTypeActionConfirmColonyPlacement,
@@ -524,6 +525,10 @@ export class WebSocketService {
 
   confirmCardDiscard(resolutionId: string, cardsToDiscard: string[]): string {
     return this.send(MessageTypeActionCardDiscardConfirmed, { resolutionId, cardsToDiscard });
+  }
+
+  confirmOptionalBehavior(resolutionId: string, accept: boolean): string {
+    return this.send(MessageTypeActionConfirmOptionalBehavior, { resolutionId, accept });
   }
 
   confirmBehaviorChoice(

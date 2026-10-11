@@ -19,6 +19,7 @@ type SelectPreludeCardsPhase struct {
 
 // ProductionPhase represents the production phase state for a player
 type ProductionPhase struct {
+	ProductionUsed    Production
 	AvailableCards    []string
 	SelectionComplete bool
 	BeforeResources   Resources
@@ -88,6 +89,7 @@ type PendingCardDrawSelection struct {
 type PendingBehaviorResolution struct {
 	ID                  string
 	Kind                string
+	OptionalBehavior    *CardBehavior
 	Source              string
 	SourceCardID        string
 	SourceBehaviorIndex int

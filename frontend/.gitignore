@@ -25,3 +25,6 @@ yarn-error.log*
 # playwright
 /test-results
 /playwright-report
+
+# Local visual inspection captures
+/output/inspection/

@@ -39,7 +39,7 @@ func setupStuckPlayerGame(t *testing.T) (*game.Game, *player.Player, gamecards.C
 	settings := shared.GameSettings{
 		MaxPlayers:      5,
 		DevelopmentMode: true,
-		CardPacks:       []string{shared.PackBaseGame},
+		GameModeID:      "classic", Features: []string{},
 	}
 	ds, err := datastore.NewDataStore()
 	if err != nil {

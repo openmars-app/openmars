@@ -61,7 +61,7 @@ func TestMisc_FreeTrade(t *testing.T) {
 	testGame, _, cardRegistry, playerID, _ := testutil.SetupTwoPlayerGame(t)
 	p, _ := testGame.GetPlayer(playerID)
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	testGame.UpdateSettings(context.Background(), settings)
 	testGame.Colonies().SetStates([]*colony.ColonyState{
 		{DefinitionID: "luna", MarkerPosition: 1},

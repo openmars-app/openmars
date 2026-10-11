@@ -429,12 +429,12 @@ func TestConfirmCardDiscard_RejectsTooManyCards(t *testing.T) {
 
 func createAllOpponentsDrawTestCard() gamecards.Card {
 	return gamecards.Card{
-		ID:   "card-all-opponents-draw-test",
-		Name: "All Opponents Draw Test",
-		Type: gamecards.CardTypeAutomated,
-		Pack: "base",
-		Cost: 5,
-		Tags: []shared.CardTag{shared.TagScience},
+		ID:        "card-all-opponents-draw-test",
+		Name:      "All Opponents Draw Test",
+		Type:      gamecards.CardTypeAutomated,
+		GameModes: []string{"classic"},
+		Cost:      5,
+		Tags:      []shared.CardTag{shared.TagScience},
 		Behaviors: []shared.CardBehavior{
 			{
 				Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},

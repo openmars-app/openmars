@@ -159,3 +159,14 @@ func (ctx *gameVPRecalculationContext) CountAdjacentTilesToTileType(playerID str
 func (ctx *gameVPRecalculationContext) CountAllColonies() int {
 	return ctx.game.Colonies().CountAllColonies()
 }
+
+func (ctx *gameVPRecalculationContext) ModeRequirementsMet(requirements []shared.StateRequirement) bool {
+	return ctx.game.ModeRequirementsMet(requirements)
+}
+func (ctx *gameVPRecalculationContext) CountPermanentProductionTypes(playerID string) int {
+	p, err := ctx.game.GetPlayer(playerID)
+	if err != nil {
+		return 0
+	}
+	return p.Resources().PermanentProduction().PositiveTypes()
+}

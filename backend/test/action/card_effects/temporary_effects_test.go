@@ -14,11 +14,11 @@ import (
 // Synthetic test cards for requirement testing
 func createTempReqTestCard() gamecards.Card {
 	return gamecards.Card{
-		ID:   "card-temp-req-test",
-		Name: "Temp Req Test",
-		Type: gamecards.CardTypeAutomated,
-		Pack: "base",
-		Cost: 5,
+		ID:        "card-temp-req-test",
+		Name:      "Temp Req Test",
+		Type:      gamecards.CardTypeAutomated,
+		GameModes: []string{"classic"},
+		Cost:      5,
 		Requirements: &gamecards.CardRequirements{Items: []gamecards.Requirement{
 			{Type: gamecards.RequirementTemperature, Min: testutil.IntPtr(-24)},
 		}},
@@ -27,11 +27,11 @@ func createTempReqTestCard() gamecards.Card {
 
 func createOxygenMaxReqTestCard() gamecards.Card {
 	return gamecards.Card{
-		ID:   "card-oxygen-max-req-test",
-		Name: "Oxygen Max Req Test",
-		Type: gamecards.CardTypeAutomated,
-		Pack: "base",
-		Cost: 5,
+		ID:        "card-oxygen-max-req-test",
+		Name:      "Oxygen Max Req Test",
+		Type:      gamecards.CardTypeAutomated,
+		GameModes: []string{"classic"},
+		Cost:      5,
 		Requirements: &gamecards.CardRequirements{Items: []gamecards.Requirement{
 			{Type: gamecards.RequirementOxygen, Max: testutil.IntPtr(5)},
 		}},

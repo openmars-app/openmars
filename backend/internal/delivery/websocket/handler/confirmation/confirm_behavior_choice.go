@@ -54,6 +54,20 @@ func (h *ConfirmBehaviorChoiceHandler) HandleMessage(ctx context.Context, connec
 		return
 	}
 
+	if message.Type == dto.MessageTypeActionConfirmOptionalBehavior {
+		accept, valid := payloadMap["accept"].(bool)
+		if !valid {
+			connection.SendError(message.Type, "Missing or invalid accept")
+			return
+		}
+		if err := h.action.ExecuteOptional(ctx, connection.GameID(), connection.PlayerID(), resolutionID, accept); err != nil {
+			connection.SendErrorPayload(dto.ErrorPayload{Message: err.Error(), RequestType: message.Type, ResolutionID: resolutionID})
+			return
+		}
+		h.broadcaster.BroadcastGameState(connection.GameID(), nil)
+		return
+	}
+
 	choiceIndexFloat, ok := payloadMap["choiceIndex"].(float64)
 	if !ok {
 		log.Error("Missing or invalid choiceIndex")

@@ -31,6 +31,7 @@ type PaymentIntent struct {
 
 // QuoteActionPayment calculates costs and eligible sources without changing game state.
 func QuoteActionPayment(g *game.Game, p *player.Player, registry cards.CardRegistry, projects standardproject.StandardProjectRegistry, milestones milestone.MilestoneRegistry, awards award.AwardRegistry, intent PaymentIntent) (shared.PaymentQuote, error) {
+	registry = cards.ForGame(registry, g)
 	context := cards.PaymentContext{Costs: map[shared.ResourceType]int{}}
 	calc := cards.NewRequirementModifierCalculator(registry)
 	credit := func(cost int) { context.Costs[shared.ResourceCredit] = cost }
@@ -45,7 +46,7 @@ func QuoteActionPayment(g *game.Game, p *player.Player, registry cards.CardRegis
 		context.Action = shared.ActionCardPlaying
 		var inputs []shared.BehaviorCondition
 		for _, b := range card.Behaviors {
-			if cards.HasAutoTrigger(b) {
+			if cards.HasAutoTrigger(b) && !b.Optional {
 				if intent.ChoiceIndex != nil && (*intent.ChoiceIndex < 0 || *intent.ChoiceIndex >= len(b.Choices)) && len(b.Choices) > 0 {
 					return shared.PaymentQuote{}, fmt.Errorf("invalid choice")
 				}
@@ -98,6 +99,9 @@ func QuoteActionPayment(g *game.Game, p *player.Player, registry cards.CardRegis
 			if err != nil {
 				return shared.PaymentQuote{}, err
 			}
+			if !g.Settings().AllowsContent(definition.GameModes, definition.RequiresSystems, definition.RequiresFeatures) {
+				return shared.PaymentQuote{}, fmt.Errorf("content unavailable in this game mode")
+			}
 			cost = definition.CreditCost()
 		}
 		cost = max(0, cost-calc.CalculateStandardProjectDiscounts(p, id)[rt])
@@ -145,12 +149,18 @@ func QuoteActionPayment(g *game.Game, p *player.Player, registry cards.CardRegis
 		if err != nil {
 			return shared.PaymentQuote{}, err
 		}
+		if !g.Settings().AllowsContent(definition.GameModes, definition.RequiresSystems, definition.RequiresFeatures) {
+			return shared.PaymentQuote{}, fmt.Errorf("content unavailable in this game mode")
+		}
 		credit(definition.ClaimCost)
 		context.Action = "claim-milestone"
 	case "fund-award":
 		definition, err := awards.GetByID(intent.AwardType)
 		if err != nil {
 			return shared.PaymentQuote{}, err
+		}
+		if !g.Settings().AllowsContent(definition.GameModes, definition.RequiresSystems, definition.RequiresFeatures) {
+			return shared.PaymentQuote{}, fmt.Errorf("content unavailable in this game mode")
 		}
 		credit(definition.GetCostForFundedCount(g.Awards().FundedCount()))
 		context.Action = "fund-award"

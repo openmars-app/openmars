@@ -87,8 +87,11 @@ func (c Catalog) validatePosition(s *datastore.GameState) error {
 			}
 		}
 		for _, pending := range p.PendingBehaviorResolutions {
-			if pending == nil || pending.ID == "" || !slices.Contains([]string{"choice", "card-discard"}, pending.Kind) || pending.MinCards < 0 || pending.MaxCards < pending.MinCards {
+			if pending == nil || pending.ID == "" || !slices.Contains([]string{"choice", "card-discard", "optional"}, pending.Kind) || pending.MinCards < 0 || pending.MaxCards < pending.MinCards {
 				return fmt.Errorf("pendingBehaviorResolutions: invalid selection")
+			}
+			if (pending.Kind == "optional") != (pending.OptionalBehavior != nil) {
+				return fmt.Errorf("pendingBehaviorResolutions: missing or unexpected optional behavior")
 			}
 		}
 		if pending := p.PendingCardSelection; pending != nil && (pending.MinCards < 0 || pending.MaxCards < pending.MinCards || pending.MaxCards > len(pending.AvailableCards)) {

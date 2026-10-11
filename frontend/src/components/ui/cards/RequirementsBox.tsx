@@ -1,3 +1,5 @@
+import { formatRequirementDescription } from "@/utils/cardDescription.ts";
+import { StateSymbol, visibleStateRequirements } from "./CardStateVisuals.tsx";
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import GameIcon from "../display/GameIcon.tsx";
@@ -26,18 +28,18 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
     }
   }, [isRevealed]);
 
-  if (!requirements || !requirements.items || requirements.items.length === 0) {
+  if (!requirements || (!requirements.items?.length && !requirements.description)) {
     return null;
   }
 
-  const items = requirements.items;
+  const items = visibleStateRequirements(requirements.items ?? []);
 
   // Group requirements by type/tag
   const groupRequirements = (requirements: any[]) => {
     const grouped: { [key: string]: any[] } = {};
 
     requirements.forEach((req) => {
-      const key = req.tag || req.affectedTags?.[0] || req.type;
+      const key = req.tag || req.affectedTags?.[0] || req.state || req.type;
       if (!grouped[key]) {
         grouped[key] = [];
       }
@@ -50,11 +52,22 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
   const renderRequirementGroup = (group: any[], index: number) => {
     const firstReq = group[0];
     const { type, min, max, amount, affectedTags, tag, resource } = firstReq;
+    if (type === "state") {
+      return (
+        <StateSymbol
+          key={index}
+          state={firstReq.state}
+          value={firstReq.equals}
+          className="[--behavior-icon-size:20px]"
+        />
+      );
+    }
 
     // Determine if it's a tag requirement
     const isTagRequirement = tag || (affectedTags && affectedTags.length > 0);
     // Determine if it's a production requirement
     const isProductionRequirement = type === "production" && resource;
+    const permanentProduction = isProductionRequirement && firstReq.permanent;
     // Determine if it's a named resource requirement (e.g., floater, microbe)
     const isNamedResourceRequirement = type === "resource" && resource;
     const key = tag || affectedTags?.[0] || resource || type;
@@ -68,8 +81,7 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
     if (isTagRequirement) {
       cardTag = key;
     } else if (isProductionRequirement) {
-      // Production requirements - use resource as-is (already contains -production)
-      resourceType = resource;
+      resourceType = !resource.endsWith("-production") ? `${resource}-production` : resource;
     } else if (type === "resource" && resource) {
       // Named resource requirements (e.g., floater, microbe)
       resourceType = resource;
@@ -93,7 +105,7 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
       } else if (max !== undefined) {
         iconCount = 1;
         showMultipleIcons = false;
-        displayText = `Max ${max}`;
+        displayText = `≤${max}`;
       } else if (amount !== undefined) {
         if (amount === 1) {
           iconCount = 1;
@@ -146,7 +158,7 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
         } else if (amount !== undefined) {
           displayText = `${amount}`;
         } else {
-          displayText = type;
+          displayText = "";
         }
       }
     }
@@ -166,7 +178,10 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
           )}
 
         {resourceType || cardTag ? (
-          <div className="flex items-center gap-px">
+          <div
+            className={`relative flex items-center gap-px ${permanentProduction ? "pr-1 pb-1" : ""}`}
+            data-permanent-production={permanentProduction ? resource : undefined}
+          >
             {showMultipleIcons ? (
               // Show multiple icons for single tag/resource requirements
               Array.from({ length: Math.min(iconCount, 4) }, (_, i) => (
@@ -182,6 +197,15 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
                 iconType={cardTag ? `${cardTag}-tag` : (resourceType as string)}
                 size="small"
               />
+            )}
+            {permanentProduction && (
+              <span
+                className="absolute bottom-0 right-0 inline-flex rounded-sm bg-[#0b1017] [--behavior-icon-size:15px]"
+                role="img"
+                aria-label="Permanent production"
+              >
+                <GameIcon iconType="permanent" size="behavior" />
+              </span>
             )}
           </div>
         ) : (
@@ -243,6 +267,7 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
           </svg>
           <div className="relative flex items-center justify-start gap-[3px] flex-wrap">
             {groupedRequirements.map((group, index) => renderRequirementGroup(group, index))}
+            {items.length === 0 && <GameIcon iconType="effect" size="small" />}
           </div>
         </div>
       </div>
@@ -261,7 +286,7 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
                   "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))",
               }}
             >
-              <FormattedDescription text={requirements.description} />
+              <FormattedDescription text={formatRequirementDescription(requirements.description)} />
               <svg
                 className="absolute top-0 right-0 w-[14px] h-[14px] pointer-events-none"
                 viewBox="0 0 14 14"

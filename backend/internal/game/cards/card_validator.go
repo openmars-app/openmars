@@ -240,7 +240,7 @@ func validateGreeeneriesRequirement(req Requirement) error {
 	return nil
 }
 
-// ValidateTileRequirement checks city totals and owned greenery requirements.
+// ValidateTileRequirement checks city and greenery requirements.
 func ValidateTileRequirement(req Requirement, p *player.Player, b *board.Board) error {
 	count := 0
 	if req.Type == RequirementCities {
@@ -249,7 +249,12 @@ func ValidateTileRequirement(req Requirement, p *player.Player, b *board.Board) 
 			value := string(*req.Location)
 			location = &value
 		}
-		count = CountTilesOfTypeByLocation(b, shared.ResourceCityTile, location, nil)
+		var owner *string
+		if req.Target == "self-player" {
+			id := p.ID()
+			owner = &id
+		}
+		count = CountTilesOfTypeByLocation(b, shared.ResourceCityTile, location, owner)
 	} else {
 		resource := shared.ResourceGreeneryTile
 		count = CountPlayerTiles(p.ID(), b, &resource)

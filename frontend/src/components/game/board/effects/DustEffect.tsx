@@ -1,3 +1,4 @@
+import { randomSequence } from "../structureLayout";
 import { useRef, useLayoutEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -7,6 +8,7 @@ import { scaledParticleCount } from "@/utils/graphicsQuality.ts";
 const DUST_SPRITE_COUNT = scaledParticleCount(45);
 
 interface DustEffectProps {
+  seed?: number;
   duration?: number;
   particleColor?: THREE.Color;
   onComplete?: () => void;
@@ -22,6 +24,7 @@ interface SmokeParticle {
 
 export default function DustEffect({
   duration = 2600,
+  seed = 42,
   particleColor,
   onComplete,
 }: DustEffectProps) {
@@ -34,6 +37,7 @@ export default function DustEffect({
 
   useLayoutEffect(() => {
     const group = groupRef.current!;
+    const random = randomSequence(seed);
     const particles: SmokeParticle[] = [];
     startTimeRef.current = null;
     completedRef.current = false;
@@ -44,26 +48,26 @@ export default function DustEffect({
         opacity: 0.08,
         depthWrite: false,
         color: initialColor.current,
-        rotation: Math.random() * Math.PI * 2,
+        rotation: random() * Math.PI * 2,
       });
       const sprite = new THREE.Sprite(material);
-      const angle = Math.random() * Math.PI * 2;
-      const radius = Math.sqrt(Math.random()) * 0.13;
+      const angle = random() * Math.PI * 2;
+      const radius = Math.sqrt(random()) * 0.13;
       sprite.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0.008);
       sprite.renderOrder = 20;
-      const initialScale = 0.045 + Math.random() * 0.06;
+      const initialScale = 0.045 + random() * 0.06;
       sprite.scale.setScalar(initialScale);
-      const spread = 0.015 + Math.random() * 0.025;
+      const spread = 0.015 + random() * 0.025;
       group.add(sprite);
       particles.push({
         sprite,
         velocity: new THREE.Vector3(
           Math.cos(angle) * spread,
           Math.sin(angle) * spread,
-          0.025 + Math.random() * 0.035,
+          0.025 + random() * 0.035,
         ),
-        rotationSpeed: (Math.random() - 0.5) * 0.8,
-        maxLifetime: (duration / 1000) * (0.65 + Math.random() * 0.35),
+        rotationSpeed: (random() - 0.5) * 0.8,
+        maxLifetime: (duration / 1000) * (0.65 + random() * 0.35),
         initialScale,
       });
     }
@@ -75,7 +79,7 @@ export default function DustEffect({
       }
       particlesRef.current = [];
     };
-  }, [smokeTexture, duration]);
+  }, [smokeTexture, duration, seed]);
 
   useFrame((state, delta) => {
     startTimeRef.current ??= state.clock.elapsedTime;

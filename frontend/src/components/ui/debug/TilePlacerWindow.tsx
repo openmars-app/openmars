@@ -6,10 +6,12 @@ import {
   AdminCommandRequest,
   AdminCommandTypeStartTileSelection,
   StartTileSelectionAdminCommand,
+  PlaceableTileTypeDto,
 } from "../../../types/generated/api-types.ts";
 import { useWindowDrag, useWindowManager } from "./WindowManager.tsx";
 
 interface TilePlacerWindowProps {
+  tileTypes: PlaceableTileTypeDto[];
   playerId: string;
   playerName: string;
   onClose: () => void;
@@ -18,23 +20,12 @@ interface TilePlacerWindowProps {
 const WINDOW_ID = "tile-placer";
 const WINDOW_WIDTH = 220;
 
-const ALL_TILES = [
-  { type: "city", label: "City" },
-  { type: "greenery", label: "Greenery" },
-  { type: "ocean", label: "Ocean" },
-  { type: "volcano", label: "Volcano" },
-  { type: "nuclear-zone", label: "Nuclear Zone" },
-  { type: "mining", label: "Mining" },
-  { type: "natural-preserve", label: "Natural Preserve" },
-  { type: "ecological-zone", label: "Ecological Zone" },
-  { type: "mohole", label: "Mohole" },
-  { type: "restricted", label: "Restricted" },
-  { type: "colony", label: "Colony" },
-  { type: "land-claim", label: "Land Claim" },
-  { type: "clear", label: "Clear" },
-];
-
-const TilePlacerWindow: React.FC<TilePlacerWindowProps> = ({ playerId, playerName, onClose }) => {
+const TilePlacerWindow: React.FC<TilePlacerWindowProps> = ({
+  tileTypes,
+  playerId,
+  playerName,
+  onClose,
+}) => {
   const { position, handleMouseDown } = useWindowDrag({
     windowId: WINDOW_ID,
     width: WINDOW_WIDTH,
@@ -86,7 +77,7 @@ const TilePlacerWindow: React.FC<TilePlacerWindowProps> = ({ playerId, playerNam
           overflowY: "auto",
         }}
       >
-        {ALL_TILES.map((tile) => (
+        {tileTypes.map((tile) => (
           <GameButton
             emphasis="secondary"
             key={tile.type}

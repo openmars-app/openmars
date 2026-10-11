@@ -7,6 +7,8 @@ import (
 // ResourceStorage represents a card's ability to hold resources
 type ResourceStorage struct {
 	Type        shared.ResourceType `json:"type"`
+	Icon        string              `json:"icon,omitempty"`
+	Label       string              `json:"label,omitempty"`
 	Capacity    *int                `json:"capacity,omitempty"`
 	Starting    int                 `json:"starting"`
 	Description string              `json:"description,omitempty" ts:"string | undefined"`
@@ -14,11 +16,12 @@ type ResourceStorage struct {
 
 // VictoryPointCondition represents a VP condition
 type VictoryPointCondition struct {
-	Amount      int                  `json:"amount"`
-	Condition   VPConditionType      `json:"condition"`
-	MaxTrigger  *int                 `json:"maxTrigger,omitempty"`
-	Per         *shared.PerCondition `json:"per,omitempty"`
-	Description string               `json:"description,omitempty" ts:"string | undefined"`
+	StateRequirements []shared.StateRequirement `json:"stateRequirements,omitempty"`
+	Amount            int                       `json:"amount"`
+	Condition         VPConditionType           `json:"condition"`
+	MaxTrigger        *int                      `json:"maxTrigger,omitempty"`
+	Per               *shared.PerCondition      `json:"per,omitempty"`
+	Description       string                    `json:"description,omitempty" ts:"string | undefined"`
 }
 
 // VPConditionType represents different types of VP conditions

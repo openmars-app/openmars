@@ -6,20 +6,27 @@ import (
 	"encoding/json"
 	"fmt"
 	tileaction "openmars/internal/action/tile"
+	"openmars/internal/game/award"
+	"openmars/internal/game/board"
+	"openmars/internal/game/milestone"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
+	baseaction "openmars/internal/action"
 	cardaction "openmars/internal/action/card"
 	"openmars/internal/action/confirmation"
 	gameaction "openmars/internal/action/game"
 	pfaction "openmars/internal/action/projectfunding"
 	resconv "openmars/internal/action/resource_conversion"
 	turn "openmars/internal/action/turn_management"
+	"openmars/internal/events"
 	"openmars/internal/game"
 	gamecards "openmars/internal/game/cards"
 	"openmars/internal/game/colony"
 	"openmars/internal/game/datastore"
+	"openmars/internal/game/mode"
 	"openmars/internal/game/projectfunding"
 	"openmars/internal/game/save"
 	"openmars/internal/game/shared"
@@ -49,17 +56,50 @@ func fullSaveCatalog(t testing.TB) save.Catalog {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return save.Catalog{Cards: testutil.GetCardDB(), Maps: testutil.CreateTestMapRegistry(), Colonies: colony.NewInMemoryColonyRegistry(colonies), Projects: projectfunding.NewInMemoryProjectFundingRegistry(projects), StandardProjects: standardproject.NewInMemoryStandardProjectRegistry(standard), Awards: testutil.CreateTestAwardRegistry(), Milestones: testutil.CreateTestMilestoneRegistry()}
+	return save.Catalog{Cards: testutil.CreateTestModeCatalog(), Maps: testutil.CreateTestMapRegistry(), Colonies: colony.NewInMemoryColonyRegistry(colonies), Projects: projectfunding.NewInMemoryProjectFundingRegistry(projects), StandardProjects: standardproject.NewInMemoryStandardProjectRegistry(standard), Awards: testutil.CreateTestAwardRegistry(), Milestones: testutil.CreateTestMilestoneRegistry()}
 }
 
-func newSaveWorld(t testing.TB, count int, packs []string) *saveWorld {
+func newSaveWorld(t testing.TB, count int, settings shared.GameSettings) *saveWorld {
 	t.Helper()
 	c := fullSaveCatalog(t)
+	settings.MaxPlayers = count
+	if settings.GameModeID == "" {
+		settings.GameModeID = "classic"
+	}
+	if len(settings.Systems) > 0 {
+		// A test-only mode preserves the upstream combined-system save coverage.
+		// It is never added to the published catalog or selectable in the application.
+		settings.GameModeID = "save-conformance"
+		definitions := gamecards.ModeDefinitions(c.Cards)
+		definitions = append(definitions, mode.Definition{ID: settings.GameModeID, MinPlayers: 1, MaxPlayers: 8, Systems: settings.Systems, Features: []mode.Feature{{ID: "prelude"}, {ID: "project-funding"}}})
+		all := c.Cards.GetAll()
+		for i := range all {
+			if !strings.HasPrefix(all[i].ID, "ES") && !strings.HasPrefix(all[i].ID, "EP") && !strings.HasPrefix(all[i].ID, "EC") {
+				all[i].GameModes = append(all[i].GameModes, settings.GameModeID)
+			}
+		}
+		c.Cards = gamecards.NewInMemoryCardRegistry(all, definitions...)
+		awards := c.Awards.GetAll()
+		for i := range awards {
+			awards[i].GameModes = append(awards[i].GameModes, settings.GameModeID)
+		}
+		c.Awards = award.NewInMemoryAwardRegistry(awards)
+		milestones := c.Milestones.GetAll()
+		for i := range milestones {
+			milestones[i].GameModes = append(milestones[i].GameModes, settings.GameModeID)
+		}
+		c.Milestones = milestone.NewInMemoryMilestoneRegistry(milestones)
+		standard := c.StandardProjects.GetAll()
+		for i := range standard {
+			standard[i].GameModes = append(standard[i].GameModes, settings.GameModeID)
+		}
+		c.StandardProjects = standardproject.NewInMemoryStandardProjectRegistry(standard)
+	}
 	repo := testutil.NewTestGameRepository(t)
 	logs := game.NewInMemoryGameStateRepository()
 	a, err := gameaction.NewSaveGameAction(repo, logs, c, "test", nil, testutil.TestLogger())
 	testutil.AssertNoError(t, err, "save service")
-	g, err := gameaction.NewCreateGameAction(repo, c.Cards, c.Maps, testutil.TestLogger()).Execute(context.Background(), shared.GameSettings{MaxPlayers: count, CardPacks: packs})
+	g, err := gameaction.NewCreateGameAction(repo, c.Cards, c.Maps, testutil.TestLogger()).Execute(context.Background(), settings)
 	testutil.AssertNoError(t, err, "create")
 	g.SetSeed(42)
 	for i := 0; i < count; i++ {
@@ -67,7 +107,7 @@ func newSaveWorld(t testing.TB, count int, packs []string) *saveWorld {
 		_, err := gameaction.NewJoinGameAction(repo, c.Cards, testutil.TestLogger()).Execute(context.Background(), g.ID(), id, id)
 		testutil.AssertNoError(t, err, "join")
 	}
-	testutil.AssertNoError(t, turn.NewStartGameAction(repo, c.Colonies, c.Projects, c.Milestones, c.Awards, nil, testutil.TestLogger()).Execute(context.Background(), g.ID(), "p0"), "start")
+	testutil.AssertNoError(t, turn.NewStartGameAction(repo, c.Colonies, c.Projects, c.Milestones, c.Awards, nil, testutil.TestLogger(), c.Cards).Execute(context.Background(), g.ID(), "p0"), "start")
 	return &saveWorld{g, repo, logs, a, c}
 }
 
@@ -284,7 +324,7 @@ func TestSaveIndependentPendingContinuations(t *testing.T) {
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			w := newSaveWorld(t, 2, []string{shared.PackBaseGame, shared.PackPrelude, shared.PackVenus, shared.PackColonies, shared.PackProjectFunding, shared.PackExperimental})
+			w := newSaveWorld(t, 2, shared.GameSettings{Features: []string{"prelude", "project-funding"}, Systems: []string{"venus", "colonies"}})
 			w.active(t)
 			tc.prepare(w)
 			restored := w.restore(t)
@@ -315,7 +355,7 @@ func TestSaveIndependentLifecycle(t *testing.T) {
 	for _, count := range []int{1, 2} {
 		t.Run(fmt.Sprintf("players-%d", count), func(t *testing.T) {
 			ctx := context.Background()
-			w := newSaveWorld(t, count, []string{shared.PackBaseGame, shared.PackPrelude})
+			w := newSaveWorld(t, count, shared.GameSettings{Features: []string{"prelude"}})
 			corps := []string{testutil.CardID("Helion"), testutil.CardID("Ecoline")}
 			preludes := []string{"P01", "P03", "P04", "P07"}
 			testutil.AssertNoError(t, w.repo.DataStore().UpdateGame(w.g.ID(), func(s *datastore.GameState) {
@@ -395,7 +435,7 @@ func TestSaveIndependentLifecycle(t *testing.T) {
 }
 
 func FuzzSaveSemanticValidation(f *testing.F) {
-	w := newSaveWorld(f, 2, []string{shared.PackBaseGame})
+	w := newSaveWorld(f, 2, shared.GameSettings{Features: []string{}})
 	doc, err := w.action.Capture(context.Background(), w.g.ID(), w.g.HostPlayerID())
 	testutil.AssertNoError(f, err, "capture seed")
 	seed, err := w.action.Encode(doc)
@@ -431,7 +471,7 @@ func FuzzSaveSemanticValidation(f *testing.F) {
 func TestSaveMatureCombinedGame(t *testing.T) {
 	ctx := context.Background()
 	log := testutil.TestLogger()
-	w := newSaveWorld(t, 2, []string{shared.PackBaseGame, shared.PackPrelude, shared.PackVenus, shared.PackColonies, shared.PackProjectFunding, shared.PackExperimental})
+	w := newSaveWorld(t, 2, shared.GameSettings{Features: []string{"prelude", "project-funding"}, Systems: []string{"venus", "colonies"}})
 	w.active(t)
 	testutil.AssertNoError(t, w.repo.DataStore().UpdateGame(w.g.ID(), func(s *datastore.GameState) {
 		s.Generation = 5
@@ -492,4 +532,156 @@ func TestSaveMatureCombinedGame(t *testing.T) {
 		testutil.AssertNoError(t, gameaction.NewFinalScoringAction(x.repo, x.catalog.Cards, x.catalog.Awards, x.catalog.Milestones, log).Execute(ctx, x.g.ID()), "score")
 	}
 	compareSavedPositions(t, w, restored)
+}
+
+func TestSaveEarthWithdrawalAndReconnectionContinuations(t *testing.T) {
+	ctx := context.Background()
+	w := newSaveWorld(t, 1, shared.GameSettings{GameModeID: "earth-withdrawal", Features: []string{}, GameModeParameters: map[string]int{"withdrawal-generation": 6}})
+	w.active(t)
+	testutil.AssertNoError(t, w.g.SetCurrentTurn(ctx, "p0", -1), "unlimited fixture turn")
+	play := func(world *saveWorld, id string, targets []string) {
+		t.Helper()
+		registry := gamecards.ForGame(world.catalog.Cards, world.g)
+		card, err := registry.GetByID(id)
+		testutil.AssertNoError(t, err, "effective card")
+		testutil.AssertNoError(t, world.repo.DataStore().UpdateGame(world.g.ID(), func(s *datastore.GameState) {
+			s.ProjectCards = slices.DeleteFunc(s.ProjectCards, func(cid string) bool { return cid == id })
+			s.Players["p0"].HandCardIDs = append(s.Players["p0"].HandCardIDs, id)
+		}), "deal scenario card")
+		err = cardaction.NewPlayCardAction(world.repo, world.catalog.Cards, world.logs, testutil.TestLogger(), world.catalog.Colonies).Execute(ctx, world.g.ID(), "p0", id, shared.NativePayment(shared.ResourceCredit, card.Cost), nil, targets, nil, nil, nil)
+		testutil.AssertNoError(t, err, "play "+id)
+	}
+	for _, id := range []string{"ES001", "ES003", "ES005", "ES019", "ES012"} {
+		play(w, id, nil)
+	}
+	play(w, "ES021", []string{"ES005"})
+	p, _ := w.g.GetPlayer("p0")
+	testutil.AssertNoError(t, p.Resources().SetDependencyStatus("ES003", "earth-support", false), "retire greenhouse operation")
+	p.Resources().RecordBehaviorUse("ES012", "office", 1)
+	testutil.AssertNoError(t, w.g.ChangeModeState(ctx, "p0", "withdrawal-generation", -1), "advance original deadline")
+	// Keep a shared card in hand to verify restoration uses its scenario price.
+	testutil.AssertNoError(t, w.repo.DataStore().UpdateGame(w.g.ID(), func(s *datastore.GameState) {
+		s.ProjectCards = slices.DeleteFunc(s.ProjectCards, func(id string) bool { return id == "110" })
+		s.Players["p0"].HandCardIDs = append(s.Players["p0"].HandCardIDs, "110")
+	}), "deal Business Network")
+	restored := w.restore(t)
+	rp, _ := restored.g.GetPlayer("p0")
+	deadline, _ := restored.g.ModeStateValue("withdrawal-generation")
+	testutil.AssertEqual(t, 5, deadline, "changed deadline survives")
+	testutil.AssertEqual(t, 1, rp.Resources().BehaviorUses("ES012", "office", 1), "shared usage survives")
+	if !rp.Resources().DependencyStatus("ES005", "earth-support").Removed || !rp.Resources().DependencyStatus("ES003", "earth-support").Retired {
+		t.Fatal("imported or retired status lost")
+	}
+	state, ok := rp.CardStateStore().GetState("110")
+	if !ok || state.Cost["credit"] != 2 {
+		t.Fatalf("restored card store ignored mode price: %+v", state)
+	}
+	testutil.AssertEqual(t, p.Resources().Production(), rp.Resources().Production(), "signed production survives")
+	plants := p.Resources().Get().Plants
+	for _, world := range []*saveWorld{w, restored} {
+		testutil.AssertNoError(t, world.g.SetGeneration(ctx, 5), "reach changed deadline")
+		world.g.ResolveModeBoundary(ctx, "production-end", false)
+	}
+	testutil.AssertEqual(t, plants+6, rp.Resources().Get().Plants, "restored first-withdrawal subscription pays once")
+	testutil.AssertEqual(t, p.Resources().Get(), rp.Resources().Get(), "first-withdrawal continuation agrees")
+	testutil.AssertEqual(t, 3, rp.Resources().Production().Energy, "imported energy survives disconnection")
+	testutil.AssertEqual(t, 0, rp.Resources().Production().Credits, "imported upkeep offsets permanent office income after disconnection")
+	testutil.AssertEqual(t, 0, rp.Resources().Production().Steel, "unimported production stops")
+	play(restored, "ES042", nil)
+	pending := restored.restore(t)
+	if len(pending.g.ModeRuntime().Windows) != 1 || pending.g.ModeRuntime().Windows[0].Status != "pending" {
+		t.Fatal("pending reconnection was not retained")
+	}
+	testutil.AssertNoError(t, pending.g.SetGeneration(ctx, 6), "next generation")
+	pending.g.ResolveModeBoundary(ctx, "research-start", false)
+	active := pending.restore(t)
+	ap, _ := active.g.GetPlayer("p0")
+	if contact, _ := active.g.ModeStateValue("earth-contact"); contact != 1 {
+		t.Fatal("active reconnection lost")
+	}
+	testutil.AssertEqual(t, 2, ap.Resources().Production().Steel, "temporary source returns during restored window")
+	testutil.AssertEqual(t, 0, ap.Resources().Production().Plants, "retired source remains retired")
+	before := ap.Resources().Get()
+	events.Publish(active.g.EventBus(), events.ProductionStartingEvent{GameID: active.g.ID()})
+	testutil.AssertEqual(t, before.Credits, ap.Resources().Get().Credits, "production does not grant generation income")
+	baseaction.BeginModeGeneration(ctx, active.g)
+	testutil.AssertEqual(t, before.Credits+2, ap.Resources().Get().Credits, "restored connection restarts income at 2")
+	active = active.restore(t)
+	ap, _ = active.g.GetPlayer("p0")
+	baseaction.BeginModeGeneration(ctx, active.g)
+	testutil.AssertEqual(t, before.Credits+2, ap.Resources().Get().Credits, "saved generation income cannot repeat")
+	active.g.ResolveModeBoundary(ctx, "production-end", false)
+	testutil.AssertEqual(t, 0, ap.Resources().Production().Steel, "temporary source stops after restored window")
+	testutil.AssertEqual(t, 3, ap.Resources().Production().Energy, "imported contribution is not duplicated")
+	testutil.AssertEqual(t, before.Plants, ap.Resources().Get().Plants, "reconnection closure does not replay reserve")
+	credits := ap.Resources().Get().Credits
+	events.Publish(active.g.EventBus(), events.ProductionStartingEvent{GameID: active.g.ID()})
+	testutil.AssertEqual(t, credits, ap.Resources().Get().Credits, "production never grants generation income")
+}
+
+func TestSaveRestoresOptionalEffectWithoutRepeatingCardGains(t *testing.T) {
+	ctx := context.Background()
+	w := newSaveWorld(t, 1, shared.GameSettings{GameModeID: "earth-withdrawal", Features: []string{}})
+	w.active(t)
+	testutil.AssertNoError(t, w.g.SetCurrentTurn(ctx, "p0", -1), "fixture turn")
+	const cardID = "ES017"
+	testutil.AssertNoError(t, w.repo.DataStore().UpdateGame(w.g.ID(), func(s *datastore.GameState) {
+		s.ProjectCards = slices.DeleteFunc(s.ProjectCards, func(id string) bool { return id == cardID })
+		s.Players["p0"].HandCardIDs = append(s.Players["p0"].HandCardIDs, cardID)
+	}), "deal optional card")
+	card, err := gamecards.ForGame(w.catalog.Cards, w.g).GetByID(cardID)
+	testutil.AssertNoError(t, err, "card")
+	err = cardaction.NewPlayCardAction(w.repo, w.catalog.Cards, w.logs, testutil.TestLogger()).Execute(ctx, w.g.ID(), "p0", cardID, shared.NativePayment(shared.ResourceCredit, card.Cost), nil, nil, nil, nil, nil)
+	testutil.AssertNoError(t, err, "play optional card")
+	p, _ := w.g.GetPlayer("p0")
+	production := p.Resources().PermanentProduction().Energy
+	resolutionID := p.Selection().GetPendingBehaviorResolutions()[0].ID
+	restored := w.restore(t)
+	rp, _ := restored.g.GetPlayer("p0")
+	pending := rp.Selection().GetPendingBehaviorResolution(resolutionID)
+	if pending == nil || pending.OptionalBehavior == nil || !pending.OptionalBehavior.Optional {
+		t.Fatal("optional behavior lost in save")
+	}
+	testutil.AssertEqual(t, production, rp.Resources().PermanentProduction().Energy, "restore must not repeat guaranteed production")
+	resolve := confirmation.NewConfirmBehaviorChoiceAction(restored.repo, restored.catalog.Cards, restored.logs, testutil.TestLogger())
+	testutil.AssertNoError(t, resolve.ExecuteOptional(ctx, restored.g.ID(), "p0", resolutionID, true), "accept restored optional effect")
+	testutil.AssertEqual(t, production-1, rp.Resources().PermanentProduction().Energy, "optional cost paid once")
+	deadline, _ := restored.g.ModeStateValue("withdrawal-generation")
+	testutil.AssertEqual(t, 7, deadline, "restored effect delays withdrawal")
+	if err := resolve.ExecuteOptional(ctx, restored.g.ID(), "p0", resolutionID, true); err == nil {
+		t.Fatal("restored effect applied twice")
+	}
+}
+
+func TestSaveStructureVisual(t *testing.T) {
+	for _, tt := range []struct {
+		id       string
+		tileType shared.ResourceType
+	}{
+		{"123", shared.ResourceIndustrialCenterTile}, {"085", shared.ResourceCommercialDistrictTile}, {"P37", shared.ResourceCityTile},
+		{"182", shared.ResourceCityTile},
+	} {
+		t.Run(tt.id, func(t *testing.T) {
+			w := newSaveWorld(t, 1, shared.GameSettings{})
+			card, err := w.catalog.Cards.GetByID(tt.id)
+			testutil.AssertNoError(t, err, "load structure card")
+			for _, tile := range w.g.Board().Tiles() {
+				if tile.Type != shared.ResourceLandTile || tile.OccupiedBy != nil {
+					continue
+				}
+				occupant := board.TileOccupant{Type: tt.tileType, DisplayName: card.Name, Visual: &shared.TileVisual{Structure: card.Style.Tile.Clone()}}
+				testutil.AssertNoError(t, w.g.Board().UpdateTileOccupancy(context.Background(), tile.Coordinates, occupant, "p0"), "place structure")
+				before, _ := w.g.Board().GetTile(tile.Coordinates)
+				restored := w.restore(t)
+				compareSavedPositions(t, w, restored)
+				actual, err := restored.g.Board().GetTile(tile.Coordinates)
+				testutil.AssertNoError(t, err, "read restored structure")
+				if !reflect.DeepEqual(actual.OccupiedBy, before.OccupiedBy) {
+					t.Fatal("Save changed structure identity, style or seed")
+				}
+				return
+			}
+			t.Fatal("No land tile")
+		})
+	}
 }

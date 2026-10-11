@@ -77,6 +77,11 @@ CARD_TYPE_MOOD = {
 # Override card names that Flux tends to render as visible text.
 # Maps card ID → visual description used instead of the card name.
 _NAME_OVERRIDES = {
+    # Review rejected lettering on signs and abstract names without a clear subject.
+    "ES017": "towering radio antenna array transmitting across the Martian landscape",
+    "ES021": "cargo shuttle delivering advanced machinery to a Martian landing platform",
+    "ES030": "sealed high-security vault inside a Martian orbital station",
+    "ES033": "busy Martian colony bazaar, covered stalls and pedestrians beneath domes",
     "066": "territorial marker planted on vast alien landscape, flag on rocky hilltop",
     "068": "corporate funding ceremony on Mars, executives shaking hands",
     "098": "luxurious tropical paradise colony under a glass dome, palm trees and pools",
@@ -111,6 +116,7 @@ _NAME_OVERRIDES = {
     "EXP004": "nuclear detonation on Mars, enormous mushroom cloud rising over Martian desert, shockwave rippling across red terrain, intense blinding flash",
 }
 
+
 # Keywords that indicate a sentence is about game mechanics, not visuals
 _MECHANIC_KEYWORDS = re.compile(
     r"(?:production|M€|VP|step|tile|draw|discard|opponent|player|"
@@ -118,7 +124,7 @@ _MECHANIC_KEYWORDS = re.compile(
     r"tag requirement|tag cards|into your hand|from the deck|reveal cards|"
     r"resources?(?:\s+on)?|pay\s+\d|spend\s+\d|place\s+a\s+|"
     r"gain\s+\d|lose\s+\d|reduce|raise|increase|decrease|"
-    r"Action:|Effect:)",
+    r"Earth-dependent|eligible project|Action:|Effect:)",
     re.IGNORECASE,
 )
 
@@ -169,7 +175,12 @@ def build_prompt(card: dict) -> str:
         parts.append(f"{name}, detailed scene of {name}")
 
     # Visual concepts from description (short, secondary)
-    concepts = _extract_visual_concepts(card.get("description", ""))
+    description = card.get("description", "")
+    if isinstance(description, list):
+        description = " ".join(
+            entry.get("text", "") for entry in description if entry.get("type") == "generic"
+        )
+    concepts = _extract_visual_concepts(description)
     if concepts:
         parts.append(concepts)
 

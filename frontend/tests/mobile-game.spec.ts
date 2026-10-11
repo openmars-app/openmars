@@ -114,7 +114,7 @@ function elementsOutsideViewport(page: Page, selector: string) {
   }, selector);
 }
 
-test("compact in-game HUD", async ({ page }) => {
+test("compact in-game HUD with scenario status", async ({ page }) => {
   test.setTimeout(240_000);
   const landscape = page.viewportSize();
   if (!landscape) {
@@ -123,6 +123,10 @@ test("compact in-game HUD", async ({ page }) => {
 
   await page.goto("/create?quick");
   await page.getByLabel("Your name").fill("Mobile E2E");
+  await page.getByRole("button", { name: "Game mode", exact: true }).click();
+  await page.getByRole("option", { name: "Earth Withdrawal", exact: true }).click();
+  await page.getByRole("button", { name: "Options", exact: true }).click();
+  await page.getByRole("checkbox", { name: /^Preludes/ }).uncheck();
   await page.getByRole("button", { name: "Create lobby" }).click();
 
   const lobbyTopBar = page.getByTestId("mobile-lobby-top-bar");
@@ -135,13 +139,11 @@ test("compact in-game HUD", async ({ page }) => {
   ).toEqual([]);
 
   await lobbyTopBar.getByRole("tab", { name: "Map" }).click();
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
-  const optionalPacks = page.locator("button[aria-pressed='true']:not([disabled])");
-  for (let remaining = await optionalPacks.count(); remaining > 0; remaining--) {
-    await optionalPacks.first().click();
-    await expect(optionalPacks).toHaveCount(remaining - 1);
-  }
-  await page.getByRole("button", { name: "Close expansions" }).click();
+  await expect(page.getByRole("button", { name: "Game mode", exact: true })).toContainText(
+    "Earth Withdrawal",
+  );
+  await expect(page.getByRole("checkbox", { name: /^Preludes/ })).not.toBeChecked();
+  await lobbyTopBar.getByRole("tab", { name: "Players" }).click();
 
   const dock = page.getByRole("navigation", { name: "Game dock" });
   await expect(async () => {
@@ -174,6 +176,30 @@ test("compact in-game HUD", async ({ page }) => {
     "[data-testid='mobile-top-bar'], [data-testid='mobile-resource-rail'], [data-testid='mobile-status-rail'], nav[aria-label='Game dock']";
   expect(await elementsOutsideViewport(page, hudSelector), "HUD outside viewport").toEqual([]);
 
+  await expect(rightRail.getByRole("button", { name: /status and rules/ })).toHaveCount(0);
+  const gamemodeButton = topBar.getByRole("button", {
+    name: "Gamemode",
+    exact: true,
+  });
+  const travelButton = topBar.getByRole("button", {
+    name: "TRAVEL",
+    exact: true,
+  });
+  const modeBox = await boxOf(gamemodeButton);
+  const travelBox = await boxOf(travelButton);
+  expect(modeBox.x + modeBox.width).toBeLessThanOrEqual(travelBox.x);
+  await gamemodeButton.click();
+  await expect(page.getByRole("heading", { name: "Earth Withdrawal rules" })).toBeVisible();
+  const rulesBox = await boxOf(page.getByRole("dialog", { name: "Earth Withdrawal rules" }));
+  expect(rulesBox.x).toBe(0);
+  expect(rulesBox.y).toBe(0);
+  expect(rulesBox.width).toBe(landscape.width);
+  expect(rulesBox.height).toBe(landscape.height);
+  await expect(page.getByRole("heading", { name: /Current status/ })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "Permanent", exact: true })).toHaveCount(0);
+  await expect(page.locator("[data-mode-overview] > section")).toHaveCount(4);
+  await page.getByRole("button", { name: "Close rules", exact: true }).click();
+
   const entries = dock.getByRole("button");
   const entryCount = await entries.count();
   expect(entryCount).toBeGreaterThan(0);
@@ -186,7 +212,10 @@ test("compact in-game HUD", async ({ page }) => {
   }
 
   const rotate = page.getByText("Rotate your device");
-  await page.setViewportSize({ width: landscape.height, height: landscape.width });
+  await page.setViewportSize({
+    width: landscape.height,
+    height: landscape.width,
+  });
   await expect(rotate).toBeVisible();
   await page.setViewportSize(landscape);
   await expect(rotate).toBeHidden();

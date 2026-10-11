@@ -53,6 +53,14 @@ func (g *Game) recalculateAllPlayersVP() {
 }
 
 func (g *Game) subscribeToVPEvents() {
+	events.Subscribe(g.eventBus, func(e events.ModeStateChangedEvent) { g.recalculateAllPlayersVP() })
+	events.Subscribe(g.eventBus, func(e events.ProductionChangedEvent) {
+		p, err := g.GetPlayer(e.PlayerID)
+		if err == nil {
+			g.recalculatePlayerVP(p)
+		}
+	})
+
 	events.Subscribe(g.eventBus, func(e events.CardPlayedEvent) {
 		if g.vpCardLookup == nil {
 			return

@@ -3,7 +3,7 @@
     "id": "sell-patents",
     "name": "Sell Patents",
     "description": "Discard any number of cards from hand for 1 M€ each",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "behaviors": [
       {
         "triggers": [{"type": "manual"}],
@@ -21,7 +21,7 @@
     "id": "power-plant",
     "name": "Power Plant",
     "description": "Spend 11 M€ to increase your energy production 1 step.",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "behaviors": [
       {
         "triggers": [{"type": "manual"}],
@@ -39,7 +39,7 @@
     "id": "asteroid",
     "name": "Asteroid",
     "description": "Spend 14 M€ to raise temperature 1 step and gain 1 TR.",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "behaviors": [
       {
         "triggers": [{"type": "manual"}],
@@ -57,7 +57,7 @@
     "id": "aquifer",
     "name": "Aquifer",
     "description": "Spend 18 M€ to place an ocean tile and gain 1 TR.",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "behaviors": [
       {
         "triggers": [{"type": "manual"}],
@@ -75,7 +75,7 @@
     "id": "greenery",
     "name": "Greenery",
     "description": "Spend 23 M€ to place a greenery tile, raise oxygen 1%, and gain 1 TR.",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "behaviors": [
       {
         "triggers": [{"type": "manual"}],
@@ -93,7 +93,7 @@
     "id": "city",
     "name": "City",
     "description": "Spend 25 M€ to place a city tile and increase M€ production by 1.",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "behaviors": [
       {
         "triggers": [{"type": "manual"}],
@@ -112,7 +112,8 @@
     "id": "air-scrapping",
     "name": "Air Scrapping",
     "description": "Spend 15 M€ to raise Venus 1 step and gain 1 TR.",
-    "pack": "venus-next",
+    "gameModes": ["classic"],
+    "requiresSystems": ["venus"],
     "behaviors": [
       {
         "triggers": [{"type": "manual"}],

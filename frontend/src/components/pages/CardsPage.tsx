@@ -10,7 +10,6 @@ const LIST_PARAMS = {
   ids: "cId",
   tags: "tag",
   types: "type",
-  packs: "pack",
 } as const;
 type ListKey = keyof typeof LIST_PARAMS;
 const LIST_KEYS = Object.keys(LIST_PARAMS) as ListKey[];
@@ -24,12 +23,17 @@ function parseView(params: URLSearchParams): CardBrowserView {
     ids: params.getAll(LIST_PARAMS.ids),
     tags: params.getAll(LIST_PARAMS.tags),
     types: params.getAll(LIST_PARAMS.types),
-    packs: params.getAll(LIST_PARAMS.packs),
+    gameModeId: params.get("mode") ?? "",
+    preview: params.get("preview") ?? "connected",
   };
 }
 
 function serializeView(view: CardBrowserView) {
   const params = new URLSearchParams();
+  if (view.gameModeId) {
+    params.set("mode", view.gameModeId);
+    params.set("preview", view.preview);
+  }
   if (view.query) {
     params.set("q", view.query);
   }

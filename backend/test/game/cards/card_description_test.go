@@ -133,3 +133,43 @@ func TestCardDatabaseDescriptions(t *testing.T) {
 		}
 	}
 }
+
+func TestCardDatabaseRequirementTextMatchesInEveryMode(t *testing.T) {
+	allCards, err := cards.LoadCardsFromJSON("../../../assets/cards.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefix := regexp.MustCompile(`(?i)^(requires|requirements?)\b`)
+	for _, card := range allCards {
+		for _, modeID := range append([]string{""}, card.GameModes...) {
+			t.Run(card.ID+"/"+modeID, func(t *testing.T) {
+				effective, err := cards.ApplyModeModifiers(card, modeID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var sections []string
+				for _, section := range effective.Description {
+					if section.Type == cards.DescriptionSectionRequirement {
+						sections = append(sections, section.Text)
+					}
+				}
+				if effective.Requirements == nil {
+					if len(sections) != 0 {
+						t.Fatalf("requirement description has no requirement box: %q", sections)
+					}
+					return
+				}
+				text := effective.Requirements.Description
+				if len(sections) != 1 || sections[0] != text {
+					t.Fatalf("requirement box %q must match exactly one description section: %q", text, sections)
+				}
+				if text == "" || text != strings.TrimSpace(text) || !strings.HasSuffix(text, ".") {
+					t.Errorf("requirement text must be nonempty, trimmed and end with a period: %q", text)
+				}
+				if prefix.MatchString(text) {
+					t.Errorf("requirement text repeats a generated prefix: %q", text)
+				}
+			})
+		}
+	}
+}

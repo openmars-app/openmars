@@ -133,7 +133,8 @@ function AppWithBackground({ connectionReady }) {
   const { isCompact } = useLayoutMode();
   const ownsMenuChrome =
     isCompact &&
-    (location.pathname === "/join" ||
+    (location.pathname === "/create" ||
+      location.pathname === "/join" ||
       location.pathname === "/load" ||
       location.pathname.startsWith("/resume/") ||
       isCardsPage);

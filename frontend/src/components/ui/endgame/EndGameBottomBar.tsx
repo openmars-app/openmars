@@ -407,9 +407,9 @@ const EndGameBottomBar: FC<EndGameBottomBarProps> = ({
                 playerName={score.playerName}
                 totalVP={score.vpBreakdown.totalVP}
                 displayVP={
-                  isCounting
-                    ? (vpState.playerAccumulatedVP[score.playerId] ?? 0)
-                    : score.vpBreakdown.totalVP
+                  vpState.isComplete
+                    ? score.vpBreakdown.totalVP
+                    : (vpState.playerAccumulatedVP[score.playerId] ?? 0)
                 }
                 maxVP={maxVP}
                 playerColor={playerColors[score.playerId] || "#ffffff"}

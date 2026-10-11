@@ -85,6 +85,7 @@ export default function ActionsList({
               <div className="relative w-full min-h-[32px] [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none">
                 <BehaviorSection
                   behaviors={[action.behavior]}
+                  sourceBehaviorIndex={action.behaviorIndex}
                   computedValues={action.computedValues}
                   playerResources={gameState?.currentPlayer?.resources}
                   resourceStorage={gameState?.currentPlayer?.resourceStorage}

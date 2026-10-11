@@ -116,3 +116,6 @@ const (
 	ActionCardPlaying = "card-playing"
 	ActionColonyTrade = "colony-trade"
 )
+
+// ResourcePermanentProductionTypes counts distinct resources with positive permanent production.
+const ResourcePermanentProductionTypes ResourceType = "permanent-production-types"

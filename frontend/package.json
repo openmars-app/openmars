@@ -7,14 +7,15 @@
     "dev": "bun run assets && vite",
     "build": "bun run assets && vite build",
     "preview": "vite preview",
-    "lint": "oxlint src scripts/assets tests --ignore-pattern src/assets/generated",
-    "typecheck": "bun run assets && tsc --noEmit && tsc -p scripts/assets/tsconfig.json && tsc -p tests/tsconfig.json",
-    "format": "oxfmt --check src scripts/assets tests playwright.config.ts --ignore-path .prettierignore",
-    "format:write": "oxfmt --write src scripts/assets tests playwright.config.ts --ignore-path .prettierignore",
+    "lint": "oxlint src scripts/assets scripts/inspect tests --ignore-pattern src/assets/generated",
+    "typecheck": "bun run assets && tsc --noEmit && tsc -p scripts/assets/tsconfig.json && tsc -p tests/tsconfig.json && tsc -p scripts/inspect/tsconfig.json",
+    "format": "oxfmt --check src scripts/assets scripts/inspect tests playwright.config.ts --ignore-path .prettierignore",
+    "format:write": "oxfmt --write src scripts/assets scripts/inspect tests playwright.config.ts --ignore-path .prettierignore",
     "assets": "node scripts/assets/build.ts",
     "assets:check": "node scripts/assets/check.ts",
     "assets:preview": "node scripts/assets/preview.ts",
-    "assets:test": "bun test scripts/assets"
+    "assets:test": "bun test scripts/assets",
+    "inspect": "bun scripts/inspect/cli.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

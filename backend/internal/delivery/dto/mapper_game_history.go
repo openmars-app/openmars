@@ -1,20 +1,30 @@
 package dto
 
 import (
+	"openmars/internal/game/cards"
 	"openmars/internal/game/datastore"
+	"openmars/internal/game/shared"
 )
 
 // ToGameHistoryEntryDtos converts a slice of history entries to DTOs.
-func ToGameHistoryEntryDtos(entries []*datastore.GameStateHistoryEntry) []GameHistoryEntryDto {
+func ToGameHistoryEntryDtos(entries []*datastore.GameStateHistoryEntry, registry cards.CardRegistry) []GameHistoryEntryDto {
 	dtos := make([]GameHistoryEntryDto, len(entries))
 	for i, entry := range entries {
-		dtos[i] = toGameHistoryEntryDto(entry)
+		dtos[i] = toGameHistoryEntryDto(entry, registry)
 	}
 	return dtos
 }
 
-func toGameHistoryEntryDto(entry *datastore.GameStateHistoryEntry) GameHistoryEntryDto {
+func toGameHistoryEntryDto(entry *datastore.GameStateHistoryEntry, registry cards.CardRegistry) GameHistoryEntryDto {
 	s := entry.State
+	if registry != nil && len(cards.ModeDefinitions(registry)) > 0 {
+		effective, err := cards.Resolve(registry, s.Settings)
+		if err == nil {
+			registry = effective
+		} else {
+			registry = nil
+		}
+	}
 
 	tileDtos := make([]TileDto, len(s.Tiles))
 	for i, tile := range s.Tiles {
@@ -54,24 +64,46 @@ func toGameHistoryEntryDto(entry *datastore.GameStateHistoryEntry) GameHistoryEn
 			}
 		}
 
+		dependencies := make(map[string]DependencyStatusDto, len(p.DependencyGroups))
+		for key, group := range p.DependencyGroups {
+			status := p.DependencyStatuses[key]
+			dependencies[key] = historicalDependencyStatus(s.ModeRuntime, group, status)
+		}
+		if registry != nil {
+			cardIDs := append(append([]string{}, p.HandCardIDs...), p.PlayedCardIDs...)
+			if p.CorporationID != "" {
+				cardIDs = append(cardIDs, p.CorporationID)
+			}
+			for _, cardID := range cardIDs {
+				if card, err := registry.GetByID(cardID); err == nil {
+					for _, group := range card.DependencyGroups {
+						key := shared.DependencyKey(cardID, group.ID)
+						status := p.DependencyStatuses[key]
+						dependencies[key] = historicalDependencyStatus(s.ModeRuntime, group, status)
+					}
+				}
+			}
+		}
 		players[id] = GameHistoryPlayerDto{
-			ID:              p.ID,
-			Name:            p.Name,
-			Color:           p.Color,
-			TerraformRating: p.TerraformRating,
-			Credits:         p.Resources.Credits,
-			Steel:           p.Resources.Steel,
-			Titanium:        p.Resources.Titanium,
-			Plants:          p.Resources.Plants,
-			Energy:          p.Resources.Energy,
-			Heat:            p.Resources.Heat,
-			PlayedCardCount: len(p.PlayedCardIDs),
-			Production:      toProductionDto(p.Production),
-			PlayedCardIDs:   p.PlayedCardIDs,
-			HandCardIDs:     p.HandCardIDs,
-			CorporationID:   p.CorporationID,
-			ResourceStorage: p.ResourceStorage,
-			TotalVP:         totalVP,
+			PermanentProduction: toProductionDto(p.Production),
+			DependencyStatuses:  dependencies,
+			ID:                  p.ID,
+			Name:                p.Name,
+			Color:               p.Color,
+			TerraformRating:     p.TerraformRating,
+			Credits:             p.Resources.Credits,
+			Steel:               p.Resources.Steel,
+			Titanium:            p.Resources.Titanium,
+			Plants:              p.Resources.Plants,
+			Energy:              p.Resources.Energy,
+			Heat:                p.Resources.Heat,
+			PlayedCardCount:     len(p.PlayedCardIDs),
+			Production:          toProductionDto(shared.EffectiveProduction(p.Production, p.ProductionContributions, p.DependencyStatuses, s.ModeRuntime)),
+			PlayedCardIDs:       p.PlayedCardIDs,
+			HandCardIDs:         p.HandCardIDs,
+			CorporationID:       p.CorporationID,
+			ResourceStorage:     p.ResourceStorage,
+			TotalVP:             totalVP,
 		}
 	}
 
@@ -92,6 +124,7 @@ func toGameHistoryEntryDto(entry *datastore.GameStateHistoryEntry) GameHistoryEn
 	}
 
 	return GameHistoryEntryDto{
+		ModeRuntime:  ModeRuntimeStateToDto(s.ModeRuntime),
 		Sequence:     entry.Sequence,
 		Timestamp:    entry.Timestamp,
 		Generation:   s.Generation,
@@ -106,11 +139,19 @@ func toGameHistoryEntryDto(entry *datastore.GameStateHistoryEntry) GameHistoryEn
 		Milestones:   milestones,
 		Awards:       awards,
 		Settings: GameSettingsDto{
-			MaxPlayers:       s.Settings.MaxPlayers,
-			VenusNextEnabled: s.Settings.VenusNextEnabled,
-			DevelopmentMode:  s.Settings.DevelopmentMode,
-			DemoGame:         s.Settings.DemoGame,
-			CardPacks:        s.Settings.CardPacks,
+			AvailableGameModes: MapGameModes(cards.ModeDefinitions(registry)),
+			MaxPlayers:         s.Settings.MaxPlayers,
+			DevelopmentMode:    s.Settings.DevelopmentMode,
+			DemoGame:           s.Settings.DemoGame,
+			GameModeID:         s.Settings.GameModeID, GameModeParameters: s.Settings.GameModeParameters, Features: s.Settings.Features, Systems: s.Settings.Systems,
 		},
 	}
+}
+
+func historicalDependencyStatus(runtime shared.ModeRuntimeState, group shared.DependencyGroup, status shared.DependencyStatus) DependencyStatusDto {
+	if !status.Removed && group.RetireOnState != nil {
+		value, ok := runtime.Values[group.RetireOnState.State]
+		status.Retired = status.Retired || (ok && value == group.RetireOnState.Equals)
+	}
+	return DependencyStatusDto{ID: group.ID, State: group.State, Equals: group.Equals, Label: group.Label, Active: shared.DependencyEnabled(runtime, group, status), Imported: status.Removed, Retired: status.Retired}
 }

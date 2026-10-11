@@ -50,6 +50,7 @@ func ToGameDtoFull(g *game.Game, cardRegistry gamecards.CardRegistry, playerID s
 	if g.ResumeLobby() != nil {
 		return ToResumeGameDto(g, playerID, cardRegistry)
 	}
+	cardRegistry = gamecards.ForGame(cardRegistry, g)
 	players := g.GetAllPlayers()
 
 	var currentPlayer PlayerDto
@@ -67,13 +68,12 @@ func ToGameDtoFull(g *game.Game, cardRegistry gamecards.CardRegistry, playerID s
 
 	settings := g.Settings()
 	settingsDto := GameSettingsDto{
-		MaxPlayers:            settings.MaxPlayers,
-		MapID:                 settings.MapID,
-		VenusNextEnabled:      settings.VenusNextEnabled,
-		DevelopmentMode:       settings.DevelopmentMode,
-		DemoGame:              settings.DemoGame,
-		AllowRandomBuy:        settings.AllowRandomBuy,
-		CardPacks:             settings.CardPacks,
+		MaxPlayers:      settings.MaxPlayers,
+		MapID:           settings.MapID,
+		DevelopmentMode: settings.DevelopmentMode,
+		DemoGame:        settings.DemoGame,
+		AllowRandomBuy:  settings.AllowRandomBuy,
+		GameModeID:      settings.GameModeID, GameModeParameters: settings.GameModeParameters, Features: settings.Features, Systems: settings.Systems, AvailableGameModes: MapGameModes(gamecards.ModeDefinitions(cardRegistry)),
 		HasClaudeOAuthToken:   settings.ClaudeOAuthToken != "",
 		BotSpendCapUSD:        settings.EffectiveBotSpendCapUSD(),
 		BotSpendUSD:           g.BotSpendUSD(),
@@ -92,7 +92,7 @@ func ToGameDtoFull(g *game.Game, cardRegistry gamecards.CardRegistry, playerID s
 		Oceans:      globalParams.Oceans(),
 		MaxOceans:   globalParams.GetMaxOceans(),
 		Venus:       globalParams.Venus(),
-		Bonuses:     buildGlobalParameterBonuses(settings.VenusNextEnabled),
+		Bonuses:     buildGlobalParameterBonuses(settings.HasVenus()),
 	}
 
 	board := g.Board()
@@ -158,6 +158,7 @@ func ToGameDtoFull(g *game.Game, cardRegistry gamecards.CardRegistry, playerID s
 	initPhaseDto := buildInitPhaseDto(g, players, cardRegistry)
 
 	result := GameDto{
+		ModeRuntime:      ToModeRuntimeDto(g),
 		ID:               g.ID(),
 		Status:           GameStatus(g.Status()),
 		Settings:         settingsDto,
@@ -604,6 +605,7 @@ func ToTriggeredEffectDto(effect shared.TriggeredEffect) TriggeredEffectDto {
 				ResourceType: co.ResourceType,
 				Amount:       co.Amount,
 				IsScaled:     co.IsScaled,
+				Operation:    calculatedOperationDto(co.Operation),
 			}
 		}
 	}
@@ -1000,6 +1002,8 @@ func toProjectFundingDtos(g *game.Game, registry pfDomain.ProjectFundingRegistry
 
 // ToResumeGameDto exposes only the information needed to gather players.
 func ToResumeGameDto(g *game.Game, playerID string, cardRegistry gamecards.CardRegistry) GameDto {
+	cardRegistry = gamecards.ForGame(cardRegistry, g)
+	settings := g.Settings()
 	lobby := g.ResumeLobby()
 	seats := make([]ResumeSeatDto, 0, len(g.GetAllPlayers()))
 	for _, id := range g.PlayerOrder() {
@@ -1017,5 +1021,5 @@ func ToResumeGameDto(g *game.Game, playerID string, cardRegistry gamecards.CardR
 		}
 		seats = append(seats, ResumeSeatDto{CorporationName: corpName, ID: id, Name: p.Name(), SavedName: lobby.SavedNames[id], CorporationID: p.CorporationID(), Color: p.Color(), PlayerType: string(p.PlayerType()), Claimed: lobby.Claimed[id], Connected: p.IsConnected(), Exited: p.HasExited(), BotStatus: string(p.BotStatus()), BotError: botError})
 	}
-	return GameDto{ID: g.ID(), Status: GameStatus(g.Status()), CurrentPhase: GamePhase(g.CurrentPhase()), Generation: g.Generation(), HostPlayerID: g.HostPlayerID(), ViewingPlayerID: playerID, Settings: GameSettingsDto{MapID: g.Settings().MapID, CardPacks: g.Settings().CardPacks, MaxPlayers: g.Settings().MaxPlayers, HasClaudeOAuthToken: g.Settings().ClaudeOAuthToken != ""}, ResumeLobby: &ResumeLobbyDto{Seats: seats}, OtherPlayers: []OtherPlayerDto{}, ChatMessages: toChatMessageDtos(g)}
+	return GameDto{ID: g.ID(), Status: GameStatus(g.Status()), CurrentPhase: GamePhase(g.CurrentPhase()), Generation: g.Generation(), HostPlayerID: g.HostPlayerID(), ViewingPlayerID: playerID, Settings: GameSettingsDto{MapID: settings.MapID, GameModeID: settings.GameModeID, GameModeParameters: settings.GameModeParameters, Features: settings.Features, Systems: settings.Systems, AvailableGameModes: MapGameModes(gamecards.ModeDefinitions(cardRegistry)), MaxPlayers: settings.MaxPlayers, HasClaudeOAuthToken: settings.ClaudeOAuthToken != ""}, ResumeLobby: &ResumeLobbyDto{Seats: seats}, OtherPlayers: []OtherPlayerDto{}, ChatMessages: toChatMessageDtos(g)}
 }

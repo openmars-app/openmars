@@ -70,7 +70,7 @@ func newBotFixture(t *testing.T) *botFixture {
 	p.SetPlayerType(playerPkg.PlayerTypeBot)
 	p.SetBotPersona("rival")
 	p.SetBotStatus(playerPkg.BotStatusReady)
-	g.UpdateSettings(ctx, shared.GameSettings{MaxPlayers: 4, CardPacks: []string{"base-game"}, ClaudeOAuthToken: "test-token", BotSpendCapUSD: 5})
+	g.UpdateSettings(ctx, shared.GameSettings{MaxPlayers: 4, GameModeID: "classic", Features: []string{}, ClaudeOAuthToken: "test-token", BotSpendCapUSD: 5})
 
 	logger := testutil.TestLogger()
 	exec := &serialExecutor{}

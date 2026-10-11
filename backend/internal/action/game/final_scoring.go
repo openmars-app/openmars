@@ -74,7 +74,7 @@ func (a *FinalScoringAction) Execute(ctx context.Context, gameID string) error {
 	}
 
 	// 4. Compute VP breakdowns via the shared single-source-of-truth helper.
-	breakdowns := ComputePlayerVPBreakdowns(g, a.cardRegistry, a.awardRegistry, a.milestoneRegistry)
+	breakdowns := ComputePlayerVPBreakdowns(g, gamecards.ForGame(a.cardRegistry, g), a.awardRegistry, a.milestoneRegistry)
 
 	// 5. Build PlayerScore entries for sorting.
 	scores := make([]PlayerScore, len(allPlayers))

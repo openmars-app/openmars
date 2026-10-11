@@ -1,18 +1,8 @@
+import { chromiumDevice } from "./scripts/inspect/devices";
 import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.E2E_PORT ?? 3100);
 const baseURL = `http://localhost:${port}`;
-
-function chromiumDevice(name: string) {
-  const { viewport, deviceScaleFactor, isMobile, hasTouch } = devices[name];
-  return {
-    browserName: "chromium" as const,
-    viewport,
-    deviceScaleFactor,
-    isMobile,
-    hasTouch,
-  };
-}
 
 export default defineConfig({
   testDir: "./tests",

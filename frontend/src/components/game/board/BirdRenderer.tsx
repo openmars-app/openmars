@@ -1,6 +1,6 @@
 import { assetUrl } from "@/assets";
 import { useEffect, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { useModels } from "../../../hooks/useModels";
@@ -151,6 +151,7 @@ function buildTangentFrame(normal: THREE.Vector3) {
 }
 
 export default function BirdRenderer({ livingGreeneryTiles }: BirdRendererProps) {
+  const clock = useThree((s) => s.clock);
   const { birdScene, birdAnimations } = useModels();
   const groupRef = useRef<THREE.Group>(null);
   const knownTilesRef = useRef<Set<string>>(new Set());
@@ -278,7 +279,7 @@ export default function BirdRenderer({ livingGreeneryTiles }: BirdRendererProps)
       }
     }
 
-    const t = performance.now() / 1000;
+    const t = clock.elapsedTime;
     const density = runtime.current.current.birds;
 
     for (const bird of allBirdsRef.current) {

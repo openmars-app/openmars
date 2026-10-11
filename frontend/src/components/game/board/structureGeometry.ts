@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { MARS_RELIEF_DEPTH } from "./marsRelief";
 import { collapseParameters } from "./nuclearTransitions";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
@@ -6,19 +7,19 @@ import {
   onEntrancePath,
   randomSequence,
   CAPITAL_WALL_APOTHEM,
-  cityWallDistance,
-  cityHexWallApothem,
-  type CityBuilding,
-  type CityLayout,
-  type CityPlot,
-} from "./cityLayout";
+  structureWallDistance,
+  structureHexWallApothem,
+  type StructureBuilding,
+  type StructureLayout,
+  type StructurePlot,
+} from "./structureLayout";
 import {
   boardCenter,
   projectBoardPoint,
   nearestOnRoad,
   createRoadRibbon,
 } from "./landscapeGeometry";
-export function createGeometry(layout: CityLayout, plot?: CityPlot) {
+export function createGeometry(layout: StructureLayout, plot?: StructurePlot) {
   const { style } = layout;
   const batches: THREE.BufferGeometry[][] = Array.from({ length: 19 }, () => []);
   const box = (x: number, y: number, z: number, w: number, d: number, h: number, mat: number) => {
@@ -155,7 +156,7 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
   batches[13].push(asphalt);
 
   const facade = (
-    building: CityBuilding,
+    building: StructureBuilding,
     z: number,
     width: number,
     depth: number,
@@ -212,6 +213,38 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
       }
     };
     const base = b.z + 0.005;
+    if (b.landmark && style.landmark === "headquarters") {
+      // One reserved campus footprint keeps streets and neighboring buildings outside the wings.
+      box(b.x, b.y, b.z, b.width, b.depth, 0.003, 5);
+      const office = (x: number, y: number, z: number, w: number, d: number, h: number) => {
+        facade({ ...b, x: b.x + x, y: b.y + y, facade: 2 }, base + z, w, d, h);
+        box(b.x + x, b.y + y, base + z + h + 0.002, w * 0.9, d * 0.88, 0.0015, 17);
+      };
+      // Broad terraces, an offset executive tower and unequal office wings frame the forecourt.
+      office(0, 0.026, 0, 0.116, 0.046, 0.03);
+      office(-0.009, 0.029, 0.032, 0.085, 0.035, 0.024);
+      office(-0.025, 0.032, 0.058, 0.033, 0.027, b.height - 0.058);
+      office(-0.046, -0.024, 0, 0.027, 0.054, 0.024);
+      office(0.046, -0.014, 0, 0.025, 0.036, 0.035);
+      for (const x of [-0.056, -0.026, 0.017, 0.055]) {
+        box(b.x + x, b.y + 0.002, base, 0.003, 0.004, 0.031, 18);
+      }
+      // Recessed glass lobby and a small amber entrance strip.
+      box(b.x - 0.004, b.y + 0.001, base + 0.002, 0.026, 0.003, 0.016, 8);
+      box(b.x - 0.004, b.y - 0.002, base + 0.018, 0.034, 0.009, 0.002, 17);
+      box(b.x - 0.004, b.y - 0.006, base + 0.017, 0.018, 0.001, 0.001, 11);
+      box(b.x - 0.004, b.y - 0.025, b.z + 0.003, 0.017, 0.051, 0.001, 4);
+      // Rooftop service housings give the terraces readable scale from above.
+      for (const [x, y, z] of [
+        [0.028, 0.03, 0.034],
+        [-0.045, -0.027, 0.028],
+        [0.046, -0.015, 0.039],
+      ]) {
+        box(b.x + x, b.y + y, base + z, 0.008, 0.011, 0.004, 5);
+      }
+      finishBuilding();
+      continue;
+    }
     if (b.landmark && style.landmark === "hall") {
       disc(b.x, b.y, b.z + 0.0025, 0.031, 0.005, 4, 48);
       const corners = [
@@ -286,10 +319,84 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
       finishBuilding();
       continue;
     }
+    if (b.landmark && style.landmark === "globe") {
+      const radius = b.width * 0.42;
+      const center = base + 0.006 + radius;
+      disc(b.x, b.y, base + 0.002, b.width / 2, 0.005, 17, 48);
+      disc(b.x, b.y, base + 0.005, radius * 0.6, 0.006, 4, 32);
+      for (const [scale, material] of [
+        [0.975, 9],
+        [1, 10],
+      ]) {
+        const sphere = new THREE.SphereGeometry(radius * scale, 40, 24);
+        sphere.translate(b.x, b.y, center);
+        batches[material].push(sphere);
+      }
+      for (let i = 0; i < 6; i++) {
+        const rib = new THREE.TorusGeometry(radius + 0.0004, 0.0005, 4, 48);
+        rib.rotateX(Math.PI / 2);
+        rib.rotateZ((i * Math.PI) / 6);
+        rib.translate(b.x, b.y, center);
+        batches[17].push(rib);
+      }
+      for (const latitude of [-0.5, 0, 0.5]) {
+        ring(
+          b.x,
+          b.y,
+          center + radius * latitude,
+          radius * Math.sqrt(1 - latitude * latitude) + 0.0004,
+          0.0005,
+          17,
+        );
+      }
+      finishBuilding();
+      continue;
+    }
     box(b.x, b.y, b.z, b.width + 0.002, b.depth + 0.002, 0.005, 5);
     const shadow = new THREE.PlaneGeometry(b.width + 0.014, b.depth + 0.014);
     shadow.translate(b.x, b.y, b.z + 0.0008);
     batches[14].push(shadow);
+    if (b.landmark && style.landmark === "factory") {
+      box(b.x, b.y, base, b.width, b.depth, b.height, 17);
+      for (const side of [-1, 1]) {
+        for (let rib = 1; rib < 7; rib++) {
+          box(
+            b.x - b.width / 2 + (rib * b.width) / 7,
+            b.y + (side * b.depth) / 2,
+            base,
+            0.001,
+            0.001,
+            b.height,
+            5,
+          );
+        }
+      }
+      const roofZ = base + b.height + 0.002;
+      const bayDepth = b.depth / 3;
+      for (let bay = 0; bay < 3; bay++) {
+        const y = b.y - b.depth / 2 + bayDepth * (bay + 0.5);
+        for (const side of [-1, 1]) {
+          const roof = new THREE.BoxGeometry(b.width + 0.002, bayDepth * 0.57, 0.0015);
+          roof.rotateX(side * 0.35);
+          roof.translate(b.x, y + side * bayDepth * 0.24, roofZ + 0.002);
+          batches[17].push(roof);
+        }
+        box(b.x, y, roofZ + 0.004, b.width * 0.75, 0.002, 0.001, 9);
+      }
+      for (const side of [-1, 1]) {
+        box(
+          b.x + side * b.width * 0.25,
+          b.y - b.depth / 2 - 0.001,
+          base,
+          b.width * 0.23,
+          0.001,
+          b.height * 0.64,
+          8,
+        );
+      }
+      finishBuilding();
+      continue;
+    }
     if (b.habitat) {
       disc(b.x, b.y, base - 0.001, b.width * 0.53, 0.003, 17, 24);
       const shell = new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.72);
@@ -402,6 +509,97 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
     finishBuilding();
   }
 
+  for (const [index, fixture] of layout.fixtures.entries()) {
+    const starts = batches.map((batch) => batch.length);
+    const { x, y, z, radius, height } = fixture;
+    if (fixture.kind === "smokestack") {
+      disc(x, y, z + height / 2, radius, height, 5, 16);
+      for (const level of [0.15, 0.8]) {
+        ring(x, y, z + height * level, radius + 0.0004, 0.0007, 17);
+      }
+      disc(x, y, z + height, radius * 0.75, 0.0005, 8, 16);
+      ring(x, y, z + height + 0.0003, radius * 0.9, 0.001, 17);
+    } else if (fixture.kind === "tank") {
+      disc(x, y, z + 0.001, radius + 0.002, 0.002, 4, 20);
+      disc(x, y, z + height / 2, radius, height, 17, 20);
+      dome(x, y, z + height, radius, 0.28, 17);
+      ring(x, y, z + height * 0.2, radius + 0.0002, 0.0005, 5);
+    } else if (fixture.kind === "ground-exhaust") {
+      const angle = fixture.rotation ?? 0;
+      const direction = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0);
+      disc(x, y, z + 0.0015, radius, 0.003, 4, 16);
+      ring(x, y, z + 0.003, radius * 0.6, 0.001, 17);
+      const mouth = new THREE.Vector3(x, y, z + height).addScaledVector(direction, radius * 0.8);
+      const path = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(x, y, z + 0.002),
+        new THREE.Vector3(x, y, z + height * 0.7),
+        mouth,
+      ]);
+      batches[17].push(new THREE.TubeGeometry(path, 12, radius * 0.34, 10, false));
+      const rotation = new THREE.Quaternion().setFromUnitVectors(
+        new THREE.Vector3(0, 0, 1),
+        direction,
+      );
+      const lip = new THREE.TorusGeometry(radius * 0.35, 0.0007, 4, 16);
+      lip.applyQuaternion(rotation);
+      lip.translate(mouth.x, mouth.y, mouth.z);
+      batches[5].push(lip);
+      for (const [scale, material] of [
+        [0.34, 8],
+        [0.12, 11],
+      ]) {
+        const opening = new THREE.CircleGeometry(radius * scale, 16);
+        opening.applyQuaternion(rotation);
+        opening.translate(
+          mouth.x + direction.x * 0.0001 * (material === 11 ? 2 : 1),
+          mouth.y + direction.y * 0.0001 * (material === 11 ? 2 : 1),
+          mouth.z,
+        );
+        batches[material].push(opening);
+      }
+    } else if (fixture.kind === "shaft") {
+      disc(x, y, z + height / 2, radius, height, 5, 24);
+      disc(x, y, z + height, radius * 0.82, 0.0005, 8, 24);
+      ring(x, y, z + height + 0.0005, radius * 0.9, 0.001, 17);
+      disc(x, y, z + height + 0.001, radius * 0.17, 0.002, 17, 12);
+      for (let blade = 0; blade < 5; blade++) {
+        const angle = (blade * Math.PI * 2) / 5;
+        const vane = new THREE.BoxGeometry(radius * 0.57, radius * 0.22, 0.0008);
+        vane.rotateZ(0.5);
+        vane.translate(radius * 0.48, 0, 0);
+        vane.rotateZ(angle);
+        vane.translate(x, y, z + height + 0.0008);
+        batches[17].push(vane);
+      }
+    } else if (fixture.kind === "accent-light") {
+      const light = new THREE.BoxGeometry(height, radius, radius * 2);
+      light.rotateZ(fixture.rotation ?? 0);
+      light.translate(x, y, z);
+      batches[fixture.accent === "cyan" ? 9 : 11].push(light);
+    }
+    for (const [material, batch] of batches.entries()) {
+      for (let i = starts[material]; i < batch.length; i++) {
+        batch[i].userData.collapseGroup = layout.buildings.length + index + 1;
+        batch[i].userData.collapsePivot = [x, y, z];
+      }
+    }
+  }
+  for (const pipe of layout.pipes) {
+    const points = pipe.points.map((p) => new THREE.Vector3(p.x, p.y, p.z));
+    const path = new THREE.CatmullRomCurve3(points);
+    batches[17].push(new THREE.TubeGeometry(path, 8, pipe.radius, 8, false));
+    for (const t of [0.15, 0.5, 0.85]) {
+      const point = path.getPoint(t);
+      const collar = new THREE.TorusGeometry(pipe.radius + 0.0004, 0.0004, 4, 10);
+      collar.applyQuaternion(
+        new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), path.getTangent(t)),
+      );
+      collar.translate(point.x, point.y, point.z);
+      batches[6].push(collar);
+      box(point.x, point.y, 0.007, 0.004, 0.003, Math.max(0.001, point.z - 0.007), 5);
+    }
+  }
+
   if (style.connections !== "paths") {
     const buildings = layout.buildings.filter((b) => !b.landmark);
     for (let i = 0; i < buildings.length - 1; i += style.connections === "skybridges" ? 6 : 2) {
@@ -432,9 +630,10 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
     }
   }
 
-  const hexApothem = cityHexWallApothem(layout);
+  const hexApothem = structureHexWallApothem(layout);
   if (hasGatedWall && hexApothem !== null) {
     const height = style.perimeter === "high-wall" ? 0.025 : 0.012;
+    const gatehouses = style.details.includes("gatehouses");
     const halfSide = hexApothem * Math.tan(Math.PI / 6);
     for (let side = 0; side < 6; side++) {
       const angle = (side * Math.PI) / 3;
@@ -481,10 +680,27 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
           section.clearGroups();
           batches[material].push(section);
         };
-        wallSection(0.004, 0.007, height, 4);
-        wallSection(0.005, 0.007 + height, 0.0015, 17);
+        wallSection(gatehouses ? 0.007 : 0.004, 0.007, height, 4);
+        wallSection(gatehouses ? 0.008 : 0.005, 0.007 + height, 0.0015, 17);
       }
-      if (gate) {
+      if (gate && gatehouses) {
+        const starts = batches.map((batch) => batch.length);
+        for (const offset of [-0.019, 0.019]) {
+          box(hexApothem - 0.007, offset, 0.007, 0.024, 0.018, height + 0.009, 5);
+          box(hexApothem - 0.007, offset, 0.007 + height + 0.009, 0.026, 0.02, 0.003, 17);
+          box(hexApothem + 0.0051, offset, 0.018, 0.0008, 0.011, 0.006, 8);
+          box(hexApothem + 0.006, Math.sign(offset) * 0.011, 0.014, 0.001, 0.001, 0.005, 11);
+        }
+        box(hexApothem - 0.007, 0, 0.007 + height, 0.022, 0.028, 0.007, 17);
+        for (const [material, batch] of batches.entries()) {
+          for (let i = starts[material]; i < batch.length; i++) {
+            batch[i].rotateZ(angle);
+            batch[i].userData.collapseGroup =
+              layout.buildings.length + layout.fixtures.length + side + 1;
+            batch[i].userData.collapsePivot = [center.x, center.y, 0.007];
+          }
+        }
+      } else if (gate) {
         for (const offset of [-0.011, 0.011]) {
           const post = center.clone().addScaledVector(tangent, offset);
           box(post.x, post.y, 0.007, 0.004, 0.004, height + 0.004, 17);
@@ -761,7 +977,7 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
       }
     }
   }
-  if (style.details.includes("shafts")) {
+  if (style.details.includes("shafts") && style.plan !== "grid") {
     for (const x of [-0.079, 0.079]) {
       disc(x, -0.05, 0.017, 0.012, 0.02, 5, 12);
       disc(x, -0.05, 0.028, 0.016, 0.003, 6, 12);
@@ -815,7 +1031,7 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
       const nearLamp = placed.some((p) => Math.hypot(p.x - x, p.y - y) < 0.018);
       const nearWall =
         (style.cover === "dome" && radius > 0.102) ||
-        (style.landmark === "hall" && cityWallDistance(layout, x, y) > -0.008);
+        (style.landmark === "hall" && structureWallDistance(layout, x, y) > -0.008);
       if (onRoad || underBuilding || underPlant || nearLamp || nearWall) {
         continue;
       }
@@ -886,7 +1102,7 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
           }
         }
       }
-      geo.setAttribute("cityFrostExposure", new THREE.BufferAttribute(frostExposure, 1));
+      geo.setAttribute("structureFrostExposure", new THREE.BufferAttribute(frostExposure, 1));
       if ([3, 4, 5, 7, 13, 16].includes(materialIndex)) {
         const position = geo.getAttribute("position");
         const uv = geo.getAttribute("uv");
@@ -980,8 +1196,8 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
           i * 4,
         );
       }
-      geo.setAttribute("cityCollapsePivot", new THREE.BufferAttribute(pivots, 3));
-      geo.setAttribute("cityCollapseMotion", new THREE.BufferAttribute(motions, 4));
+      geo.setAttribute("structureCollapsePivot", new THREE.BufferAttribute(pivots, 3));
+      geo.setAttribute("structureCollapseMotion", new THREE.BufferAttribute(motions, 4));
       if (!geo.index) {
         return geo;
       }
@@ -995,4 +1211,16 @@ export function createGeometry(layout: CityLayout, plot?: CityPlot) {
     }
     return merged;
   });
+}
+
+/** Sink the whole structure below the deepest ground before its shared rise animation. */
+export function structureEmergenceDepth(geometries: (THREE.BufferGeometry | null)[]) {
+  let highest = 0;
+  for (const geometry of geometries) {
+    if (geometry) {
+      geometry.computeBoundingBox();
+      highest = Math.max(highest, geometry.boundingBox!.max.z);
+    }
+  }
+  return Math.max(0.08, highest + MARS_RELIEF_DEPTH + 0.015);
 }

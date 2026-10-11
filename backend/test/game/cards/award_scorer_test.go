@@ -24,7 +24,7 @@ func landlordAwardDef() *award.AwardDefinition {
 		ID:          "landlord",
 		Name:        "Landlord",
 		Description: "Most tiles on Mars",
-		Pack:        "base-game",
+		GameModes:   []string{"classic"},
 		Quantifier: []shared.PerCondition{
 			{ResourceType: shared.ResourceNonOceanTile, Target: strPtr("self-player")},
 		},
@@ -119,7 +119,7 @@ func TestBankerAwardCountsCreditProduction(t *testing.T) {
 		ID:          "banker",
 		Name:        "Banker",
 		Description: "Most credit production",
-		Pack:        "base",
+		GameModes:   []string{"classic"},
 		Quantifier: []shared.PerCondition{
 			{ResourceType: shared.ResourceCreditProduction, Target: strPtr("self-player")},
 		},
@@ -145,7 +145,7 @@ func TestScientistAwardCountsScienceTags(t *testing.T) {
 		ID:          "scientist",
 		Name:        "Scientist",
 		Description: "Most science tags",
-		Pack:        "base",
+		GameModes:   []string{"classic"},
 		Quantifier: []shared.PerCondition{
 			{ResourceType: shared.ResourceTag, Tag: tagPtr(shared.TagScience)},
 		},
@@ -169,7 +169,7 @@ func TestThermalistAwardCountsHeatResources(t *testing.T) {
 		ID:          "thermalist",
 		Name:        "Thermalist",
 		Description: "Most heat resources",
-		Pack:        "base",
+		GameModes:   []string{"classic"},
 		Quantifier: []shared.PerCondition{
 			{ResourceType: shared.ResourceHeat, Target: strPtr("self-player")},
 		},
@@ -194,7 +194,7 @@ func TestMinerAwardCountsSteelAndTitanium(t *testing.T) {
 		ID:          "miner",
 		Name:        "Miner",
 		Description: "Most steel and titanium resources",
-		Pack:        "base",
+		GameModes:   []string{"classic"},
 		Quantifier: []shared.PerCondition{
 			{ResourceType: shared.ResourceSteel, Target: strPtr("self-player")},
 			{ResourceType: shared.ResourceTitanium, Target: strPtr("self-player")},

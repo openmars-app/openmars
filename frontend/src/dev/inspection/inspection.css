@@ -1,0 +1,99 @@
+:root:has(.inspection) {
+  --hud-top-h: 0px;
+  --hud-dock-h: 0px;
+  --hud-rail-left-w: 0px;
+  --hud-rail-right-w: 0px;
+}
+.inspection {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  background: #000;
+  color: #ddd;
+}
+.inspection-toggle {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+}
+.inspection-tools {
+  position: absolute;
+  top: 58px;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  width: min(350px, calc(100vw - 24px));
+  overflow: auto;
+  padding: 18px;
+  background: #090c11ee;
+  border: 1px solid #718398;
+}
+.inspection-tools h1 {
+  font-family: Orbitron, sans-serif;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+.inspection-tools p {
+  color: #b6c1ca;
+  font-size: 12px;
+  margin: 8px 0;
+}
+.inspection-tools label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.inspection button,
+.inspection select,
+.inspection input[type="number"] {
+  border: 1px solid #4f6476;
+  background: #101923;
+  color: #e5edf2;
+  padding: 8px;
+  min-height: 44px;
+  border-radius: 0;
+}
+.inspection button {
+  cursor: pointer;
+  font-family: Orbitron, sans-serif;
+  font-size: 12px;
+}
+.inspection button:hover {
+  background: #213343;
+}
+.inspection button:disabled,
+.inspection input:disabled,
+.inspection select:disabled {
+  opacity: 0.45;
+}
+.inspection select,
+.inspection input {
+  max-width: 100%;
+  font-size: 16px;
+}
+.inspection input[type="range"] {
+  width: 100%;
+}
+.inspection-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.inspection-row label:first-child {
+  flex: 1;
+}
+.inspection [role="alert"] {
+  color: #ffabab;
+}
+.inspection-error {
+  position: absolute;
+  inset: 20px;
+  background: #160909;
+  padding: 20px;
+}
+
+.inspection input[type="color"],
+.inspection input[type="range"] {
+  min-height: 44px;
+}

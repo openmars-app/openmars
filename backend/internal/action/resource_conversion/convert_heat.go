@@ -73,7 +73,7 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 		return err
 	}
 
-	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
+	calculator := gamecards.NewRequirementModifierCalculator(gamecards.ForGame(a.cardRegistry, g))
 	discounts := calculator.CalculateStandardProjectDiscounts(player, shared.StandardProjectConvertHeatToTemperature)
 	heatDiscount := discounts[shared.ResourceHeat]
 	requiredHeat := BaseHeatForTemperature - heatDiscount
@@ -85,7 +85,7 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 		slog.Int("discount", heatDiscount),
 		slog.Int("final_cost", requiredHeat))
 
-	quote, err := gamecards.QuotePayment(player, g, a.cardRegistry, gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceHeat: requiredHeat}, Action: "standard-project", StandardProject: shared.StandardProjectConvertHeatToTemperature})
+	quote, err := gamecards.QuotePayment(player, g, gamecards.ForGame(a.cardRegistry, g), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceHeat: requiredHeat}, Action: "standard-project", StandardProject: shared.StandardProjectConvertHeatToTemperature})
 	if err != nil {
 		return err
 	}

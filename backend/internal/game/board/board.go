@@ -413,7 +413,7 @@ func (b *Board) UpdateTileOccupancy(ctx context.Context, coords shared.HexPositi
 	var found bool
 	for i := range *b.tiles {
 		if (*b.tiles)[i].Coordinates == coords {
-			if occupant.Type == shared.ResourceCityTile || occupant.Type == shared.ResourceGreeneryTile {
+			if occupant.Visual != nil || occupant.Type == shared.ResourceCityTile || occupant.Type == shared.ResourceGreeneryTile {
 				occupant.Visual = occupant.Visual.Clone()
 				if occupant.Visual == nil {
 					occupant.Visual = &shared.TileVisual{}

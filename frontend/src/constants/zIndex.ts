@@ -46,6 +46,7 @@ export const Z_INDEX = {
   MOBILE_HUD: 100,
   // Compact toasts over the board (triggered effects, played cards, player reactions): above the HUD, below screens
   MOBILE_FEEDBACK: 120,
+  PLAYER_EFFECT_TOAST: 120,
 
   // Overlay Layer (200-999)
   CARDS_HAND_OVERLAY: 200,
@@ -96,7 +97,6 @@ export const Z_INDEX = {
   EXPANDED_CARD_FAN: 20201,
 
   DEBUG_OVERLAY: 9999,
-  PLAYER_EFFECT_TOAST: 9999,
 
   // "New version available" pill: above the in-game HUD and its menus, below the compact menu drawer
   UPDATE_PILL: 33000,

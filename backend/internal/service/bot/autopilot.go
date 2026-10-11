@@ -44,6 +44,9 @@ func (ts *ToolServer) Autopilot(ctx context.Context, snap *Snapshot) error {
 
 	case len(p.PendingBehaviorResolutions) > 0:
 		res := p.PendingBehaviorResolutions[0]
+		if res.Kind == "optional" {
+			return a.ConfirmBehaviorChoice.ExecuteOptional(ctx, gid, pid, res.ID, false)
+		}
 		if res.Kind == "card-discard" {
 			return a.ConfirmCardDiscard.Execute(ctx, gid, pid, res.ID, firstCardIDs(p.Cards, res.MinCards))
 		}

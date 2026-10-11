@@ -49,6 +49,10 @@ func (a *ClaimMilestoneAction) Execute(ctx context.Context, gameID string, playe
 		return err
 	}
 
+	if !g.Settings().AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
+		return fmt.Errorf("milestone is not available in this game mode")
+	}
+
 	if err := baseaction.ValidateGamePhase(g, shared.GamePhaseAction, log); err != nil {
 		return err
 	}
@@ -88,7 +92,7 @@ func (a *ClaimMilestoneAction) Execute(ctx context.Context, gameID string, playe
 		return fmt.Errorf("maximum milestones (%d) already claimed", game.MaxClaimedMilestones)
 	}
 
-	quote, err := gamecards.QuotePayment(player, g, a.CardRegistry(), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: def.ClaimCost}, Action: "claim-milestone"})
+	quote, err := gamecards.QuotePayment(player, g, a.CardRegistryForGame(g), gamecards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: def.ClaimCost}, Action: "claim-milestone"})
 	if err != nil {
 		return err
 	}
@@ -97,8 +101,8 @@ func (a *ClaimMilestoneAction) Execute(ctx context.Context, gameID string, playe
 		return err
 	}
 
-	if !gamecards.CanClaimMilestone(def, player, g.Board(), a.CardRegistry()) {
-		progress := gamecards.CalculateMilestoneProgress(def, player, g.Board(), a.CardRegistry())
+	if !gamecards.CanClaimMilestone(def, player, g.Board(), a.CardRegistryForGame(g)) {
+		progress := gamecards.CalculateMilestoneProgress(def, player, g.Board(), a.CardRegistryForGame(g))
 		required := def.GetRequired()
 		log.Warn("Player does not meet milestone requirements",
 			slog.String("requirement", def.Description),

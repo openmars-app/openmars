@@ -17,7 +17,8 @@ interface Route {
 const MIN_LONG_SIDE = 44;
 const MIN_SHORT_SIDE = 32;
 const MIN_INPUT_FONT_PX = 16;
-const CHROME_SELECTOR = ".menu-chrome-top-left, .menu-chrome-top-right, .menu-footer";
+const CHROME_SELECTOR =
+  ".menu-chrome-top-left, .menu-chrome-top-right, .menu-footer, [data-testid='mobile-create-game'] > header";
 
 const ROUTES: Route[] = [
   {
@@ -33,7 +34,7 @@ const ROUTES: Route[] = [
     ready: async (page) => {
       await expect(page.getByRole("heading", { name: "Create game" })).toBeVisible();
       await expect(page.getByText("Loading options…")).toHaveCount(0);
-      const options = page.locator("summary", { hasText: "Game options" });
+      const options = page.getByRole("button", { name: "Game options", exact: true });
       if ((await options.count()) > 0) {
         await options.click();
       }
@@ -72,7 +73,14 @@ async function settle(page: Page) {
   await page.waitForFunction(() =>
     document
       .getAnimations()
-      .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+      .filter((animation) => {
+        const effect = animation.effect;
+        if (effect?.getComputedTiming().iterations === Infinity) return false;
+        // Cached card families use content-visibility:hidden. Firefox keeps
+        // their suspended entrance animations in the running state.
+        const target = effect instanceof KeyframeEffect ? effect.target : null;
+        return !target || target.checkVisibility({ visibilityProperty: true });
+      })
       .every((animation) => animation.playState !== "running"),
   );
 }
@@ -131,7 +139,13 @@ function intersects(a: Box, b: Box) {
 
 function scrollTo(page: Page, edge: "top" | "bottom") {
   return page.evaluate((target) => {
-    for (const element of [document.documentElement, document.body]) {
+    const createContent = document.querySelector<HTMLElement>(
+      "[data-testid='create-game-content']",
+    );
+    const scrollContainers = createContent
+      ? [createContent]
+      : [document.documentElement, document.body];
+    for (const element of scrollContainers) {
       element.scrollTop = target === "top" ? 0 : element.scrollHeight;
     }
   }, edge);
@@ -152,8 +166,6 @@ for (const route of ROUTES) {
 
     await page.goto(`${route.path}?quick`);
     await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
-    await route.ready(page);
-    await settle(page);
 
     await expect(page.locator("html")).toHaveAttribute(
       "data-layout",
@@ -165,6 +177,9 @@ for (const route of ROUTES) {
       await expect(page.getByText("Rotate your device")).toBeVisible();
       return;
     }
+
+    await route.ready(page);
+    await settle(page);
 
     const overflow = await page.evaluate(() => ({
       scrollWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),

@@ -23,7 +23,7 @@ func setupProjectFundingGame(t *testing.T) (*game.Game, game.GameRepository, pf.
 	pfRegistry := pf.NewInMemoryProjectFundingRegistry(pfDefs)
 
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackProjectFunding)
+	settings.Features = append(settings.Features, "project-funding")
 	testGame.UpdateSettings(context.Background(), settings)
 
 	return testGame, repo, pfRegistry, player1, player2
@@ -451,7 +451,7 @@ func setupProjectFundingGameN(t *testing.T, numPlayers int) (*game.Game, game.Ga
 	pfRegistry := pf.NewInMemoryProjectFundingRegistry(pfDefs)
 
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackProjectFunding)
+	settings.Features = append(settings.Features, "project-funding")
 	testGame.UpdateSettings(context.Background(), settings)
 
 	return testGame, repo, pfRegistry, players

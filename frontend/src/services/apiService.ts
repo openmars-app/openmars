@@ -2,6 +2,7 @@ import {
   GameSaveSummaryDto,
   ImportGameSaveResponse,
   GameOptionsDto,
+  GameModeDto,
   GameSetupDto,
   FeedbackDto,
   FeedbackResponse,
@@ -149,6 +150,15 @@ export class ApiService {
     return response.json();
   }
 
+  async getGameModes(signal?: AbortSignal): Promise<GameModeDto[]> {
+    const response = await fetch(`${this.baseUrl}/game-modes`, { signal });
+    if (!response.ok) {
+      throw new Error("Could not load game modes");
+    }
+    const data: { gameModes: GameModeDto[] } = await response.json();
+    return data.gameModes;
+  }
+
   async createGame(settings: GameSetupDto): Promise<GameDto> {
     try {
       const response = await fetch(`${this.baseUrl}/games`, {
@@ -220,11 +230,20 @@ export class ApiService {
     }
   }
 
-  async listCards(offset: number = 0, limit: number = 50): Promise<ListCardsResponse> {
+  async listCards(
+    offset: number = 0,
+    limit: number = 50,
+    gameModeId = "",
+    preview = "connected",
+  ): Promise<ListCardsResponse> {
     try {
       const url = new URL(`${this.baseUrl}/cards`, window.location.origin);
       url.searchParams.set("offset", offset.toString());
       url.searchParams.set("limit", limit.toString());
+      if (gameModeId) {
+        url.searchParams.set("gameModeId", gameModeId);
+        url.searchParams.set("preview", preview);
+      }
 
       const response = await fetch(url.toString());
 

@@ -70,11 +70,11 @@ func TestTileVisualPlacementAndViewerConsistency(t *testing.T) {
 	if placed.OccupiedBy.DisplayName != "Underground City" {
 		t.Fatalf("City lost its card name: %q", placed.OccupiedBy.DisplayName)
 	}
-	if visual == nil || visual.Seed == 0 || visual.City == nil || visual.City.Cover != "flat-glass" {
+	if visual == nil || visual.Seed == 0 || visual.Structure == nil || visual.Structure.Cover != "flat-glass" {
 		t.Fatalf("Invalid visual: %+v", visual)
 	}
 	expected := visual.Clone()
-	visual.City.Details[0] = "mutated"
+	visual.Structure.Details[0] = "mutated"
 	again, _ := g.Board().GetTile(coordinate)
 	if !reflect.DeepEqual(again.OccupiedBy.Visual, expected) {
 		t.Fatal("Board read mutated saved appearance")
@@ -83,12 +83,12 @@ func TestTileVisualPlacementAndViewerConsistency(t *testing.T) {
 	card.Style.Tile.Cover = "dome"
 	card.Name = "Renamed card"
 	again, _ = g.Board().GetTile(coordinate)
-	if again.OccupiedBy.Visual.City.Cover != "flat-glass" {
+	if again.OccupiedBy.Visual.Structure.Cover != "flat-glass" {
 		t.Fatal("Card request aliases placed appearance")
 	}
 	playerView := dto.ToGameDto(g, registry, playerID)
 	spectatorView := dto.ToSpectatorGameDto(g, registry, nil, nil)
-	history := dto.ToGameHistoryEntryDtos([]*datastore.GameStateHistoryEntry{{State: &datastore.GameState{Tiles: g.Board().Tiles()}}})
+	history := dto.ToGameHistoryEntryDtos([]*datastore.GameStateHistoryEntry{{State: &datastore.GameState{Tiles: g.Board().Tiles()}}}, nil)
 	var views []*dto.TileVisualDto
 	for _, tiles := range [][]dto.TileDto{playerView.Board.Tiles, spectatorView.Board.Tiles, history[0].Board.Tiles} {
 		for _, tile := range tiles {
@@ -117,7 +117,7 @@ func TestTileVisualPlacementAndViewerConsistency(t *testing.T) {
 	if standard.OccupiedBy.DisplayName != "" {
 		t.Fatal("Standard city retained card name")
 	}
-	if standard.OccupiedBy.Visual == nil || standard.OccupiedBy.Visual.City != nil {
+	if standard.OccupiedBy.Visual == nil || standard.OccupiedBy.Visual.Structure != nil {
 		t.Fatal("Standard city retained card request")
 	}
 	seed := standard.OccupiedBy.Visual.Seed
@@ -156,7 +156,7 @@ func TestPhobosCityUsesDomeAppearance(t *testing.T) {
 		if placed.OccupiedBy.DisplayName != "Phobos Space Haven" {
 			t.Fatalf("Phobos lost its card name: %q", placed.OccupiedBy.DisplayName)
 		}
-		if visual == nil || visual.City == nil || visual.City.Cover != "dome" || visual.City.Landscaping != "sparse" {
+		if visual == nil || visual.Structure == nil || visual.Structure.Cover != "dome" || visual.Structure.Landscaping != "sparse" {
 			t.Fatalf("Phobos lost its sealed habitat appearance: %+v", visual)
 		}
 		return
@@ -235,5 +235,100 @@ func TestCityPlacementNamesWithoutCustomModels(t *testing.T) {
 				t.Fatal("Placement overwrote the board-space name")
 			}
 		})
+	}
+}
+
+func TestAuthoredStructurePlacement(t *testing.T) {
+	for _, tt := range []struct {
+		cardID, tileType string
+		admin            bool
+	}{
+		{"123", "industrial-center", false}, {"123", "industrial-center", true},
+		{"085", "commercial-district", false}, {"085", "commercial-district", true},
+		{"P37", "city", false},
+		{"182", "city", false},
+	} {
+		source := tt.cardID
+		if tt.admin {
+			source = ""
+		}
+		t.Run(tt.cardID+"/source="+source, func(t *testing.T) {
+			ctx := context.Background()
+			g, repo := testutil.CreateTestGameWithPlayers(t, 2)
+			testutil.StartTestGame(t, g)
+			playerID := g.TurnOrder()[0]
+			registry := testutil.CreateTestCardRegistry()
+			card, err := registry.GetByID(tt.cardID)
+			testutil.AssertNoError(t, err, "load authored card")
+			var coordinate shared.HexPosition
+			for _, tile := range g.Board().Tiles() {
+				if tile.Type == shared.ResourceLandTile && tile.OccupiedBy == nil && len(tile.Bonuses) == 0 {
+					coordinate = tile.Coordinates
+					break
+				}
+			}
+			selection := &shared.PendingTileSelection{TileType: tt.tileType, AvailableHexes: []string{coordinate.String()}, Source: "admin-tile-selection", SourceCardID: source}
+			testutil.AssertNoError(t, g.SetPendingTileSelection(ctx, playerID, selection), "set placement")
+			action := tileAction.NewSelectTileAction(repo, registry, game.NewInMemoryGameStateRepository(), testutil.TestLogger())
+			_, err = action.Execute(ctx, g.ID(), playerID, coordinate.String())
+			testutil.AssertNoError(t, err, "place structure")
+			tile, err := g.Board().GetTile(coordinate)
+			testutil.AssertNoError(t, err, "read tile")
+			if tile.OccupiedBy.Type != shared.ResourceType(tt.tileType+"-tile") || tile.OccupiedBy.DisplayName != card.Name {
+				t.Fatalf("Structure changed gameplay identity: %+v", tile.OccupiedBy)
+			}
+			visual := tile.OccupiedBy.Visual
+			if visual == nil || visual.Seed == 0 || visual.Structure == nil || !reflect.DeepEqual(visual.Structure, card.Style.Tile) {
+				t.Fatalf("Missing authored request: %+v", visual)
+			}
+			if source == "" && len(tile.OccupiedBy.Tags) != 0 {
+				t.Fatal("Admin appearance must not fabricate a source-card tag")
+			}
+			expected := visual.Clone()
+			visual.Structure.Details[0] = "mutated"
+			again, _ := g.Board().GetTile(coordinate)
+			if !reflect.DeepEqual(again.OccupiedBy.Visual, expected) {
+				t.Fatal("Structure appearance aliases board state")
+			}
+			player := dto.ToGameDto(g, registry, playerID)
+			spectator := dto.ToSpectatorGameDto(g, registry, nil, nil)
+			history := dto.ToGameHistoryEntryDtos([]*datastore.GameStateHistoryEntry{{State: &datastore.GameState{Tiles: g.Board().Tiles()}}}, nil)
+			for _, tiles := range [][]dto.TileDto{player.Board.Tiles, spectator.Board.Tiles, history[0].Board.Tiles} {
+				for _, tile := range tiles {
+					if tile.Coordinates.Q == coordinate.Q && tile.Coordinates.R == coordinate.R {
+						if tile.OccupiedBy.Visual.Seed != expected.Seed || !reflect.DeepEqual(tile.OccupiedBy.Visual.Structure, dto.ToCardDto(*card).Style.Tile) {
+							t.Fatal("Viewer lost structure appearance")
+						}
+						data, err := json.Marshal(tile.OccupiedBy.Visual)
+						testutil.AssertNoError(t, err, "encode visual")
+						var raw map[string]any
+						testutil.AssertNoError(t, json.Unmarshal(data, &raw), "decode visual")
+						if raw["city"] != nil || raw["structure"] == nil {
+							t.Fatal("Visual wire contract must use only structure")
+						}
+					}
+				}
+			}
+			testutil.AssertNoError(t, g.Board().ClearTileOccupant(ctx, coordinate), "clear structure")
+			testutil.AssertNoError(t, g.Board().UpdateTileOccupancy(ctx, coordinate, board.TileOccupant{Type: shared.ResourceCityTile}, playerID), "replace with city")
+			replaced, _ := g.Board().GetTile(coordinate)
+			if replaced.OccupiedBy.Visual.Structure != nil {
+				t.Fatal("Replacement retained authored request")
+			}
+		})
+	}
+}
+
+func TestStructureDefaultRequiresUniqueAuthoredCard(t *testing.T) {
+	registry := testutil.CreateTestCardRegistry()
+	original := cards.UniqueStructureCard(registry, "industrial-center")
+	if original == nil || original.ID != "123" {
+		t.Fatal("Factory style not resolved from catalog")
+	}
+	duplicate := original.DeepCopy()
+	duplicate.ID = "another-factory"
+	ambiguous := cards.NewInMemoryCardRegistry([]cards.Card{*original, duplicate})
+	if cards.UniqueStructureCard(ambiguous, "industrial-center") != nil {
+		t.Fatal("Ambiguous styles must require a card source")
 	}
 }

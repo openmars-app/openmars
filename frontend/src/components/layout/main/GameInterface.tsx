@@ -200,15 +200,9 @@ export default function GameInterface() {
   const cardFanRef = useRef<CardFanOverlayHandle>(null);
   const playerListRef = useRef<PlayerListHandle>(null);
   const notificationQueueDoneAt = useRef<number>(0);
-  const vpCountingStartedRef = useRef(false);
-  const winnerBannerShownRef = useRef(false);
+  const winnerBannerShownRef = useRef<string | null>(null);
 
   // Game event and played card notification hooks
-  const {
-    currentEvent,
-    enqueue: enqueueGameEvent,
-    dismissCurrent: dismissGameEvent,
-  } = useGameEvent();
   const playedCardNotification = usePlayedCardNotification();
   const { enqueue: enqueuePlayedCard } = playedCardNotification;
 
@@ -219,6 +213,11 @@ export default function GameInterface() {
   const isConnected = useGameStore((s) => s.isConnected);
   const isSpectator = useGameStore((s) => s.isSpectator);
   const isReconnecting = useGameStore((s) => s.isReconnecting);
+  const {
+    currentEvent,
+    dismissCurrent: dismissGameEvent,
+    enqueue: enqueueGameEvent,
+  } = useGameEvent(game, isConnected && !isReconnecting);
   const reconnectionStep = useGameStore((s) => s.reconnectionStep);
   const gameForSelection = useGameStore((s) => s.gameForSelection);
   const changedPaths = useGameStore((s) => s.changedPaths);
@@ -253,7 +252,7 @@ export default function GameInterface() {
     currentPlayer?.pendingEffectSelection ||
     currentPlayer?.pendingResourceRemovalSelection ||
     currentPlayer?.pendingCardReveal ||
-    currentPlayer?.pendingBehaviorResolutions?.length,
+    currentPlayer?.pendingBehaviorResolutions?.some((resolution) => resolution.kind !== "optional"),
   );
   const showCardDrawSelection = useUIOverlayStore((s) => s.showCardDrawSelection);
   const showCorporationOverlay = useUIOverlayStore((s) => s.showCorporationOverlay);
@@ -301,7 +300,6 @@ export default function GameInterface() {
   const flow = useCardPlayFlow();
   const { attemptReconnection: _attemptReconnection } = useWebSocketConnection(
     navigate,
-    enqueueGameEvent,
     enqueuePlayedCard,
     notificationQueueDoneAt,
     showNotification,
@@ -313,15 +311,23 @@ export default function GameInterface() {
   // --- VP counting animation ---
   const isGameComplete =
     game?.currentPhase === GamePhaseComplete && game?.status === GameStatusCompleted;
-  const vpCounting = useVPCountingAnimation(isGameComplete ? (game?.finalScores ?? []) : []);
+  const scoringGameId =
+    isGameComplete && phase.kind === "completed" && !showProductionPhaseModal ? game.id : null;
+  const vpCounting = useVPCountingAnimation(scoringGameId, game?.finalScores ?? []);
 
-  if (isGameComplete && !vpCountingStartedRef.current && (game?.finalScores?.length ?? 0) > 0) {
-    vpCountingStartedRef.current = true;
-    vpCounting.start();
-  }
-
-  if (vpCounting.state.isComplete && !winnerBannerShownRef.current && game?.finalScores?.length) {
-    winnerBannerShownRef.current = true;
+  useEffect(() => {
+    if (!scoringGameId) {
+      winnerBannerShownRef.current = null;
+      return;
+    }
+    if (
+      !vpCounting.state.isComplete ||
+      winnerBannerShownRef.current === scoringGameId ||
+      !game?.finalScores?.length
+    ) {
+      return;
+    }
+    winnerBannerShownRef.current = scoringGameId;
     const sorted = [...game.finalScores].sort(
       (a, b) => b.vpBreakdown.totalVP - a.vpBreakdown.totalVP,
     );
@@ -335,7 +341,7 @@ export default function GameInterface() {
       playerColor: wp?.color ?? "#f59e0b",
       size: "large",
     });
-  }
+  }, [scoringGameId, vpCounting.state.isComplete, game, enqueueGameEvent]);
 
   // --- Game history and replay ---
   const { entries: historyEntries } = useGameHistory(isGameComplete ? (game?.id ?? null) : null);
@@ -1149,14 +1155,19 @@ export default function GameInterface() {
           />
         )}
 
-        {currentPlayer && (game?.currentPlayer?.pendingBehaviorResolutions?.length ?? 0) > 0 && (
-          <BehaviorResolutionOverlay
-            resolutions={game!.currentPlayer!.pendingBehaviorResolutions}
-            handCards={currentPlayer.cards || []}
-            playedCards={currentPlayer.playedCards || []}
-            corporation={currentPlayer.corporation ?? undefined}
-          />
-        )}
+        {currentPlayer &&
+          (!game?.currentPlayer?.cardReceipts?.length || hasBlockingSelection) &&
+          (game?.currentPlayer?.pendingBehaviorResolutions?.length ?? 0) > 0 && (
+            <BehaviorResolutionOverlay
+              resolutions={game!.currentPlayer!.pendingBehaviorResolutions.filter(
+                (resolution) =>
+                  resolution.kind !== "optional" || !game?.currentPlayer?.cardReceipts?.length,
+              )}
+              handCards={currentPlayer.cards || []}
+              playedCards={currentPlayer.playedCards || []}
+              corporation={currentPlayer.corporation ?? undefined}
+            />
+          )}
 
         {game &&
           !isCompact &&
@@ -1264,6 +1275,7 @@ export default function GameInterface() {
             resourceType={pendingCardStorage.resourceType}
             amount={pendingCardStorage.amount}
             selectorTags={pendingCardStorage.selectorTags}
+            eligibleCardIds={pendingCardStorage.eligibleCardIds}
             playedCards={(() => {
               const played = currentPlayer?.playedCards || [];
               const cardBeingPlayed = currentPlayer?.cards?.find(
@@ -1308,6 +1320,7 @@ export default function GameInterface() {
             resourceType={pendingActionStorage.resourceType}
             amount={pendingActionStorage.amount}
             selectorTags={pendingActionStorage.selectorTags}
+            eligibleCardIds={pendingActionStorage.eligibleCardIds}
             playedCards={currentPlayer?.playedCards || []}
             corporationCard={currentPlayer?.corporation}
             resourceStorage={currentPlayer?.resourceStorage}

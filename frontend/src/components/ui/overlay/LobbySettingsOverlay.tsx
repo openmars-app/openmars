@@ -41,6 +41,7 @@ const LobbySettingsOverlay: React.FC<LobbySettingsOverlayProps> = ({
   }
 
   const settings = game.settings;
+  const mode = settings.availableGameModes.find((item) => item.id === settings.gameModeId);
   const playerCount = (game.currentPlayer?.id ? 1 : 0) + (game.otherPlayers?.length || 0);
 
   const dispatch = (patch: UpdateGameSettingsRequest) => {
@@ -77,7 +78,7 @@ const LobbySettingsOverlay: React.FC<LobbySettingsOverlayProps> = ({
   const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
   const handleMaxPlayersChange = (raw: number) => {
-    const value = clamp(Math.round(raw), 1, 10);
+    const value = clamp(Math.round(raw), 1, mode?.maxPlayers ?? 5);
     if (value === settings.maxPlayers) {
       return;
     }
@@ -143,7 +144,7 @@ const LobbySettingsOverlay: React.FC<LobbySettingsOverlayProps> = ({
                     <input
                       type="number"
                       min={minPlayersAllowed}
-                      max={10}
+                      max={mode?.maxPlayers ?? 5}
                       value={settings.maxPlayers}
                       onChange={(e) => handleMaxPlayersChange(parseInt(e.target.value, 10) || 0)}
                       className="game-input w-16 !py-1 !px-2 text-sm text-center pointer-coarse:text-base"

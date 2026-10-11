@@ -129,7 +129,7 @@ export default function MobileStatusRail({
 }: MobileStatusRailProps) {
   const { gameState, currentPlayer } = useMobileGame();
   const parameters = gameState.globalParameters;
-  const showVenus = !!gameState.settings?.venusNextEnabled;
+  const showVenus = !!gameState.settings?.systems.includes("venus");
   const players = orderedPlayers(gameState);
 
   return (

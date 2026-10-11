@@ -16,7 +16,7 @@ import (
 func enableColonies(t *testing.T, testGame *game.Game) {
 	t.Helper()
 	settings := testGame.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	testGame.UpdateSettings(context.Background(), settings)
 
 	testGame.Colonies().SetStates([]*colony.ColonyState{

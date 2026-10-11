@@ -245,7 +245,7 @@ type CardsColumn = "corporation" | "preludes" | "cards";
 
 const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId, isOpen, onClose }) => {
   const isHost = game.hostPlayerId === playerId;
-  const hasPrelude = game.settings.cardPacks?.includes("prelude") || false;
+  const hasPrelude = game.settings.features.includes("prelude") || false;
   const [activeTab, setActiveTab] = useState<SidebarTab>("cards");
   const { isCompact } = useLayoutMode();
   const [cardsColumn, setCardsColumn] = useState<CardsColumn>("corporation");

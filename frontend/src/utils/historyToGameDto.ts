@@ -28,6 +28,7 @@ export function historyEntryToGameDto(
     ...liveGame,
     board: entry.board,
     settings: entry.settings,
+    modeRuntime: entry.modeRuntime,
     generation: entry.generation,
     currentPhase: entry.phase,
     currentPlayer,
@@ -73,16 +74,34 @@ export function buildCardLookup(liveGame: GameDto): Map<string, CardDto> {
   return lookup;
 }
 
+function historyCard(
+  id: string,
+  player: GameHistoryPlayerDto,
+  lookup: Map<string, CardDto>,
+): CardDto | undefined {
+  const card = lookup.get(id);
+  if (!card) return undefined;
+  return {
+    ...card,
+    behaviors: card.behaviors?.map((behavior) => ({
+      ...behavior,
+      dependencyStatus: behavior.dependency
+        ? player.dependencyStatuses[`${id}:${behavior.dependency}`]
+        : undefined,
+    })),
+  };
+}
+
 function historyPlayerToOtherPlayerDto(
   historyPlayer: GameHistoryPlayerDto,
   cardLookup: Map<string, CardDto>,
 ): OtherPlayerDto {
   const playedCards: CardDto[] = (historyPlayer.playedCardIds ?? [])
-    .map((id) => cardLookup.get(id))
+    .map((id) => historyCard(id, historyPlayer, cardLookup))
     .filter((c): c is CardDto => c != null);
 
   const corporation = historyPlayer.corporationId
-    ? (cardLookup.get(historyPlayer.corporationId) ?? undefined)
+    ? (historyCard(historyPlayer.corporationId, historyPlayer, cardLookup) ?? undefined)
     : undefined;
 
   return {
@@ -101,6 +120,7 @@ function historyPlayerToOtherPlayerDto(
       heat: historyPlayer.heat,
     },
     production: historyPlayer.production,
+    permanentProduction: historyPlayer.permanentProduction,
     corporation,
     handCardCount: historyPlayer.handCardIds?.length ?? 0,
     playedCards,
@@ -124,11 +144,11 @@ export function historyPlayerToPlayerDto(
   cardLookup: Map<string, CardDto>,
 ): PlayerDto {
   const playedCards: CardDto[] = (historyPlayer.playedCardIds ?? [])
-    .map((id) => cardLookup.get(id))
+    .map((id) => historyCard(id, historyPlayer, cardLookup))
     .filter((c): c is CardDto => c != null);
 
   const handCards = (historyPlayer.handCardIds ?? [])
-    .map((id) => cardLookup.get(id))
+    .map((id) => historyCard(id, historyPlayer, cardLookup))
     .filter((c): c is CardDto => c != null)
     .map((card) => ({
       ...card,
@@ -138,7 +158,7 @@ export function historyPlayerToPlayerDto(
     }));
 
   const corporation = historyPlayer.corporationId
-    ? (cardLookup.get(historyPlayer.corporationId) ?? null)
+    ? (historyCard(historyPlayer.corporationId, historyPlayer, cardLookup) ?? null)
     : null;
 
   return {
@@ -158,6 +178,7 @@ export function historyPlayerToPlayerDto(
       heat: historyPlayer.heat,
     },
     production: historyPlayer.production,
+    permanentProduction: historyPlayer.permanentProduction,
     corporation: corporation ?? undefined,
     cards: handCards,
     playedCards,

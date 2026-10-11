@@ -19,7 +19,7 @@ func createChoiceRequirementsTestCard() gamecards.Card {
 		ID:          "card-choice-req-test",
 		Name:        "Choice Requirements Test",
 		Type:        gamecards.CardTypeAutomated,
-		Pack:        "base",
+		GameModes:   []string{"classic"},
 		Cost:        10,
 		Tags:        []shared.CardTag{shared.TagScience},
 		Description: gamecards.CardDescription{{Type: gamecards.DescriptionSectionGeneric, Text: "Draw 1 card, or draw 3 cards if you have 3+ venus tags."}},
@@ -127,15 +127,15 @@ func TestChoiceRequirements_Choice1SucceedsWithEnoughTags(t *testing.T) {
 	// Create 3 venus-tagged cards for the player to have played
 	venusCard1 := gamecards.Card{
 		ID: "venus-1", Name: "Venus 1", Type: gamecards.CardTypeAutomated,
-		Pack: "base", Tags: []shared.CardTag{shared.TagVenus},
+		GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus},
 	}
 	venusCard2 := gamecards.Card{
 		ID: "venus-2", Name: "Venus 2", Type: gamecards.CardTypeAutomated,
-		Pack: "base", Tags: []shared.CardTag{shared.TagVenus},
+		GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus},
 	}
 	venusCard3 := gamecards.Card{
 		ID: "venus-3", Name: "Venus 3", Type: gamecards.CardTypeAutomated,
-		Pack: "base", Tags: []shared.CardTag{shared.TagVenus},
+		GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus},
 	}
 
 	additionalCards := []gamecards.Card{createChoiceRequirementsTestCard(), venusCard1, venusCard2, venusCard3}
@@ -219,15 +219,15 @@ func TestChoiceRequirements_Choice1DrawsThreeCards(t *testing.T) {
 
 	venusCard1 := gamecards.Card{
 		ID: "venus-1", Name: "Venus 1", Type: gamecards.CardTypeAutomated,
-		Pack: "base", Tags: []shared.CardTag{shared.TagVenus},
+		GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus},
 	}
 	venusCard2 := gamecards.Card{
 		ID: "venus-2", Name: "Venus 2", Type: gamecards.CardTypeAutomated,
-		Pack: "base", Tags: []shared.CardTag{shared.TagVenus},
+		GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus},
 	}
 	venusCard3 := gamecards.Card{
 		ID: "venus-3", Name: "Venus 3", Type: gamecards.CardTypeAutomated,
-		Pack: "base", Tags: []shared.CardTag{shared.TagVenus},
+		GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus},
 	}
 
 	additionalCards := []gamecards.Card{createChoiceRequirementsTestCard(), venusCard1, venusCard2, venusCard3}
@@ -276,11 +276,11 @@ func TestChoiceRequirements_Choice1FailsWithTwoTags(t *testing.T) {
 
 	venusCard1 := gamecards.Card{
 		ID: "venus-1", Name: "Venus 1", Type: gamecards.CardTypeAutomated,
-		Pack: "base", Tags: []shared.CardTag{shared.TagVenus},
+		GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus},
 	}
 	venusCard2 := gamecards.Card{
 		ID: "venus-2", Name: "Venus 2", Type: gamecards.CardTypeAutomated,
-		Pack: "base", Tags: []shared.CardTag{shared.TagVenus},
+		GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus},
 	}
 
 	additionalCards := []gamecards.Card{createChoiceRequirementsTestCard(), venusCard1, venusCard2}

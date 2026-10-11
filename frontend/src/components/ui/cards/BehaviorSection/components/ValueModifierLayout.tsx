@@ -25,43 +25,31 @@ const getResourcesFromSelectors = (selectors: SelectorDto[]): string[] => {
 };
 
 const ValueModifierLayout: React.FC<ValueModifierLayoutProps> = ({ behavior }) => {
-  if (!behavior.outputs || behavior.outputs.length === 0) return null;
-
-  const valueModifierOutput = behavior.outputs.find(
-    (output) => isEffect(output) && output.type === "value-modifier",
-  );
-  if (!valueModifierOutput) return null;
-
-  const amount = valueModifierOutput.amount ?? 1;
-  const selectors: SelectorDto[] = getSelectors(valueModifierOutput) || [];
-  const affectedResources = getResourcesFromSelectors(selectors);
-
-  if (affectedResources.length === 0) return null;
+  const modifiers = (behavior.outputs ?? [])
+    .filter((output) => isEffect(output) && output.type === "value-modifier")
+    .map((output) => ({
+      amount: output.amount ?? 1,
+      resources: getResourcesFromSelectors(getSelectors(output) ?? []),
+    }))
+    .filter((modifier) => modifier.resources.length > 0);
 
   return (
-    <div className="flex gap-[3px] items-center justify-center">
-      {/* Left side: affected resources */}
-      <div className="flex gap-[3px] items-center">
-        {affectedResources.map((resourceType: string, resIndex: number) => (
-          <React.Fragment key={`res-${resIndex}`}>
-            {resIndex > 0 && <Slash />}
-            <GameIcon iconType={resourceType} size="behavior" />
-          </React.Fragment>
-        ))}
-      </div>
-
-      {/* Separator: colon */}
-      <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-        :
-      </span>
-
-      {/* Plus sign */}
-      <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-        +
-      </span>
-
-      {/* Right side: Credits icon with amount inside */}
-      <GameIcon iconType="credit" amount={amount} size="behavior" />
+    <div className="flex flex-col items-center gap-1">
+      {modifiers.map((modifier, index) => (
+        <div key={index} className="flex gap-[3px] items-center justify-center" data-value-modifier>
+          <div className="flex gap-[3px] items-center">
+            {modifier.resources.map((resourceType, resourceIndex) => (
+              <React.Fragment key={resourceType}>
+                {resourceIndex > 0 && <Slash />}
+                <GameIcon iconType={resourceType} size="behavior" />
+              </React.Fragment>
+            ))}
+          </div>
+          <span className="text-base font-bold text-white mx-[3px]">:</span>
+          <span className="text-base font-bold text-white">{modifier.amount < 0 ? "−" : "+"}</span>
+          <GameIcon iconType="credit" amount={Math.abs(modifier.amount)} size="behavior" />
+        </div>
+      ))}
     </div>
   );
 };

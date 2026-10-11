@@ -153,13 +153,13 @@ func AdvanceInitPhaseAfterForcedAction(ctx context.Context, g *game.Game, log *s
 func (a *ConfirmInitAdvanceAction) applyCurrentPlayer(ctx context.Context, g *game.Game, phase shared.GamePhase, currentPlayerID string, log *slog.Logger) error {
 	switch phase {
 	case shared.GamePhaseInitApplyCorp:
-		if err := ApplyCorpForPlayer(ctx, g, currentPlayerID, a.cardRegistry, a.corpProc, log); err != nil {
+		if err := ApplyCorpForPlayer(ctx, g, currentPlayerID, gamecards.ForGame(a.cardRegistry, g), a.corpProc, log); err != nil {
 			return fmt.Errorf("failed to apply corp for player %s: %w", currentPlayerID, err)
 		}
 		log.Debug("Applied corp effects", slog.String("player_id", currentPlayerID))
 
 	case shared.GamePhaseInitApplyPrelude:
-		if err := ApplyNextPreludeForPlayer(ctx, g, currentPlayerID, a.cardRegistry, a.stateRepo, log); err != nil {
+		if err := ApplyNextPreludeForPlayer(ctx, g, currentPlayerID, gamecards.ForGame(a.cardRegistry, g), a.stateRepo, log); err != nil {
 			return fmt.Errorf("failed to apply prelude for player %s: %w", currentPlayerID, err)
 		}
 	}

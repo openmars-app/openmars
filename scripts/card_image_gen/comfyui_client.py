@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import time
 import uuid
 from typing import Any
 
@@ -101,6 +102,13 @@ class ComfyUIClient:
         self.base_url = base_url
         self.client_id = str(uuid.uuid4())
 
+    async def system_stats(self) -> dict[str, Any]:
+        """Capture the server's software and device identity for candidate records."""
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{self.base_url}/system_stats") as resp:
+                resp.raise_for_status()
+                return await resp.json()
+
     async def queue_prompt(self, workflow: dict[str, Any]) -> str:
         """Submit a workflow and return the prompt_id."""
         payload = {"prompt": workflow, "client_id": self.client_id}
@@ -108,26 +116,39 @@ class ComfyUIClient:
             async with session.post(
                 f"{self.base_url}/prompt", json=payload
             ) as resp:
-                resp.raise_for_status()
                 data = await resp.json()
+                if resp.status >= 400:
+                    raise RuntimeError(f"ComfyUI rejected the workflow: {json.dumps(data)}")
                 return data["prompt_id"]
 
     async def wait_for_completion(
-        self, prompt_id: str, poll_interval: float = 0.5, timeout: float = 300.0
+        self, prompt_id: str, poll_interval: float = 1.0, timeout: float = 1800.0
     ) -> dict[str, Any]:
         """Poll the history endpoint until the prompt finishes."""
-        elapsed = 0.0
+        deadline = time.monotonic() + timeout
         async with aiohttp.ClientSession() as session:
-            while elapsed < timeout:
+            while time.monotonic() < deadline:
                 async with session.get(
                     f"{self.base_url}/history/{prompt_id}"
                 ) as resp:
+                    resp.raise_for_status()
                     history = await resp.json()
                     if prompt_id in history:
-                        return history[prompt_id]
+                        result = history[prompt_id]
+                        status = result.get("status", {})
+                        if status.get("status_str") == "error":
+                            errors = [message[1] for message in status.get("messages", [])
+                                      if message[0] in ("execution_error", "execution_interrupted")]
+                            raise RuntimeError(
+                                f"ComfyUI execution failed ({prompt_id}): "
+                                f"{json.dumps(errors or status)}"
+                            )
+                        return result
                 await asyncio.sleep(poll_interval)
-                elapsed += poll_interval
-        raise TimeoutError(f"Generation timed out after {timeout}s")
+        raise TimeoutError(
+            f"Generation {prompt_id} exceeded {timeout}s; it may still be queued or running. "
+            "Inspect the ComfyUI queue before submitting it again."
+        )
 
     async def get_image(self, filename: str, subfolder: str = "") -> bytes:
         """Download a generated image from ComfyUI's output."""

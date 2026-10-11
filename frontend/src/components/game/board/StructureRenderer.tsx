@@ -1,34 +1,38 @@
 import { useNuclearImpacted } from "./NuclearCollapse";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
+import StructureEmissions from "./effects/StructureEmissions";
 import DustEffect from "./effects/DustEffect";
-import { CITY_EMERGENCE_DURATION } from "./boardConstants";
+import { STRUCTURE_EMERGENCE_DURATION } from "./boardConstants";
 import { Text } from "@react-three/drei";
 import * as THREE from "three";
-import { createGeometry } from "./cityGeometry";
+import { createGeometry, structureEmergenceDepth } from "./structureGeometry";
 import { assetUrl } from "@/assets";
 import { useTextures } from "../../../hooks/useTextures";
 import { addSphereProjectionWithSoftEdges } from "./GreeneryRenderer";
 
-import { randomSequence, type CityStyle, type CityPlot } from "./cityLayout";
+import { randomSequence, type StructureStyle, type StructurePlot } from "./structureLayout";
 
 const ORIGIN = new THREE.Vector3();
 const materialCache = new Map<string, THREE.MeshStandardMaterial[]>();
 
 export function getMaterials(
-  lighting: CityStyle["lighting"],
-  textures: Pick<ReturnType<typeof useTextures>, "concrete" | "grass" | "sand" | "cityFacades">,
+  lighting: StructureStyle["lighting"],
+  textures: Pick<
+    ReturnType<typeof useTextures>,
+    "concrete" | "grass" | "sand" | "structureFacades"
+  >,
 ) {
   const cacheKey =
     lighting +
-    textures.cityFacades
+    textures.structureFacades
       .map((f) => `${f.color.uuid}:${f.normal.uuid}:${f.roughness.uuid}`)
       .join(":");
   const cached = materialCache.get(cacheKey);
   if (cached) {
     return cached;
   }
-  const materials = textures.cityFacades.map((facade, variant) => {
+  const materials = textures.structureFacades.map((facade, variant) => {
     const canvases = Array.from({ length: 4 }, () => {
       const canvas = document.createElement("canvas");
       canvas.width = 512;
@@ -148,7 +152,7 @@ export function getMaterials(
   );
   materials[4].side = THREE.DoubleSide;
   for (const index of [3, 4, 5]) {
-    const facade = textures.cityFacades[(index + 2) % 3];
+    const facade = textures.structureFacades[(index + 2) % 3];
     materials[index].map = facade.color;
     materials[index].normalMap = facade.normal;
     materials[index].normalScale.set(0.35, 0.35);
@@ -235,9 +239,9 @@ export function getMaterials(
   return materials;
 }
 
-interface CityRendererProps {
+interface StructureRendererProps {
   renderBuildings?: boolean;
-  plot: CityPlot;
+  plot: StructurePlot;
   sphereCenter?: THREE.Vector3;
   groupInverseMatrix?: THREE.Matrix4;
   showLabel?: boolean;
@@ -245,7 +249,7 @@ interface CityRendererProps {
   isNewlyPlaced?: boolean;
 }
 
-export function CityGroundPatch({
+export function StructureGroundPatch({
   x = 0,
   y = 0,
   elevation = 0.0003,
@@ -358,7 +362,7 @@ export function CityGroundPatch({
   );
 }
 
-function CityRenderer({
+function StructureRenderer({
   plot,
   sphereCenter = ORIGIN,
   groupInverseMatrix,
@@ -366,7 +370,7 @@ function CityRenderer({
   connectedGround = false,
   isNewlyPlaced = false,
   renderBuildings = true,
-}: CityRendererProps) {
+}: StructureRendererProps) {
   const nuclearImpacted = useNuclearImpacted();
   const buildings = useRef<THREE.Group>(null);
   const started = useRef<number | null>(null);
@@ -384,8 +388,8 @@ function CityRenderer({
       return;
     }
     started.current ??= clock.elapsedTime;
-    const t = Math.min(1, (clock.elapsedTime - started.current) / CITY_EMERGENCE_DURATION);
-    buildings.current.position.z = -0.08 * Math.pow(1 - t, 3);
+    const t = Math.min(1, (clock.elapsedTime - started.current) / STRUCTURE_EMERGENCE_DURATION);
+    buildings.current.position.z = -emergenceDepth * Math.pow(1 - t, 3);
     if (t === 1) {
       emerging.current = false;
     }
@@ -394,6 +398,7 @@ function CityRenderer({
     () => (renderBuildings ? createGeometry(plot.layout, plot) : []),
     [plot, renderBuildings],
   );
+  const emergenceDepth = useMemo(() => structureEmergenceDepth(geometries), [geometries]);
   useEffect(
     () => () => {
       for (const geometry of geometries) {
@@ -403,7 +408,7 @@ function CityRenderer({
     [geometries],
   );
   const textures = useTextures();
-  const cityMaterials = getMaterials(plot.layout.style.lighting, textures);
+  const structureMaterials = getMaterials(plot.layout.style.lighting, textures);
   let groundSurface: "soil" | "grass" | "paving" | "asphalt" = "soil";
   if (plot.layout.style.cover === "dome") {
     groundSurface = "paving";
@@ -413,7 +418,7 @@ function CityRenderer({
     groundSurface = "grass";
   }
   const dirtPatches = useMemo(() => {
-    if (plot.layout.style.exposure !== "mostly-buried") {
+    if (plot.layout.style.exposure !== "mostly-buried" || plot.layout.style.ground !== "recessed") {
       return [];
     }
     const random = randomSequence(4271);
@@ -435,7 +440,7 @@ function CityRenderer({
   return (
     <group position={plot.worldPosition} quaternion={quaternion}>
       {!connectedGround && plot.layout.style.cover === "dome" && (
-        <CityGroundPatch
+        <StructureGroundPatch
           radius={0.15}
           surface="asphalt"
           elevation={0.0002}
@@ -446,7 +451,7 @@ function CityRenderer({
         />
       )}
       {(!connectedGround || plot.layout.style.ground === "recessed") && (
-        <CityGroundPatch
+        <StructureGroundPatch
           radius={plot.layout.style.cover === "dome" ? 0.113 : 0.155}
           surface={groundSurface}
           sphereRadius={plot.surface?.radius}
@@ -455,7 +460,7 @@ function CityRenderer({
         />
       )}
       {dirtPatches.map((patch, i) => (
-        <CityGroundPatch
+        <StructureGroundPatch
           key={`dirt-${i}`}
           {...patch}
           surface="soil"
@@ -467,7 +472,7 @@ function CityRenderer({
       ))}
       {groundSurface !== "grass" &&
         plot.layout.parks.map((park, i) => (
-          <CityGroundPatch
+          <StructureGroundPatch
             key={i}
             x={park.x}
             y={park.y}
@@ -486,7 +491,7 @@ function CityRenderer({
               <mesh
                 key={index}
                 geometry={geometry}
-                material={cityMaterials[index]}
+                material={structureMaterials[index]}
                 renderOrder={15}
                 raycast={() => {}}
                 dispose={null}
@@ -494,7 +499,12 @@ function CityRenderer({
             ),
         )}
       </group>
-      {!nuclearImpacted && dust && <DustEffect duration={3000} onComplete={() => setDust(false)} />}
+      {!nuclearImpacted && plot.layout.fixtures.some((fixture) => fixture.emitter != null) && (
+        <StructureEmissions plot={plot} emerging={isNewlyPlaced} />
+      )}
+      {!nuclearImpacted && dust && (
+        <DustEffect seed={plot.layout.seed} duration={3000} onComplete={() => setDust(false)} />
+      )}
       {!nuclearImpacted && showLabel && (
         <Text
           position={[0, -0.137, 0.005]}
@@ -513,4 +523,4 @@ function CityRenderer({
   );
 }
 
-export default memo(CityRenderer);
+export default memo(StructureRenderer);

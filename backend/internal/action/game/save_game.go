@@ -87,7 +87,7 @@ func (a *SaveGameAction) Encode(doc *save.Document) ([]byte, error) {
 			return nil, err
 		}
 		copy := *entry
-		copy.VPBreakdowns = ComputePlayerVPBreakdowns(snapshot, a.catalog.Cards, a.catalog.Awards, a.catalog.Milestones)
+		copy.VPBreakdowns = ComputePlayerVPBreakdowns(snapshot, cards.ForGame(a.catalog.Cards, snapshot), a.catalog.Awards, a.catalog.Milestones)
 		doc.History[i] = &copy
 	}
 	return save.Encode(doc)
@@ -99,25 +99,30 @@ func (a *SaveGameAction) RestoreRuntime(ds *datastore.DataStore, state *datastor
 	if err != nil {
 		return nil, err
 	}
-	g.SetVPCardLookup(cards.NewVPCardLookupAdapter(a.catalog.Cards))
+	effective, err := cards.Resolve(a.catalog.Cards, g.Settings())
+	if err != nil {
+		return nil, err
+	}
+	g.SetVPCardLookup(cards.NewVPCardLookupAdapter(effective))
 	g.Colonies().SetDefinitions(a.catalog.Colonies.GetAll())
-	processor := cards.NewCorporationProcessor(a.catalog.Cards, a.catalog.Awards, a.logger)
+	processor := cards.NewCorporationProcessor(effective, a.catalog.Awards, a.logger)
 	for _, p := range g.GetAllPlayers() {
-		action.SetupPlayerCardStore(p, g, a.catalog.Cards, a.catalog.Colonies)
+		action.SetupPlayerCardStore(p, g, effective, a.catalog.Colonies)
 		for _, id := range p.Hand().Cards() {
-			card, err := a.catalog.Cards.GetByID(id)
+			card, err := effective.GetByID(id)
 			if err != nil {
 				return nil, err
 			}
-			p.CardStateStore().SetState(id, action.CalculatePlayerCardState(card, p, g, a.catalog.Cards, a.catalog.Colonies))
+			p.CardStateStore().SetState(id, action.CalculatePlayerCardState(card, p, g, effective, a.catalog.Colonies))
 		}
 		for _, effect := range p.Effects().List() {
-			action.SubscribePassiveEffectToEvents(context.Background(), g, p, effect, a.logger, a.catalog.Cards)
+			action.SubscribePassiveEffectToEvents(context.Background(), g, p, effect, a.logger, effective)
 		}
 		if g.GetForcedFirstAction(p.ID()) != nil {
 			processor.RestoreFirstActionExecutor(g, p.ID())
 		}
 	}
+	action.SetupModeBehaviors(context.Background(), g, effective)
 	return g, nil
 }
 

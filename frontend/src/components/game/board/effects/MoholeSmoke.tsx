@@ -1,3 +1,4 @@
+import { randomSequence } from "../structureLayout";
 import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -6,6 +7,7 @@ import { usePrimitiveInstances } from "../PrimitiveManager";
 import { scaledParticleCount } from "@/utils/graphicsQuality.ts";
 
 interface MoholeSmokeProps {
+  seed: number;
   isNewlyPlaced?: boolean;
   tileWorldMatrix: THREE.Matrix4;
 }
@@ -81,8 +83,9 @@ function createSmokeMaterial(smokeTexture: THREE.Texture | undefined): THREE.Sha
 const _tmpLocalMatrix = new THREE.Matrix4();
 const _tmpWorldPos = new THREE.Vector3();
 
-export default function MoholeSmoke({ isNewlyPlaced, tileWorldMatrix }: MoholeSmokeProps) {
+export default function MoholeSmoke({ isNewlyPlaced, tileWorldMatrix, seed }: MoholeSmokeProps) {
   const { smoke: smokeTexture } = useTextures();
+  const random = useRef(randomSequence(seed));
   const timeRef = useRef(0);
 
   const planeGeometry = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
@@ -114,18 +117,18 @@ export default function MoholeSmoke({ isNewlyPlaced, tileWorldMatrix }: MoholeSm
         rotationSpeed: 0,
         rotation: 0,
         age: 0,
-        maxAge: 6.0 + Math.random() * 4.0,
-        initialScale: 0.025 + Math.random() * 0.02,
+        maxAge: 6.0 + random.current() * 4.0,
+        initialScale: 0.025 + random.current() * 0.02,
         delay: 0,
         wavePhase: 0,
       };
 
-      resetParticle(p, 0);
+      resetParticle(p, 0, random.current);
       if (isNewlyPlaced) {
         p.delay = 1.0 + (i / PARTICLE_COUNT) * 2.0;
       } else {
         p.delay = 0;
-        p.age = Math.random() * p.maxAge;
+        p.age = random.current() * p.maxAge;
         p.wavePhase = -p.age;
       }
       particles.push(p);
@@ -160,7 +163,7 @@ export default function MoholeSmoke({ isNewlyPlaced, tileWorldMatrix }: MoholeSm
       p.age += delta;
 
       if (p.age >= p.maxAge) {
-        resetParticle(p, time);
+        resetParticle(p, time, random.current);
         continue;
       }
 
@@ -204,22 +207,22 @@ export default function MoholeSmoke({ isNewlyPlaced, tileWorldMatrix }: MoholeSm
   return null;
 }
 
-function resetParticle(p: SmokeParticle, time: number) {
+function resetParticle(p: SmokeParticle, time: number, random: () => number) {
   const spread = 0.018;
-  const angle = Math.random() * Math.PI * 2;
-  const r = Math.random() * spread;
+  const angle = random() * Math.PI * 2;
+  const r = random() * spread;
   p.position.set(Math.cos(angle) * r, Math.sin(angle) * r, 0.005);
   p.age = 0;
-  p.maxAge = 6.0 + Math.random() * 4.0;
-  p.initialScale = 0.025 + Math.random() * 0.02;
-  const drift = 0.0002 + Math.random() * 0.0004;
-  const driftAngle = Math.random() * Math.PI * 2;
+  p.maxAge = 6.0 + random() * 4.0;
+  p.initialScale = 0.025 + random() * 0.02;
+  const drift = 0.0002 + random() * 0.0004;
+  const driftAngle = random() * Math.PI * 2;
   p.velocity.set(
     Math.cos(driftAngle) * drift,
     Math.sin(driftAngle) * drift,
-    0.005 + Math.random() * 0.004,
+    0.005 + random() * 0.004,
   );
-  p.rotationSpeed = (Math.random() - 0.5) * 0.4;
-  p.rotation = Math.random() * Math.PI * 2;
+  p.rotationSpeed = (random() - 0.5) * 0.4;
+  p.rotation = random() * Math.PI * 2;
   p.wavePhase = time;
 }

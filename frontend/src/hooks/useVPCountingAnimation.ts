@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FinalScoreDto } from "../types/generated/api-types";
 import type { VPCountingState, VPPhase } from "../contexts/VPCountingContext";
 
@@ -139,25 +139,38 @@ function computeAccumulatedVPThroughPhase(
   return accumulated;
 }
 
-export function useVPCountingAnimation(scores: FinalScoreDto[]) {
-  const [state, setState] = useState<VPCountingState>({
-    isActive: false,
-    currentPhaseIndex: -1,
-    currentPhaseId: null,
-    activePlayerId: null,
-    playerAccumulatedVP: {},
-    highlightedTiles: new Set(),
-    secondaryHighlightedTiles: new Set(),
-    isFinishing: false,
-    isComplete: false,
+const INITIAL_STATE: VPCountingState = {
+  isActive: false,
+  currentPhaseIndex: -1,
+  currentPhaseId: null,
+  activePlayerId: null,
+  playerAccumulatedVP: {},
+  highlightedTiles: new Set(),
+  secondaryHighlightedTiles: new Set(),
+  isFinishing: false,
+  isComplete: false,
+};
+
+export function useVPCountingAnimation(gameId: string | null, scores: FinalScoreDto[]) {
+  const [state, setState] = useState<VPCountingState & { gameId: string | null }>({
+    ...INITIAL_STATE,
+    gameId: null,
   });
+  const input = useRef({ gameId, scores });
+  const running = useRef<AbortController | null>(null);
 
-  const cancelledRef = useRef(false);
+  useEffect(() => {
+    input.current = { gameId, scores };
+  }, [gameId, scores]);
 
-  const sortedScores = [...scores].sort((a, b) => b.vpBreakdown.totalVP - a.vpBreakdown.totalVP);
+  const cancel = useCallback(() => {
+    running.current?.abort();
+    running.current = null;
+  }, []);
 
   const skip = useCallback(() => {
-    cancelledRef.current = true;
+    cancel();
+    const { gameId, scores } = input.current;
 
     const finalVP: Record<string, number> = {};
     for (const score of scores) {
@@ -165,6 +178,7 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
     }
 
     setState({
+      gameId,
       isActive: false,
       currentPhaseIndex: VP_PHASES.length - 1,
       currentPhaseId: VP_PHASES[VP_PHASES.length - 1].id,
@@ -175,16 +189,18 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
       isFinishing: false,
       isComplete: true,
     });
-  }, [scores]);
+  }, [cancel]);
 
   const goToPhase = useCallback(
     (phaseIndex: number) => {
-      cancelledRef.current = true;
+      cancel();
+      const { gameId, scores } = input.current;
 
       const clamped = Math.max(0, Math.min(phaseIndex, VP_PHASES.length - 1));
       const accumulated = computeAccumulatedVPThroughPhase(scores, clamped);
 
       setState({
+        gameId,
         isActive: false,
         currentPhaseIndex: clamped,
         currentPhaseId: VP_PHASES[clamped].id,
@@ -196,11 +212,19 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
         isComplete: true,
       });
     },
-    [scores],
+    [cancel],
   );
 
   const start = useCallback(() => {
-    cancelledRef.current = false;
+    cancel();
+    const { gameId, scores } = input.current;
+    if (!gameId || scores.length === 0) {
+      return;
+    }
+    const controller = new AbortController();
+    running.current = controller;
+    const { signal } = controller;
+    const sortedScores = [...scores].sort((a, b) => b.vpBreakdown.totalVP - a.vpBreakdown.totalVP);
 
     const initialVP: Record<string, number> = {};
     for (const score of scores) {
@@ -210,6 +234,7 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
     const maxVP = Math.max(...scores.map((s) => s.vpBreakdown.totalVP), 1);
 
     setState({
+      gameId,
       isActive: true,
       currentPhaseIndex: -1,
       currentPhaseId: null,
@@ -229,18 +254,24 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
     };
 
     const runSequence = async () => {
-      await delay(INITIAL_PAUSE_MS);
-      if (cancelledRef.current) return;
+      await delay(INITIAL_PAUSE_MS, signal);
+      if (signal.aborted) {
+        return;
+      }
 
       let isFirstVisiblePhase = true;
 
       for (let phaseIdx = 0; phaseIdx < VP_PHASES.length; phaseIdx++) {
-        if (cancelledRef.current) return;
+        if (signal.aborted) {
+          return;
+        }
 
         const phase = VP_PHASES[phaseIdx];
 
         const hasAnySteps = sortedScores.some((s) => phase.extractSteps(s).length > 0);
-        if (!hasAnySteps) continue;
+        if (!hasAnySteps) {
+          continue;
+        }
 
         setState((prev) => ({
           ...prev,
@@ -252,32 +283,44 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
         }));
 
         if (!isFirstVisiblePhase) {
-          await delay(BETWEEN_PHASES_MS);
-          if (cancelledRef.current) return;
+          await delay(BETWEEN_PHASES_MS, signal);
+          if (signal.aborted) {
+            return;
+          }
         }
         isFirstVisiblePhase = false;
 
-        await delay(PHASE_START_PAUSE_MS);
-        if (cancelledRef.current) return;
+        await delay(PHASE_START_PAUSE_MS, signal);
+        if (signal.aborted) {
+          return;
+        }
 
         for (let playerIdx = 0; playerIdx < sortedScores.length; playerIdx++) {
-          if (cancelledRef.current) return;
+          if (signal.aborted) {
+            return;
+          }
 
           const score = sortedScores[playerIdx];
           const steps = phase.extractSteps(score);
 
-          if (steps.length === 0) continue;
+          if (steps.length === 0) {
+            continue;
+          }
 
           setState((prev) => ({
             ...prev,
             activePlayerId: score.playerId,
           }));
 
-          await delay(BEFORE_PLAYER_MS);
-          if (cancelledRef.current) return;
+          await delay(BEFORE_PLAYER_MS, signal);
+          if (signal.aborted) {
+            return;
+          }
 
           for (const step of steps) {
-            if (cancelledRef.current) return;
+            if (signal.aborted) {
+              return;
+            }
 
             accumulated[score.playerId] += step.vpIncrement;
 
@@ -289,8 +332,10 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
             }));
 
             const ms = step.delayMs ?? stepDelayMs(step.vpIncrement);
-            await delay(ms);
-            if (cancelledRef.current) return;
+            await delay(ms, signal);
+            if (signal.aborted) {
+              return;
+            }
 
             if (!step.keepHighlights) {
               setState((prev) => ({
@@ -301,16 +346,18 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
             }
           }
 
-          await delay(AFTER_PLAYER_MS);
-          if (cancelledRef.current) return;
+          await delay(AFTER_PLAYER_MS, signal);
+          if (signal.aborted) {
+            return;
+          }
 
           if (playerIdx < sortedScores.length - 1) {
-            await delay(BETWEEN_PLAYERS_MS);
+            await delay(BETWEEN_PLAYERS_MS, signal);
           }
         }
       }
 
-      if (!cancelledRef.current) {
+      if (!signal.aborted) {
         setState((prev) => ({
           ...prev,
           currentPhaseIndex: -1,
@@ -321,9 +368,9 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
           isFinishing: true,
         }));
 
-        await delay(FINISHING_FADE_MS);
+        await delay(FINISHING_FADE_MS, signal);
 
-        if (!cancelledRef.current) {
+        if (!signal.aborted) {
           setState((prev) => ({
             ...prev,
             isActive: false,
@@ -335,13 +382,42 @@ export function useVPCountingAnimation(scores: FinalScoreDto[]) {
     };
 
     void runSequence();
-  }, [scores, sortedScores]);
+  }, [cancel]);
+
+  const hasScores = scores.length > 0;
+  useEffect(() => {
+    // Start only after the results render commits. An interrupted render must not
+    // leave a running timer behind with its initial active state discarded.
+    if (gameId && hasScores) {
+      start();
+    } else {
+      setState({ ...INITIAL_STATE, gameId: null });
+    }
+    return cancel;
+  }, [gameId, hasScores, start, cancel]);
 
   const phases: VPPhase[] = VP_PHASES.map(({ id, label, color }) => ({ id, label, color }));
 
-  return { state, start, skip, goToPhase, phases };
+  return {
+    state: gameId && hasScores && state.gameId === gameId ? state : INITIAL_STATE,
+    start,
+    skip,
+    goToPhase,
+    phases,
+  };
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function delay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    const timer = setTimeout(finish, ms);
+    signal.addEventListener("abort", finish, { once: true });
+    if (signal.aborted) {
+      finish();
+    }
+  });
 }

@@ -20,13 +20,13 @@ func setupStartingSelectionGame(t *testing.T, hasPrelude bool) (*game.Game, *tur
 
 	ctx := context.Background()
 
-	packs := []string{"base-game"}
+	features := []string{}
 	if hasPrelude {
-		packs = append(packs, "prelude")
+		features = append(features, "prelude")
 	}
 	testGame.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers: 4,
-		CardPacks:  packs,
+		GameModeID: "classic", Features: features,
 	})
 
 	err := testGame.UpdateStatus(ctx, shared.GameStatusActive)

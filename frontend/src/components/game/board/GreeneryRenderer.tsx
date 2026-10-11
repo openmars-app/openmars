@@ -586,6 +586,7 @@ function PlantBatch({
   transitionStart: number;
   previousLandscape: LandscapeState;
 }) {
+  const clock = useThree((s) => s.clock);
   const revision = landscape.id;
   const capacity = kind === "pine" ? PINE_CAPACITY : BATCH_CAPACITY;
   const statsKey = useMemo(() => ({}), []);
@@ -703,7 +704,7 @@ function PlantBatch({
     // Climate changes keep the landscape revision; plants they reveal grow in now and plants they
     // remove shrink away, instead of following the last terrain transition.
     const climateChange = seen.current && revision === landscapeRevision.current;
-    const birth = climateChange ? performance.now() : transitionStart;
+    const birth = climateChange ? clock.elapsedTime * 1000 : transitionStart;
     landscapeRevision.current = revision;
     for (const [id, entry] of slots.current) {
       if (!ids.has(id)) {
@@ -714,7 +715,7 @@ function PlantBatch({
         animations.current.delete(entry.slot);
         slots.current.delete(id);
         if (climateChange && !nuclearTiles.has(entry.plant.tileKey)) {
-          retiring.current.set(entry.slot, { plant: entry.plant, start: performance.now() });
+          retiring.current.set(entry.slot, { plant: entry.plant, start: clock.elapsedTime * 1000 });
           continue;
         }
         hide(entry.slot);
@@ -800,7 +801,7 @@ function PlantBatch({
       }
     }
     if (animations.current.size || collapsing || retiring.current.size) {
-      const now = performance.now();
+      const now = clock.elapsedTime * 1000;
       let retired = false;
       for (const [slot, r] of retiring.current) {
         const t = Math.min(1, (now - r.start) / RETIRE_MS);

@@ -235,7 +235,7 @@ export function PanControls() {
       const [x, y, z] = focusRequest.direction;
       focusSpherical.setFromVector3(focusDirection.set(x, y, z));
       focusAnimation.current = {
-        start: state.clock.elapsedTime,
+        start: state.clock.elapsedTime - (focusRequest.instant ? FOCUS_DURATION : 0),
         fromTheta: spherical.theta,
         fromPhi: spherical.phi,
         fromRadius: spherical.radius,

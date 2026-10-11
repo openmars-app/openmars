@@ -1,3 +1,4 @@
+import { BehaviorArrow } from "./BehaviorIcon.tsx";
 import React from "react";
 import { getIconPath } from "@/utils/iconStore.ts";
 import { useBehaviorLayout } from "./BehaviorContainer";
@@ -99,14 +100,14 @@ const CardIcon: React.FC<CardIconProps> = ({
 
   const renderSingleIcon = (picked = false, hideBadge = false) => (
     <div
-      className="relative inline-flex shrink-0"
+      className={`relative inline-flex shrink-0 ${(badge && !hideBadge) || picked ? "pr-[3px] pb-0.5" : ""}`}
       role="img"
       aria-label={picked ? "Keep this card" : (label ?? badge?.label ?? "Card")}
     >
       <img src={cardIcon} alt="" className={iconClass} />
       {((badge && !hideBadge) || picked) && (
         <svg
-          className={`absolute -bottom-[2px] -right-[3px] w-4 h-4 text-[#fff8e7] pointer-events-none ${badgeOpacity}`}
+          className={`absolute bottom-0 right-0 w-4 h-4 text-[#fff8e7] pointer-events-none ${badgeOpacity}`}
           viewBox="0 0 16 16"
           fill="none"
           strokeLinecap="round"
@@ -155,7 +156,9 @@ const CardIcon: React.FC<CardIconProps> = ({
             <>
               <span className="text-[13px] font-bold leading-none translate-y-[2px]">{amount}</span>
               {renderSingleIcon(false, true)}
-              <span className="text-[11px] font-bold">Keep {keepAmount}</span>
+              <BehaviorArrow />
+              <span className="text-[11px] font-bold">{keepAmount}</span>
+              {renderSingleIcon(true)}
             </>
           )}
         </div>

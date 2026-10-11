@@ -48,7 +48,7 @@ e2e *args="--project=mobile-landscape-android --project=mobile-landscape-ios --p
 
 [group('check')]
 [doc('Run format-check, lint, typecheck and the asset checks')]
-check: format-check lint typecheck assets-check assets-test
+check: format-check lint typecheck assets-check assets-test inspection-test
 
 [group('fix')]
 [doc('Format source with oxfmt')]
@@ -76,6 +76,16 @@ assets-preview:
     bun run assets:preview
 
 [group('tools')]
-[doc('Run a visual verification script: landscape, nuclear or tile-highlights')]
+[doc('Run geometry assertions: landscape, nuclear or tile-highlights')]
 verify name:
     bun scripts/{{ name }}/verify.ts
+
+[group('tools')]
+[doc('Inspect board graphics without a backend. Use --help or --list for targets and capture options')]
+inspect *args:
+    bun run inspect {{ args }}
+
+[group('check')]
+[doc('Check inspection target resolution and typed board fixtures')]
+inspection-test:
+    bun test scripts/inspect

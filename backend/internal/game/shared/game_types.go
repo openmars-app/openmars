@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"maps"
 	"slices"
 	"time"
 )
@@ -54,11 +55,13 @@ type GameSettings struct {
 	Oxygen             *int
 	Oceans             *int
 	Venus              *int
-	VenusNextEnabled   bool
 	DevelopmentMode    bool
 	DemoGame           bool
 	AllowRandomBuy     bool
-	CardPacks          []string
+	GameModeID         string
+	GameModeParameters map[string]int
+	Features           []string
+	Systems            []string
 	Generation         *int
 	ClaudeOAuthToken   string `json:"-"`
 	BotSpendCapUSD     float64
@@ -77,51 +80,28 @@ func (s GameSettings) EffectiveBotSpendCapUSD() float64 {
 	return s.BotSpendCapUSD
 }
 
-// Card pack constants
-const (
-	PackBaseGame       = "base-game"
-	PackPrelude        = "prelude"
-	PackVenus          = "venus-next"
-	PackExperimental   = "experimental"
-	PackColonies       = "colonies"
-	PackProjectFunding = "project-funding"
-)
+// HasPrelude reports whether Prelude is enabled for this selection.
+func (s GameSettings) HasPrelude() bool        { return slices.Contains(s.Features, "prelude") }
+func (s GameSettings) HasColonies() bool       { return slices.Contains(s.Systems, "colonies") }
+func (s GameSettings) HasProjectFunding() bool { return slices.Contains(s.Features, "project-funding") }
+func (s GameSettings) HasVenus() bool          { return slices.Contains(s.Systems, "venus") }
 
-// EnabledPacks returns a set of all enabled pack names for filtering.
-func (s GameSettings) EnabledPacks() map[string]bool {
-	packs := make(map[string]bool, len(s.CardPacks)+1)
-	for _, pack := range s.CardPacks {
-		packs[pack] = true
+// AllowsContent applies mode membership and capability requirements consistently.
+func (s GameSettings) AllowsContent(gameModes, requiresSystems, requiresFeatures []string) bool {
+	if !slices.Contains(gameModes, s.GameModeID) {
+		return false
 	}
-	if s.VenusNextEnabled {
-		packs[PackVenus] = true
+	for _, id := range requiresSystems {
+		if !slices.Contains(s.Systems, id) {
+			return false
+		}
 	}
-	return packs
-}
-
-// HasPrelude returns true if the prelude card pack is enabled
-func (s GameSettings) HasPrelude() bool {
-	return slices.Contains(s.CardPacks, PackPrelude)
-}
-
-// HasColonies returns true if the Colonies expansion is enabled
-func (s GameSettings) HasColonies() bool {
-	return slices.Contains(s.CardPacks, PackColonies)
-}
-
-// HasProjectFunding returns true if the Project Funding expansion is enabled
-func (s GameSettings) HasProjectFunding() bool {
-	return slices.Contains(s.CardPacks, PackProjectFunding)
-}
-
-// HasVenus returns true if the Venus expansion is enabled
-func (s GameSettings) HasVenus() bool {
-	return s.VenusNextEnabled
-}
-
-// DefaultCardPacks returns the default card packs
-func DefaultCardPacks() []string {
-	return []string{PackBaseGame, PackPrelude}
+	for _, id := range requiresFeatures {
+		if !slices.Contains(s.Features, id) {
+			return false
+		}
+	}
+	return true
 }
 
 // SourceType identifies the type of action that caused a state change
@@ -287,6 +267,7 @@ type TriggeredEffect struct {
 
 // CalculatedOutput represents an actual output value that was applied
 type CalculatedOutput struct {
+	Operation    *StateCondition
 	ResourceType string
 	Amount       int
 	IsScaled     bool
@@ -323,4 +304,19 @@ type DeferredStartingChoices struct {
 // PreludesDone reports whether every chosen prelude has been applied.
 func (c *DeferredStartingChoices) PreludesDone() bool {
 	return c.PreludesAppliedCount >= len(c.PreludeIDs)
+}
+
+// Clone returns an independent settings snapshot.
+func (s GameSettings) Clone() GameSettings {
+	s.GameModeParameters = maps.Clone(s.GameModeParameters)
+	s.Features = slices.Clone(s.Features)
+	s.Systems = slices.Clone(s.Systems)
+	s.SelectedMilestones = slices.Clone(s.SelectedMilestones)
+	s.SelectedAwards = slices.Clone(s.SelectedAwards)
+	s.Temperature = clonePointer(s.Temperature)
+	s.Oxygen = clonePointer(s.Oxygen)
+	s.Oceans = clonePointer(s.Oceans)
+	s.Venus = clonePointer(s.Venus)
+	s.Generation = clonePointer(s.Generation)
+	return s
 }

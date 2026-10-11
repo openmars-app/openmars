@@ -39,7 +39,7 @@ func lobbyWithToken(t *testing.T, players, maxPlayers int) (*gameAction.AddBotAc
 	testGame.UpdateSettings(context.Background(), shared.GameSettings{
 		MaxPlayers:       maxPlayers,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 	bots := newFakeBotLifecycle(t)
 	return gameAction.NewAddBotAction(repo, testutil.CreateTestCardRegistry(), bots, testutil.TestLogger()), bots, testGame.ID()
@@ -50,7 +50,7 @@ func TestAddBot_Success(t *testing.T) {
 	testGame.UpdateSettings(context.Background(), shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 	bots := newFakeBotLifecycle(t)
 	action := gameAction.NewAddBotAction(repo, testutil.CreateTestCardRegistry(), bots, testutil.TestLogger())
@@ -88,7 +88,7 @@ func TestAddBot_GameNotInLobby(t *testing.T) {
 	g.UpdateSettings(context.Background(), shared.GameSettings{
 		MaxPlayers:       4,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 	action := gameAction.NewAddBotAction(repo, cardRegistry, newFakeBotLifecycle(t), testutil.TestLogger())
 
@@ -108,7 +108,7 @@ func TestAddBot_UniqueNames(t *testing.T) {
 	testGame.UpdateSettings(context.Background(), shared.GameSettings{
 		MaxPlayers:       5,
 		ClaudeOAuthToken: "test-token",
-		CardPacks:        []string{"base-game"},
+		GameModeID:       "classic", Features: []string{},
 	})
 	action := gameAction.NewAddBotAction(repo, testutil.CreateTestCardRegistry(), newFakeBotLifecycle(t), testutil.TestLogger())
 

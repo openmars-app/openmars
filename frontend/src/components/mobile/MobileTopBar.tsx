@@ -10,6 +10,10 @@ import GameButton from "../ui/buttons/GameButton.tsx";
 import PassConfirmDialog from "../ui/modals/PassConfirmDialog.tsx";
 import { useMobileGame } from "./MobileGameContext.tsx";
 import MobileMenuDrawer, { MobileMenuButton } from "./MobileMenuDrawer.tsx";
+import EarthSupportProduction, {
+  earthSupportLabel,
+} from "../ui/display/EarthSupportProduction.tsx";
+import GameModeRules from "../ui/lobby/GameModeRules.tsx";
 
 const BUTTON_HEIGHT = 36;
 const HIT_AREA_CLASS =
@@ -70,6 +74,11 @@ export default function MobileTopBar({
     useMobileGame();
   const [menuOpen, setMenuOpen] = useState(false);
   const [travelOpen, setTravelOpen] = useState(false);
+  const [modeRulesOpen, setModeRulesOpen] = useState(false);
+  const gameMode = gameState.settings.availableGameModes.find(
+    (mode) => mode.id === gameState.settings.gameModeId,
+  );
+  const supportLabel = earthSupportLabel(gameState);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   const travelButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -143,6 +152,21 @@ export default function MobileTopBar({
         </GameButton>
       )}
 
+      {showActions && gameMode && (
+        <GameButton
+          shape="toolbar"
+          surface="console"
+          emphasis="secondary"
+          height={BUTTON_HEIGHT}
+          className={`shrink-0 !px-3 !text-[11px] ${HIT_AREA_CLASS}`}
+          selected={modeRulesOpen}
+          aria-expanded={modeRulesOpen}
+          aria-label="Gamemode"
+          onClick={() => setModeRulesOpen(true)}
+        >
+          GAMEMODE
+        </GameButton>
+      )}
       {showActions && (
         <GameButton
           ref={travelButtonRef}
@@ -176,6 +200,25 @@ export default function MobileTopBar({
           onClose={() => setTravelOpen(false)}
           anchorRef={travelButtonRef}
         />
+      )}
+      {showActions && gameMode && (
+        <GameModeRules
+          mode={gameMode}
+          parameters={gameState.settings.gameModeParameters}
+          open={modeRulesOpen}
+          onClose={() => setModeRulesOpen(false)}
+        >
+          {supportLabel && (
+            <section
+              aria-label="Earth support"
+              className="mx-auto mb-6 max-w-sm border border-white/15 bg-white/[0.03] p-3"
+            >
+              <h3 className="font-orbitron text-sm text-center mb-3">{supportLabel}</h3>
+              <p className="text-sm text-white/70 text-center mb-1">Your production</p>
+              <EarthSupportProduction production={gameState.currentPlayer?.modeProduction} />
+            </section>
+          )}
+        </GameModeRules>
       )}
       <MobileMenuDrawer isOpen={menuOpen} onClose={closeMenu}>
         <GameMenuItems

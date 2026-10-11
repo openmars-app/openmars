@@ -1,3 +1,5 @@
+import GameIcon from "../../../display/GameIcon.tsx";
+import { OperationRequirements } from "./BehaviorQualifiers.tsx";
 import { BehaviorArrow } from "./BehaviorIcon";
 import React from "react";
 import ResourceDisplay from "./ResourceDisplay.tsx";
@@ -63,12 +65,72 @@ const isAttackTarget = (target: string | undefined): boolean =>
 const isAnyProductionChoicePattern = (behavior: CardBehaviorDto): boolean => {
   if (!behavior.choices || behavior.choices.length < 4) return false;
   return behavior.choices.every((choice) => {
+    if (choice.stateRequirements?.length || choice.requirements?.items.length) {
+      return false;
+    }
     if (choice.inputs && choice.inputs.length > 0) return false;
     if (!choice.outputs || choice.outputs.length !== 1) return false;
     const output = choice.outputs[0];
     return isProductionType(output) && (output.amount === 1 || output.amount === -1);
   });
 };
+
+function standardResourceChoice(behavior: CardBehaviorDto) {
+  const resources = ["credit", "steel", "titanium", "plant", "energy", "heat"];
+  const choices = behavior.choices;
+  if (choices?.length !== resources.length || behavior.outputs?.length) {
+    return undefined;
+  }
+  const matched = new Set<string>();
+  let pattern: "production" | "exchange" | undefined;
+  let productionAmount: number | undefined;
+  let resourceAmount: number | undefined;
+  for (const choice of choices) {
+    if (
+      choice.inputs?.length ||
+      choice.stateRequirements?.length ||
+      choice.requirements?.items.length
+    ) {
+      return undefined;
+    }
+    const outputs = choice.outputs ?? [];
+    const production = outputs.find((output) => output.type.endsWith("-production"));
+    if (
+      !production ||
+      ![1, -1].includes(production.amount) ||
+      production.target !== "self-player"
+    ) {
+      return undefined;
+    }
+    const resource = production.type.replace("-production", "");
+    if (!resources.includes(resource) || matched.has(resource)) {
+      return undefined;
+    }
+    const gain = outputs.find((output) => output.type === resource);
+    const kind = gain ? "exchange" : "production";
+    if (
+      outputs.length !== (gain ? 2 : 1) ||
+      (gain &&
+        (production.amount !== -1 ||
+          gain.amount <= 0 ||
+          gain.target !== "self-player" ||
+          behavior.inputs?.length)) ||
+      (pattern && pattern !== kind) ||
+      (productionAmount !== undefined && productionAmount !== production.amount) ||
+      (resourceAmount !== undefined && resourceAmount !== gain?.amount) ||
+      outputs.some((output) =>
+        Object.keys(output).some((key) => !["type", "amount", "target"].includes(key)),
+      )
+    ) {
+      return undefined;
+    }
+    pattern = kind;
+    productionAmount = production.amount;
+    resourceAmount = gain?.amount;
+    matched.add(resource);
+  }
+  return { kind: pattern, productionAmount, resourceAmount };
+}
 
 const renderChoiceOutputs = (
   outputs: ResourceCondition[] | undefined,
@@ -81,6 +143,7 @@ const renderChoiceOutputs = (
   ) => IconDisplayInfo,
   tileScaleInfo: TileScaleInfo,
   computedOutputs?: CalculatedOutputDto[],
+  numbered = false,
 ): React.ReactNode => {
   if (!outputs) return null;
   return outputs.map((output, outputIndex) => {
@@ -97,7 +160,7 @@ const renderChoiceOutputs = (
         />
       );
     }
-    const displayInfo = analyzeResourceDisplayWithConstraints(output, 3, false);
+    const displayInfo = analyzeResourceDisplayWithConstraints(output, 3, numbered);
     return (
       <ResourceDisplay
         key={`choice-${choiceIndex}-output-${outputIndex}`}
@@ -124,8 +187,51 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
   computedOutputs,
 }) => {
   const { compact } = useBehaviorLayout();
+  const standardChoice = standardResourceChoice(behavior);
+  if (standardChoice) {
+    return (
+      <div
+        className="behavior-flow flex items-center justify-center gap-2"
+        data-standard-choice={standardChoice.kind}
+        data-choice-indices={behavior.choices?.map((_, index) => index).join(",")}
+      >
+        {behavior.inputs?.map((input, index) => (
+          <ResourceDisplay
+            key={index}
+            resource={input}
+            displayInfo={analyzeResourceDisplayWithConstraints(input, 3, false)}
+            isInput
+            isGroupedWithOtherNegatives={false}
+            context="action"
+            isAffordable={isResourceAffordable(input, true)}
+            tileScaleInfo={tileScaleInfo}
+          />
+        ))}
+        {standardChoice.kind === "production" && Boolean(behavior.inputs?.length) && (
+          <BehaviorArrow />
+        )}
+        {standardChoice.productionAmount === -1 && <span>−</span>}
+        <GameIcon iconType="standard-resource-production" size="behavior" />
+        {standardChoice.kind === "exchange" && (
+          <>
+            <BehaviorArrow />
+            <span>{standardChoice.resourceAmount}</span>
+            <GameIcon iconType="standard-resource" size="behavior" />
+          </>
+        )}
+        {(standardChoice.kind === "exchange" || behavior.choicePolicy) && (
+          <span data-rule-exception className="font-bold">
+            *
+          </span>
+        )}
+      </div>
+    );
+  }
+  const choices = (behavior.choices ?? []).filter(
+    (choice) => (choice.inputs?.length ?? 0) + (choice.outputs?.length ?? 0) > 0,
+  );
   // Handle choice-based behaviors
-  if (behavior.choices && behavior.choices.length > 0) {
+  if (choices.length > 0) {
     // Compact rendering for "any standard production +1" patterns (e.g. Robinson Industries)
     if (isAnyProductionChoicePattern(behavior)) {
       const hasInputs = behavior.inputs && behavior.inputs.length > 0;
@@ -150,9 +256,7 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
               })}
             </div>
           ) : !hideActionChip ? (
-            <span className="text-[10px] font-semibold text-white bg-[rgba(33,150,243,0.5)] px-1.5 py-0.5 [text-shadow:0_0_2px_rgba(0,0,0,0.6)]">
-              Action
-            </span>
+            <GameIcon iconType="action" size="behavior" />
           ) : null}
           <BehaviorArrow />
           <div className="bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)] flex items-center">
@@ -170,7 +274,7 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
     }
 
     // Check if choices only have inputs (no outputs) and behavior has outputs
-    const choicesOnlyHaveInputs = behavior.choices.every(
+    const choicesOnlyHaveInputs = choices.every(
       (choice) => !choice.outputs || choice.outputs.length === 0,
     );
     const behaviorHasOutputs = behavior.outputs && behavior.outputs.length > 0;
@@ -182,10 +286,11 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
         <div className="behavior-flow flex items-center justify-center gap-2 w-full">
           {/* All choice inputs with "/" separator */}
           <div className="flex items-center gap-[6px]">
-            {behavior.choices.map((choice, choiceIndex) => (
+            {choices.map((choice, choiceIndex) => (
               <React.Fragment key={`choice-input-${choiceIndex}`}>
                 {choiceIndex > 0 && <OrChip />}
                 <div className="flex gap-[3px] items-center">
+                  <OperationRequirements stateRequirements={choice.stateRequirements} />
                   {choice.inputs &&
                     choice.inputs.map((input, inputIndex: number) => {
                       const displayInfo = analyzeResourceDisplayWithConstraints(input, 3, false);
@@ -239,109 +344,52 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
       );
     }
 
-    // Default case: each choice has its own outputs
-    // Format: <input1> -> <output1> OR <input2> -> <output2>
-
-    // Calculate total icon count across all choices to determine layout
-    const totalIconCount = behavior.choices.reduce((total: number, choice) => {
-      const inputCount = choice.inputs?.length || 0;
-      const outputCount = choice.outputs?.length || 0;
-      const hasArrow = inputCount > 0 && outputCount > 0 ? 1 : 0;
-      return total + inputCount + outputCount + hasArrow;
-    }, 0);
-    // Add OR separators between choices
-    const totalWithSeparators = totalIconCount + (behavior.choices.length - 1);
-    const canFitOnSingleRow = totalWithSeparators < 4;
-
-    // Horizontal layout for small choice-based actions
-    if (canFitOnSingleRow) {
-      return (
-        <div className="behavior-flow flex items-center justify-center gap-1 w-full">
-          {behavior.choices.map((choice, choiceIndex) => (
-            <div key={`choice-${choiceIndex}`} className="flex items-center gap-1 max-w-full">
-              {/* OR separator between choices */}
-              {choiceIndex > 0 && <OrChip />}
-
-              {/* Choice content (inputs -> outputs) */}
-              <div className="behavior-flow flex items-center gap-1 max-w-full">
-                {/* Inputs */}
-                {choice.inputs?.map((input, inputIndex: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(input, 3, false);
-                  return (
-                    <ResourceDisplay
-                      key={`choice-${choiceIndex}-input-${inputIndex}`}
-                      displayInfo={displayInfo}
-                      isInput={true}
-                      resource={input}
-                      isGroupedWithOtherNegatives={false}
-                      context="action"
-                      isAffordable={isResourceAffordable(input, true)}
-                      tileScaleInfo={tileScaleInfo}
-                    />
-                  );
-                })}
-
-                {/* Arrow if both inputs and outputs */}
-                {(choice.inputs?.length ?? 0) > 0 && (choice.outputs?.length ?? 0) > 0 && (
-                  <BehaviorArrow />
-                )}
-
-                {/* Outputs */}
-                {renderChoiceOutputs(
-                  choice.outputs,
-                  choiceIndex,
-                  isResourceAffordable,
-                  analyzeResourceDisplayWithConstraints,
-                  tileScaleInfo,
-                  computedOutputs,
-                )}
-              </div>
-            </div>
-          ))}
-
-          {(behavior.generationalEventRequirements?.length ?? 0) > 0 && (
-            <span className="text-white font-bold text-sm ml-1">*</span>
-          )}
-        </div>
-      );
-    }
-
-    // Vertical layout for larger choice-based actions
     return (
-      <div className="flex flex-col gap-1.5 items-center w-full">
-        {behavior.choices.map((choice, choiceIndex) => (
+      <div
+        data-action-choices
+        className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1.5 max-w-full min-w-0"
+      >
+        {Boolean(behavior.inputs?.length) && (
+          <div data-shared-choice-cost className="inline-flex items-center gap-1 shrink-0">
+            {behavior.inputs?.map((input, inputIndex) => (
+              <ResourceDisplay
+                key={`shared-input-${inputIndex}`}
+                displayInfo={analyzeResourceDisplayWithConstraints(input, 3, false)}
+                isInput
+                resource={input}
+                isGroupedWithOtherNegatives={false}
+                context="action"
+                isAffordable={isResourceAffordable(input, true)}
+                tileScaleInfo={tileScaleInfo}
+              />
+            ))}
+            <BehaviorArrow />
+          </div>
+        )}
+        {choices.map((choice, choiceIndex) => (
           <div
             key={`choice-${choiceIndex}`}
-            className="flex items-center gap-1 w-full justify-center"
+            data-action-choice={choiceIndex}
+            className="inline-flex items-center justify-center gap-1 max-w-full"
           >
-            {/* Input side for this choice */}
-            <div className="flex flex-col gap-0.5 items-center min-w-0">
-              {choice.inputs &&
-                choice.inputs.map((input, inputIndex: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(input, 3, false);
-                  return (
-                    <React.Fragment key={`choice-${choiceIndex}-input-${inputIndex}`}>
-                      <ResourceDisplay
-                        displayInfo={displayInfo}
-                        isInput={true}
-                        resource={input}
-                        isGroupedWithOtherNegatives={false}
-                        context="action"
-                        isAffordable={isResourceAffordable(input, true)}
-                        tileScaleInfo={tileScaleInfo}
-                      />
-                    </React.Fragment>
-                  );
-                })}
-            </div>
-
-            {/* Arrow separator for this choice */}
-            {(choice.inputs?.length ?? 0) > 0 && (choice.outputs?.length ?? 0) > 0 && (
-              <BehaviorArrow />
-            )}
-
-            {/* Output side for this choice */}
-            <div className="flex flex-col gap-0.5 items-center min-w-0">
+            {choiceIndex > 0 && <OrChip />}
+            <OperationRequirements stateRequirements={choice.stateRequirements} />
+            <div className="behavior-flow flex items-center gap-1 max-w-full">
+              {choice.inputs?.map((input, inputIndex) => (
+                <ResourceDisplay
+                  key={`choice-${choiceIndex}-input-${inputIndex}`}
+                  displayInfo={analyzeResourceDisplayWithConstraints(input, 3, false)}
+                  isInput
+                  resource={input}
+                  isGroupedWithOtherNegatives={false}
+                  context="action"
+                  isAffordable={isResourceAffordable(input, true)}
+                  tileScaleInfo={tileScaleInfo}
+                />
+              ))}
+              {(choice.inputs?.length ?? 0) > 0 && (choice.outputs?.length ?? 0) > 0 && (
+                <BehaviorArrow />
+              )}
               {renderChoiceOutputs(
                 choice.outputs,
                 choiceIndex,
@@ -349,17 +397,14 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
                 analyzeResourceDisplayWithConstraints,
                 tileScaleInfo,
                 computedOutputs,
+                choices.length >= 3,
               )}
             </div>
-
-            {(behavior.generationalEventRequirements?.length ?? 0) > 0 && (
-              <span className="text-white font-bold text-sm ml-1">*</span>
-            )}
-
-            {/* Add "OR" separator between choices (except for the last one) */}
-            {choiceIndex < behavior.choices!.length - 1 && <OrChip />}
           </div>
         ))}
+        {(behavior.generationalEventRequirements?.length ?? 0) > 0 && (
+          <span className="font-bold text-sm ml-1">*</span>
+        )}
       </div>
     );
   }
@@ -370,11 +415,7 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
   if (hasActionReuse) {
     return (
       <div className="behavior-flow flex items-center justify-center gap-1 w-full">
-        {!hideActionChip && (
-          <span className="text-[10px] font-semibold text-white bg-[rgba(33,150,243,0.5)] px-1.5 py-0.5 [text-shadow:0_0_2px_rgba(0,0,0,0.6)]">
-            Action
-          </span>
-        )}
+        {!hideActionChip && <GameIcon iconType="action" size="behavior" />}
         <div className="bg-white/[0.08] border border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)] px-2 py-1 flex items-center justify-center">
           <svg
             width="16"
@@ -431,9 +472,7 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
             );
           })
         ) : !hideActionChip ? (
-          <span className="text-[10px] font-semibold text-white bg-[rgba(33,150,243,0.5)] px-1.5 py-0.5 [text-shadow:0_0_2px_rgba(0,0,0,0.6)]">
-            Action
-          </span>
+          <GameIcon iconType="action" size="behavior" />
         ) : null}
       </div>
 

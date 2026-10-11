@@ -147,8 +147,8 @@ export default function VolcanoTile({
     volcanoMaterial.uniforms.uEmergence.value = eased;
 
     const shakeIntensity = 0.008 * (1 - eased);
-    const shakeX = (Math.random() - 0.5) * 2 * shakeIntensity;
-    const shakeY = (Math.random() - 0.5) * 2 * shakeIntensity;
+    const shakeX = Math.sin(elapsed * 0.137 + seed) * shakeIntensity;
+    const shakeY = Math.sin(elapsed * 0.173 + seed * 1.3) * shakeIntensity;
     groupRef.current.position.set(shakeX, shakeY, 0);
 
     if (t >= 1) {
@@ -169,10 +169,13 @@ export default function VolcanoTile({
         />
       </group>
 
-      {!nuclearImpacted && showSmoke && <VolcanoSmoke craterHeight={VOLCANO_HEIGHT * 0.85} />}
+      {!nuclearImpacted && showSmoke && (
+        <VolcanoSmoke seed={seed} craterHeight={VOLCANO_HEIGHT * 0.85} />
+      )}
 
       {!nuclearImpacted && showDust && surfaceNormal && worldPosition && (
         <DustEffect
+          seed={seed}
           duration={3000}
           particleColor={new THREE.Color(0.55, 0.18, 0.08)}
           onComplete={() => setShowDust(false)}

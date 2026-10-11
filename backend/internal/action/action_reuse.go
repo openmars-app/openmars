@@ -67,7 +67,7 @@ func ValidateCardActionChoice(behavior shared.CardBehavior, choiceIndex *int, p 
 	}
 	choice := behavior.Choices[*choiceIndex]
 	// Costs are validated together by the payment system, including substitutes.
-	if errors := CalculateChoiceErrors(shared.Choice{Requirements: choice.Requirements}, p, g, registry); len(errors) > 0 {
+	if errors := CalculateChoiceErrors(shared.Choice{Requirements: choice.Requirements, StateRequirements: choice.StateRequirements}, p, g, registry); len(errors) > 0 {
 		return fmt.Errorf("%s", errors[0].Message)
 	}
 	return nil

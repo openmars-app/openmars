@@ -1,0 +1,286 @@
+[
+  {
+    "id": "classic",
+    "name": "Classic",
+    "summary": "Terraform Mars with the familiar core deck.",
+    "scenario": "Build your corporation, raise the global parameters, and compete to make Mars habitable.",
+    "rules": [
+      {
+        "title": "The race for Mars",
+        "text": "Standard terraforming, cities, greenery, milestones, awards, and scoring apply."
+      },
+      {
+        "title": "Curated core deck",
+        "text": "Optional Preludes provide starting advantages. Venus and Colonies can be enabled separately or together, adding their cards and rules. Politics and Earth-withdrawal mechanics are not included."
+      }
+    ],
+    "minPlayers": 1,
+    "maxPlayers": 8,
+    "parameters": [],
+    "features": [
+      {
+        "id": "prelude",
+        "name": "Preludes",
+        "description": "Choose starting preludes curated for this mode.",
+        "experimental": false,
+        "default": true
+      },
+      {
+        "id": "venus",
+        "name": "Venus",
+        "description": "Add Venus terraforming, cards, corporations, and the Venus board.",
+        "experimental": false,
+        "default": false,
+        "systems": [
+          "venus"
+        ]
+      },
+      {
+        "id": "colonies",
+        "name": "Colonies",
+        "description": "Add colony tiles, trading, cards, and corporations.",
+        "experimental": false,
+        "default": false,
+        "systems": [
+          "colonies"
+        ]
+      },
+      {
+        "id": "project-funding",
+        "name": "Project Funding",
+        "description": "Experimental shared funding objectives. Balance testing is ongoing.",
+        "experimental": true,
+        "default": false
+      }
+    ],
+    "systems": [],
+    "statuses": [],
+    "runtime": {},
+    "stateVisuals": {}
+  },
+  {
+    "id": "earth-withdrawal",
+    "name": "Earth Withdrawal",
+    "summary": "Build with cheap Earth support before contact ends, then make your economy independent.",
+    "scenario": "Use Earth support to grow, then build an economy that works without it. Normal terraforming and scoring still apply.",
+    "rules": [
+      {
+        "title": "While connected",
+        "icon": "connection-open",
+        "text": "Once everyone is ready to take actions, gain M€ each connected generation: 2, then 3, 4, 5 and so on. A disconnected generation resets the amount to 2."
+      },
+      {
+        "title": "When Earth withdraws",
+        "icon": "transition",
+        "text": "Contact ends after the chosen generation’s production. Earth-dependent effects stop. Keep your cards, tags and resources."
+      },
+      {
+        "title": "Make effects permanent",
+        "icon": "technology-import",
+        "text": "Import a project’s Earth-dependent effects to keep them working after withdrawal. Its upkeep becomes permanent too."
+      },
+      {
+        "title": "Restore contact",
+        "icon": "contact-window-generation",
+        "text": "Reconnection cards temporarily restore Earth support: for the next generation, or for production only."
+      },
+      {
+        "title": "Earth support",
+        "text": "Everyone gains 2 M€ before the first actions of generation 1. Each consecutive connected generation increases this by 1 M€. Everyone receives this payment together after all players finish production and card selection. A disconnected generation resets the amount to 2. Production-only reconnections do not grant this payment. Effects marked with the connected Earth icon need contact. Earth tags alone do not.",
+        "advanced": true
+      },
+      {
+        "title": "Withdrawal",
+        "text": "Choose withdrawal after generation 4, 6, or 8. The default is 6. Contact ends after that generation’s production. Withdrawal happens once: later reconnection does not reset before/after conditions or repeat withdrawal rewards.",
+        "advanced": true
+      },
+      {
+        "title": "Changing the deadline",
+        "text": "Cards can move Earth's withdrawal 1 generation earlier or later, up to 2 generations from its starting date. Each player may change it once per generation. Moving it earlier must leave at least one full generation of notice. The deadline is fixed after withdrawal.",
+        "advanced": true
+      },
+      {
+        "title": "What survives",
+        "text": "Keep your played cards, resources, tags, tiles, and victory points when contact ends. Effects marked with the connected Earth icon need contact. Earth tags alone do not. Only those groups stop. Their production and upkeep return together if contact is restored. Earth-supported production cannot pay permanent production reductions.",
+        "advanced": true
+      },
+      {
+        "title": "Import technology",
+        "text": "Importing makes the Earth-dependent effects of one eligible owned project permanent, including upkeep and action costs. Initial gains do not repeat. Only marked eligible projects can be imported. The shared stipend, corporations, preludes, and lease payments cannot be imported. Copied production retains its own dependency: importing the original does not import the copy.",
+        "advanced": true
+      },
+      {
+        "title": "Shut down Earth support",
+        "text": "Shutting down a project permanently disables its Earth-supported group, including upkeep, actions, and passive effects. Keep the played card, tags, victory points, stored resources, and independent effects. Imported or already shut-down groups cannot be targeted. Lease payments are a separate obligation and cannot be shut down.",
+        "advanced": true
+      },
+      {
+        "title": "Lease payments",
+        "text": "Lease payments last until withdrawal, then end permanently. They are separate from Earth support, cannot be imported, and do not count as an Earth-supported project. Copied lease payments keep the same expiry.",
+        "advanced": true
+      },
+      {
+        "title": "Temporary reconnection",
+        "text": "Reconnection cards restore Earth contact for the next generation, or only for this generation’s production. A production-only connection provides no action opportunity. Play these cards while disconnected. Windows cannot overlap. A connection for this production can coexist with one for the next generation. Contact closes again when its window ends.",
+        "advanced": true
+      },
+      {
+        "title": "Deck and options",
+        "text": "The mode has its own curated projects and corporations. Preludes are optional. Venus and Colonies are not used.",
+        "advanced": true
+      }
+    ],
+    "minPlayers": 1,
+    "maxPlayers": 5,
+    "parameters": [
+      {
+        "id": "withdrawal-generation",
+        "label": "Withdrawal after generation",
+        "description": "Earth contact ends after this generation’s production, before later card adjustments.",
+        "default": 6,
+        "values": [
+          4,
+          6,
+          8
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "prelude",
+        "name": "Preludes",
+        "description": "Choose starting preludes curated for this mode.",
+        "experimental": false,
+        "default": true
+      }
+    ],
+    "systems": [],
+    "statuses": [
+      {
+        "state": "earth-contact",
+        "label": "Earth contact",
+        "labels": {
+          "0": "Disconnected",
+          "1": "Connected"
+        },
+        "kind": "connection",
+        "from": "earth",
+        "to": "mars"
+      },
+      {
+        "state": "withdrawal-generation",
+        "label": "Withdrawal after generation",
+        "kind": "counter"
+      }
+    ],
+    "runtime": {
+      "requirementMessages": {
+        "earth-contact": {
+          "0": "Earth is still connected",
+          "1": "Earth is disconnected"
+        },
+        "withdrawal-occurred": {
+          "0": "Withdrawal has already happened",
+          "1": "Earth has not withdrawn yet"
+        }
+      },
+      "state": {
+        "earth-contact": 1,
+        "withdrawal-occurred": 0
+      },
+      "deadlines": [
+        {
+          "state": "withdrawal-generation",
+          "parameter": "withdrawal-generation",
+          "activeState": "earth-contact",
+          "occurredState": "withdrawal-occurred",
+          "activeValue": 1,
+          "inactiveValue": 0,
+          "maxParameterAdjustment": 2,
+          "minGenerationOffset": 1,
+          "perPlayerGenerationLimit": 1,
+          "warningTitle": "Last generation of Earth support",
+          "warningSoundId": "earth-withdrawal-warning"
+        }
+      ],
+      "behaviors": [],
+      "presentationRules": [
+        {
+          "state": "earth-contact",
+          "to": 0,
+          "title": "Earth contact closed",
+          "soundId": "earth-contact-lost",
+          "description": "Earth-dependent operations pause. Local industry continues.",
+          "effects": [
+            {
+              "kind": "link-transition",
+              "link": {
+                "from": "earth",
+                "to": "mars",
+                "connected": false
+              }
+            }
+          ]
+        },
+        {
+          "state": "earth-contact",
+          "to": 1,
+          "title": "Earth contact restored",
+          "description": "Earth-dependent operations are available for this contact window.",
+          "effects": [
+            {
+              "kind": "link-transition",
+              "link": {
+                "from": "earth",
+                "to": "mars",
+                "connected": true
+              }
+            }
+          ]
+        }
+      ],
+      "generationIncome": {
+        "state": "earth-contact",
+        "equals": 1,
+        "initialAmount": 2,
+        "increment": 1,
+        "resource": "credit",
+        "name": "Earth support"
+      }
+    },
+    "stateVisuals": {
+      "earth-contact": {
+        "icon": "connection",
+        "label": "Earth contact",
+        "values": {
+          "0": {
+            "icon": "connection-closed",
+            "label": "Earth disconnected"
+          },
+          "1": {
+            "icon": "connection-open",
+            "label": "Earth connected"
+          }
+        }
+      },
+      "withdrawal-generation": {
+        "icon": "generation-deadline",
+        "label": "Withdrawal generation"
+      },
+      "withdrawal-occurred": {
+        "icon": "transition",
+        "label": "Withdrawal",
+        "values": {
+          "0": {
+            "icon": "transition-pending",
+            "label": "Before withdrawal"
+          },
+          "1": {
+            "icon": "transition-complete",
+            "label": "After withdrawal"
+          }
+        }
+      }
+    }
+  }
+]

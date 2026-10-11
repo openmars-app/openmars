@@ -133,6 +133,7 @@ const (
 type TargetType string
 
 const (
+	TargetGame           TargetType = "game"
 	TargetSelfPlayer     TargetType = "self-player"
 	TargetSelfCard       TargetType = "self-card"
 	TargetTriggeringCard TargetType = "triggering-card"
@@ -229,6 +230,7 @@ type TargetRestrictionDto struct {
 // Multiple fields within a Selector use AND logic (all must match).
 // Multiple Selectors in a slice use OR logic (any match is sufficient).
 type SelectorDto struct {
+	Dependency           string            `json:"dependency,omitempty"`
 	TagCount             *MinMaxValueDto   `json:"tagCount,omitempty"`
 	Tags                 []CardTag         `json:"tags,omitempty"`
 	CardTypes            []CardType        `json:"cardTypes,omitempty"`
@@ -242,7 +244,7 @@ type SelectorDto struct {
 
 // BasicResourceConditionDto covers credit, steel, titanium, plant, energy, heat.
 //
-//tygo:emit export type ResourceCondition = BasicResourceConditionDto | ProductionConditionDto | TilePlacementConditionDto | GlobalParameterConditionDto | CardOperationConditionDto | CardStorageConditionDto | EffectConditionDto | ColonyConditionDto | TileModificationConditionDto | MiscConditionDto | CopyConditionDto | CardRevealConditionDto | PaymentSubstituteConditionDto;
+//tygo:emit export type ResourceCondition = BasicResourceConditionDto | ProductionConditionDto | TilePlacementConditionDto | GlobalParameterConditionDto | CardOperationConditionDto | CardStorageConditionDto | EffectConditionDto | ColonyConditionDto | TileModificationConditionDto | MiscConditionDto | CopyConditionDto | CardRevealConditionDto | PaymentSubstituteConditionDto | StateConditionDto;
 type BasicResourceConditionDto struct {
 	Type              string                `json:"type" tstype:"'credit' | 'steel' | 'titanium' | 'plant' | 'energy' | 'heat'"`
 	Amount            int                   `json:"amount"`
@@ -394,14 +396,15 @@ type PerConditionDto struct {
 
 // ChoiceDto represents a choice for client consumption
 type ChoiceDto struct {
-	InputOptions   *BehaviorInputOptionsDto `json:"inputOptions,omitempty"`
-	StorageTargets [][]string               `json:"storageTargets,omitempty"`
-	OriginalIndex  int                      `json:"originalIndex"`
-	Inputs         []any                    `json:"inputs,omitempty" tstype:"ResourceCondition[]"`
-	Outputs        []any                    `json:"outputs,omitempty" tstype:"ResourceCondition[]"`
-	Requirements   *CardRequirementsDto     `json:"requirements,omitempty"`
-	Available      bool                     `json:"available"`
-	Errors         []StateErrorDto          `json:"errors"`
+	StateRequirements []StateRequirementDto    `json:"stateRequirements,omitempty"`
+	InputOptions      *BehaviorInputOptionsDto `json:"inputOptions,omitempty"`
+	StorageTargets    [][]string               `json:"storageTargets,omitempty"`
+	OriginalIndex     int                      `json:"originalIndex"`
+	Inputs            []any                    `json:"inputs,omitempty" tstype:"ResourceCondition[]"`
+	Outputs           []any                    `json:"outputs,omitempty" tstype:"ResourceCondition[]"`
+	Requirements      *CardRequirementsDto     `json:"requirements,omitempty"`
+	Available         bool                     `json:"available"`
+	Errors            []StateErrorDto          `json:"errors"`
 }
 
 // TriggerDto represents a trigger for client consumption
@@ -418,6 +421,9 @@ type MinMaxValueDto struct {
 
 // ResourceTriggerConditionDto represents a resource trigger condition for client consumption
 type ResourceTriggerConditionDto struct {
+	Direction              string                          `json:"direction,omitempty"`
+	State                  string                          `json:"state,omitempty"`
+	To                     *int                            `json:"to,omitempty"`
 	Type                   TriggerType                     `json:"type"`
 	ResourceTypes          []ResourceType                  `json:"resourceTypes,omitempty"`
 	Location               *CardApplyLocation              `json:"location,omitempty"`
@@ -459,6 +465,15 @@ type VariableInputAmountDto struct {
 
 // CardBehaviorDto represents a card behavior for client consumption.
 type CardBehaviorDto struct {
+	ID                            string                            `json:"id,omitempty"`
+	Optional                      bool                              `json:"optional,omitempty"`
+	Dependency                    string                            `json:"dependency,omitempty"`
+	DependencyStatus              *DependencyStatusDto              `json:"dependencyStatus,omitempty"`
+	StateRequirements             []StateRequirementDto             `json:"stateRequirements,omitempty"`
+	MaxUsesPerGame                int                               `json:"maxUsesPerGame,omitempty"`
+	UsageGroup                    string                            `json:"usageGroup,omitempty"`
+	ResourceRequirements          []BehaviorResourceRequirementDto  `json:"resourceRequirements,omitempty"`
+	MaxUsesPerGeneration          int                               `json:"maxUsesPerGeneration,omitempty"`
 	InputOptions                  *BehaviorInputOptionsDto          `json:"inputOptions,omitempty"`
 	ProductionBox                 string                            `json:"productionBox,omitempty"`
 	Description                   string                            `json:"description,omitempty"`
@@ -485,17 +500,23 @@ type CardRequirementsDto struct {
 
 // RequirementDto represents a card requirement for client consumption
 type RequirementDto struct {
-	Type     RequirementType    `json:"type"`
-	Min      *int               `json:"min,omitempty"`
-	Max      *int               `json:"max,omitempty"`
-	Location *CardApplyLocation `json:"location,omitempty"`
-	Tag      *CardTag           `json:"tag,omitempty"`
-	Resource *ResourceType      `json:"resource,omitempty"`
+	Target    string             `json:"target,omitempty" tstype:"'self-player'"`
+	Permanent bool               `json:"permanent,omitempty"`
+	State     string             `json:"state,omitempty"`
+	Equals    *int               `json:"equals,omitempty"`
+	Type      RequirementType    `json:"type"`
+	Min       *int               `json:"min,omitempty"`
+	Max       *int               `json:"max,omitempty"`
+	Location  *CardApplyLocation `json:"location,omitempty"`
+	Tag       *CardTag           `json:"tag,omitempty"`
+	Resource  *ResourceType      `json:"resource,omitempty"`
 }
 
 // ResourceStorageDto represents a card's resource storage for client consumption
 type ResourceStorageDto struct {
 	Type        ResourceType `json:"type"`
+	Icon        string       `json:"icon,omitempty"`
+	Label       string       `json:"label,omitempty"`
 	Capacity    *int         `json:"capacity,omitempty"`
 	Starting    int          `json:"starting"`
 	Description string       `json:"description,omitempty"`
@@ -503,11 +524,12 @@ type ResourceStorageDto struct {
 
 // VPConditionDto represents a victory point condition for client consumption
 type VPConditionDto struct {
-	Amount      int              `json:"amount"`
-	Condition   VPConditionType  `json:"condition"`
-	MaxTrigger  *int             `json:"maxTrigger,omitempty"`
-	Per         *PerConditionDto `json:"per,omitempty"`
-	Description string           `json:"description,omitempty"`
+	StateRequirements []StateRequirementDto `json:"stateRequirements,omitempty"`
+	Amount            int                   `json:"amount"`
+	Condition         VPConditionType       `json:"condition"`
+	MaxTrigger        *int                  `json:"maxTrigger,omitempty"`
+	Per               *PerConditionDto      `json:"per,omitempty"`
+	Description       string                `json:"description,omitempty"`
 }
 
 // CardDescriptionSectionDto is one labelled paragraph of a card's description.
@@ -519,18 +541,21 @@ type CardDescriptionSectionDto struct {
 
 // CardDto represents a card for client consumption
 type CardDto struct {
-	Style           *CardStyleDto               `json:"style,omitempty"`
-	ID              string                      `json:"id"`
-	Name            string                      `json:"name"`
-	Type            CardType                    `json:"type"`
-	Cost            int                         `json:"cost"`
-	Description     []CardDescriptionSectionDto `json:"description"`
-	Pack            string                      `json:"pack"`
-	Tags            []CardTag                   `json:"tags,omitempty"`
-	Requirements    *CardRequirementsDto        `json:"requirements,omitempty"`
-	Behaviors       []CardBehaviorDto           `json:"behaviors,omitempty"`
-	ResourceStorage *ResourceStorageDto         `json:"resourceStorage,omitempty"`
-	VPConditions    []VPConditionDto            `json:"vpConditions,omitempty"`
+	Style       *CardStyleDto               `json:"style,omitempty"`
+	ID          string                      `json:"id"`
+	Name        string                      `json:"name"`
+	Type        CardType                    `json:"type"`
+	Cost        int                         `json:"cost"`
+	Description []CardDescriptionSectionDto `json:"description"`
+
+	GameModes        []string             `json:"gameModes"`
+	RequiresFeatures []string             `json:"requiresFeatures,omitempty"`
+	RequiresSystems  []string             `json:"requiresSystems,omitempty"`
+	Tags             []CardTag            `json:"tags,omitempty"`
+	Requirements     *CardRequirementsDto `json:"requirements,omitempty"`
+	Behaviors        []CardBehaviorDto    `json:"behaviors,omitempty"`
+	ResourceStorage  *ResourceStorageDto  `json:"resourceStorage,omitempty"`
+	VPConditions     []VPConditionDto     `json:"vpConditions,omitempty"`
 
 	StartingResources  *ResourceSet `json:"startingResources,omitempty"`
 	StartingProduction *ResourceSet `json:"startingProduction,omitempty"`
@@ -563,42 +588,47 @@ type SelectPreludeCardsOtherPlayerDto struct {
 
 // ProductionPhaseDto represents card selection and production phase state for a player
 type ProductionPhaseDto struct {
-	AvailableCards    []CardDto    `json:"availableCards"`    // Cards available for selection
-	SelectionComplete bool         `json:"selectionComplete"` // Whether player completed card selection
-	BeforeResources   ResourcesDto `json:"beforeResources"`
-	AfterResources    ResourcesDto `json:"afterResources"`
-	ResourceDelta     ResourcesDto `json:"resourceDelta"`
-	EnergyConverted   int          `json:"energyConverted"`
-	CreditsIncome     int          `json:"creditsIncome"`
+	ProductionUsed    ProductionDto `json:"productionUsed"`
+	AvailableCards    []CardDto     `json:"availableCards"`    // Cards available for selection
+	SelectionComplete bool          `json:"selectionComplete"` // Whether player completed card selection
+	BeforeResources   ResourcesDto  `json:"beforeResources"`
+	AfterResources    ResourcesDto  `json:"afterResources"`
+	ResourceDelta     ResourcesDto  `json:"resourceDelta"`
+	EnergyConverted   int           `json:"energyConverted"`
+	CreditsIncome     int           `json:"creditsIncome"`
 }
 
 type ProductionPhaseOtherPlayerDto struct {
-	SelectionComplete bool         `json:"selectionComplete"` // Whether player completed card selection
-	BeforeResources   ResourcesDto `json:"beforeResources"`
-	AfterResources    ResourcesDto `json:"afterResources"`
-	ResourceDelta     ResourcesDto `json:"resourceDelta"`
-	EnergyConverted   int          `json:"energyConverted"`
-	CreditsIncome     int          `json:"creditsIncome"`
+	ProductionUsed    ProductionDto `json:"productionUsed"`
+	SelectionComplete bool          `json:"selectionComplete"` // Whether player completed card selection
+	BeforeResources   ResourcesDto  `json:"beforeResources"`
+	AfterResources    ResourcesDto  `json:"afterResources"`
+	ResourceDelta     ResourcesDto  `json:"resourceDelta"`
+	EnergyConverted   int           `json:"energyConverted"`
+	CreditsIncome     int           `json:"creditsIncome"`
 }
 
 // GameSettingsDto contains configurable game parameters
 type GameSettingsDto struct {
-	MaxPlayers            int          `json:"maxPlayers"`
-	MapID                 string       `json:"mapId"`
-	VenusNextEnabled      bool         `json:"venusNextEnabled"`
-	DevelopmentMode       bool         `json:"developmentMode"`
-	DemoGame              bool         `json:"demoGame"`
-	AllowRandomBuy        bool         `json:"allowRandomBuy"`
-	CardPacks             []string     `json:"cardPacks,omitempty"`
-	HasClaudeOAuthToken   bool         `json:"hasClaudeOAuthToken"`
-	BotSpendCapUSD        float64      `json:"botSpendCapUsd"`
-	BotSpendUSD           float64      `json:"botSpendUsd"`
-	AvailablePlayerColors []string     `json:"availablePlayerColors"`
-	AvailableMaps         []MapInfoDto `json:"availableMaps"`
-	Temperature           *int         `json:"temperature,omitempty"`
-	Oxygen                *int         `json:"oxygen,omitempty"`
-	Oceans                *int         `json:"oceans,omitempty"`
-	Generation            *int         `json:"generation,omitempty"`
+	GameModeID            string         `json:"gameModeId"`
+	GameModeParameters    map[string]int `json:"gameModeParameters"`
+	Features              []string       `json:"features"`
+	Systems               []string       `json:"systems"`
+	AvailableGameModes    []GameModeDto  `json:"availableGameModes"`
+	MaxPlayers            int            `json:"maxPlayers"`
+	MapID                 string         `json:"mapId"`
+	DevelopmentMode       bool           `json:"developmentMode"`
+	DemoGame              bool           `json:"demoGame"`
+	AllowRandomBuy        bool           `json:"allowRandomBuy"`
+	HasClaudeOAuthToken   bool           `json:"hasClaudeOAuthToken"`
+	BotSpendCapUSD        float64        `json:"botSpendCapUsd"`
+	BotSpendUSD           float64        `json:"botSpendUsd"`
+	AvailablePlayerColors []string       `json:"availablePlayerColors"`
+	AvailableMaps         []MapInfoDto   `json:"availableMaps"`
+	Temperature           *int           `json:"temperature,omitempty"`
+	Oxygen                *int           `json:"oxygen,omitempty"`
+	Oceans                *int           `json:"oceans,omitempty"`
+	Generation            *int           `json:"generation,omitempty"`
 }
 
 // MapInfoDto contains basic map info for the frontend
@@ -776,17 +806,21 @@ type StateWarningDto struct {
 // PlayerCardDto represents a card in a player's hand with calculated playability state
 // Part of the Player-Scoped Card Architecture
 type PlayerCardDto struct {
-	ID              string                      `json:"id"`
-	Name            string                      `json:"name"`
-	Type            CardType                    `json:"type"`
-	Cost            int                         `json:"cost"` // Original card cost (same as CardDto.Cost)
-	Description     []CardDescriptionSectionDto `json:"description"`
-	Pack            string                      `json:"pack"`
-	Tags            []CardTag                   `json:"tags,omitempty"`
-	Requirements    *CardRequirementsDto        `json:"requirements,omitempty"`
-	Behaviors       []CardBehaviorDto           `json:"behaviors,omitempty"`
-	ResourceStorage *ResourceStorageDto         `json:"resourceStorage,omitempty"`
-	VPConditions    []VPConditionDto            `json:"vpConditions,omitempty"`
+	DependencyTargets []string                    `json:"dependencyTargets,omitempty"`
+	ID                string                      `json:"id"`
+	Name              string                      `json:"name"`
+	Type              CardType                    `json:"type"`
+	Cost              int                         `json:"cost"` // Original card cost (same as CardDto.Cost)
+	Description       []CardDescriptionSectionDto `json:"description"`
+
+	GameModes        []string             `json:"gameModes"`
+	RequiresFeatures []string             `json:"requiresFeatures,omitempty"`
+	RequiresSystems  []string             `json:"requiresSystems,omitempty"`
+	Tags             []CardTag            `json:"tags,omitempty"`
+	Requirements     *CardRequirementsDto `json:"requirements,omitempty"`
+	Behaviors        []CardBehaviorDto    `json:"behaviors,omitempty"`
+	ResourceStorage  *ResourceStorageDto  `json:"resourceStorage,omitempty"`
+	VPConditions     []VPConditionDto     `json:"vpConditions,omitempty"`
 
 	Available      bool                       `json:"available"`                // Computed: len(Errors) == 0
 	Errors         []StateErrorDto            `json:"errors"`                   // Single source of truth for availability
@@ -816,7 +850,8 @@ type ActionReuseOptionDto struct {
 
 // PlayerActionDto represents an owned action with calculated usability.
 type PlayerActionDto struct {
-	ReuseOptions []ActionReuseOptionDto `json:"reuseOptions,omitempty"`
+	DependencyTargets []string               `json:"dependencyTargets,omitempty"`
+	ReuseOptions      []ActionReuseOptionDto `json:"reuseOptions,omitempty"`
 
 	CardID        string          `json:"cardId"`        // ID of the card that provides this action
 	CardName      string          `json:"cardName"`      // Name of the card for display purposes
@@ -900,18 +935,25 @@ type PendingCardDrawSelectionDto struct {
 }
 
 // PendingBehaviorResolutionDto describes one independently resolvable decision.
+type OptionalEffectDto struct {
+	Behavior  CardBehaviorDto `json:"behavior"`
+	Available bool            `json:"available"`
+	Errors    []StateErrorDto `json:"errors"`
+}
+
 type PendingBehaviorResolutionDto struct {
-	ID                  string      `json:"id"`
-	Kind                string      `json:"kind" tstype:"'card-discard' | 'choice'"`
-	Source              string      `json:"source"`
-	SourceCardID        string      `json:"sourceCardId"`
-	SourceBehaviorIndex int         `json:"sourceBehaviorIndex"`
-	TriggeringCardID    string      `json:"triggeringCardId,omitempty"`
-	TriggeringCardName  string      `json:"triggeringCardName,omitempty"`
-	MinCards            int         `json:"minCards"`
-	MaxCards            int         `json:"maxCards"`
-	Outputs             []any       `json:"outputs,omitempty" tstype:"ResourceCondition[]"`
-	Choices             []ChoiceDto `json:"choices,omitempty"`
+	OptionalEffect      *OptionalEffectDto `json:"optionalEffect,omitempty"`
+	ID                  string             `json:"id"`
+	Kind                string             `json:"kind" tstype:"'card-discard' | 'choice' | 'optional'"`
+	Source              string             `json:"source"`
+	SourceCardID        string             `json:"sourceCardId"`
+	SourceBehaviorIndex int                `json:"sourceBehaviorIndex"`
+	TriggeringCardID    string             `json:"triggeringCardId,omitempty"`
+	TriggeringCardName  string             `json:"triggeringCardName,omitempty"`
+	MinCards            int                `json:"minCards"`
+	MaxCards            int                `json:"maxCards"`
+	Outputs             []any              `json:"outputs,omitempty" tstype:"ResourceCondition[]"`
+	Choices             []ChoiceDto        `json:"choices,omitempty"`
 }
 
 // PendingResourceRemovalSelectionDto represents a pending optional resource removal
@@ -996,7 +1038,14 @@ type CardReceiptDto struct {
 	Cards        []CardDto `json:"cards"`
 }
 
+type ModeProductionDto struct {
+	Connected    ProductionDto `json:"connected"`
+	Disconnected ProductionDto `json:"disconnected"`
+}
+
 type PlayerDto struct {
+	ModeProduction         *ModeProductionDto            `json:"modeProduction,omitempty"`
+	PermanentProduction    ProductionDto                 `json:"permanentProduction"`
 	CardReceipts           []CardReceiptDto              `json:"cardReceipts"`
 	ResourceRemovalTargets []ResourceRemovalTargetDto    `json:"resourceRemovalTargets"`
 	PendingCardReveal      *PendingCardRevealDto         `json:"pendingCardReveal,omitempty"`
@@ -1076,27 +1125,28 @@ type ActionCostEntryDto struct {
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)
 type OtherPlayerDto struct {
-	ID               string            `json:"id"`
-	Name             string            `json:"name"`
-	PlayerType       string            `json:"playerType"`
-	BotStatus        string            `json:"botStatus,omitempty" tstype:"'loading' | 'ready' | 'failed' | 'thinking'"`
-	BotPersona       string            `json:"botPersona,omitempty"`
-	BotError         string            `json:"botError,omitempty"`
-	Color            string            `json:"color"`
-	Status           PlayerStatus      `json:"status"`
-	Corporation      *CardDto          `json:"corporation"`
-	HandCardCount    int               `json:"handCardCount"` // Number of cards in hand (private)
-	Resources        ResourcesDto      `json:"resources"`
-	Production       ProductionDto     `json:"production"`
-	TerraformRating  int               `json:"terraformRating"`
-	PlayedCards      []CardDto         `json:"playedCards"` // Played cards are public - full card details
-	Passed           bool              `json:"passed"`
-	AvailableActions int               `json:"availableActions"`
-	TotalActions     int               `json:"totalActions"`
-	IsConnected      bool              `json:"isConnected"`
-	IsExited         bool              `json:"isExited"`
-	Effects          []PlayerEffectDto `json:"effects"`
-	Actions          []PlayerActionDto `json:"actions"`
+	PermanentProduction ProductionDto     `json:"permanentProduction"`
+	ID                  string            `json:"id"`
+	Name                string            `json:"name"`
+	PlayerType          string            `json:"playerType"`
+	BotStatus           string            `json:"botStatus,omitempty" tstype:"'loading' | 'ready' | 'failed' | 'thinking'"`
+	BotPersona          string            `json:"botPersona,omitempty"`
+	BotError            string            `json:"botError,omitempty"`
+	Color               string            `json:"color"`
+	Status              PlayerStatus      `json:"status"`
+	Corporation         *CardDto          `json:"corporation"`
+	HandCardCount       int               `json:"handCardCount"` // Number of cards in hand (private)
+	Resources           ResourcesDto      `json:"resources"`
+	Production          ProductionDto     `json:"production"`
+	TerraformRating     int               `json:"terraformRating"`
+	PlayedCards         []CardDto         `json:"playedCards"` // Played cards are public - full card details
+	Passed              bool              `json:"passed"`
+	AvailableActions    int               `json:"availableActions"`
+	TotalActions        int               `json:"totalActions"`
+	IsConnected         bool              `json:"isConnected"`
+	IsExited            bool              `json:"isExited"`
+	Effects             []PlayerEffectDto `json:"effects"`
+	Actions             []PlayerActionDto `json:"actions"`
 
 	DemoReady bool `json:"demoReady"`
 
@@ -1113,6 +1163,7 @@ type OtherPlayerDto struct {
 // GameDto represents a game for client consumption (clean architecture)
 type GameDto struct {
 	ResumeLobby        *ResumeLobbyDto          `json:"resumeLobby,omitempty"`
+	ModeRuntime        *ModeRuntimeDto          `json:"modeRuntime,omitempty"`
 	ID                 string                   `json:"id"`
 	Status             GameStatus               `json:"status"`
 	Settings           GameSettingsDto          `json:"settings"`
@@ -1509,8 +1560,8 @@ type GenerationalEventRequirementDto struct {
 	Target *TargetType       `json:"target,omitempty"`
 }
 
-// CityStyleRequestDto contains optional visual requests, independent of placement rules.
-type CityStyleRequestDto struct {
+// StructureStyleRequestDto contains optional visual requests, independent of placement rules.
+type StructureStyleRequestDto struct {
 	Plan          string   `json:"plan,omitempty" tstype:"'clustered' | 'radial' | 'grid' | 'courtyard'"`
 	Density       string   `json:"density,omitempty" tstype:"'sparse' | 'balanced' | 'dense'"`
 	Heights       string   `json:"heights,omitempty" tstype:"'low' | 'mixed' | 'tall'"`
@@ -1518,7 +1569,7 @@ type CityStyleRequestDto struct {
 	Exposure      string   `json:"exposure,omitempty" tstype:"'surface' | 'mostly-buried'"`
 	Perimeter     string   `json:"perimeter,omitempty" tstype:"'open' | 'low-wall' | 'high-wall'"`
 	Cover         string   `json:"cover,omitempty" tstype:"'none' | 'dome' | 'flat-glass'"`
-	Landmark      string   `json:"landmark,omitempty" tstype:"'none' | 'hall' | 'observatory'"`
+	Landmark      string   `json:"landmark,omitempty" tstype:"'none' | 'hall' | 'observatory' | 'factory' | 'globe' | 'headquarters'"`
 	Connections   string   `json:"connections,omitempty" tstype:"'paths' | 'skybridges' | 'enclosed'"`
 	Landscaping   string   `json:"landscaping,omitempty" tstype:"'sparse' | 'parks' | 'lush'"`
 	Lighting      string   `json:"lighting,omitempty" tstype:"'normal' | 'bright'"`
@@ -1530,13 +1581,13 @@ type CityStyleRequestDto struct {
 
 // CardStyleDto contains card tile appearance requests.
 type CardStyleDto struct {
-	Tile *CityStyleRequestDto `json:"tile,omitempty"`
+	Tile *StructureStyleRequestDto `json:"tile,omitempty"`
 }
 
 // TileVisualDto is the stable visual input shared by every viewer.
 type TileVisualDto struct {
-	Seed uint32               `json:"seed"`
-	City *CityStyleRequestDto `json:"city,omitempty"`
+	Seed      uint32                    `json:"seed"`
+	Structure *StructureStyleRequestDto `json:"structure,omitempty"`
 }
 
 // CopyConditionDto describes the source and scope of a copy operation.

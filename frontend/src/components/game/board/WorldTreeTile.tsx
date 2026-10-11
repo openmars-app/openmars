@@ -172,8 +172,8 @@ export default function WorldTreeTile({
     worldTreeMaterial.uniforms.uEmergence.value = eased;
 
     const shakeIntensity = 0.006 * (1 - eased);
-    const shakeX = (Math.random() - 0.5) * 2 * shakeIntensity;
-    const shakeY = (Math.random() - 0.5) * 2 * shakeIntensity;
+    const shakeX = Math.sin(elapsed * 0.137 + seed) * shakeIntensity;
+    const shakeY = Math.sin(elapsed * 0.173 + seed * 1.3) * shakeIntensity;
     groupRef.current.position.set(shakeX, shakeY, 0);
 
     if (t >= 1) {
@@ -204,6 +204,7 @@ export default function WorldTreeTile({
 
       {!nuclearImpacted && showDust && surfaceNormal && worldPosition && (
         <DustEffect
+          seed={seed}
           duration={3000}
           particleColor={new THREE.Color(0.15, 0.3, 0.08)}
           onComplete={() => setShowDust(false)}

@@ -1,11 +1,15 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useGameStore } from "@/stores/gameStore.ts";
 import { AwardDto, MilestoneDto } from "@/types/generated/api-types.ts";
+import EarthSupportProduction, {
+  earthSupportLabel,
+} from "../../ui/display/EarthSupportProduction.tsx";
 import GameIcon from "../../ui/display/GameIcon.tsx";
 import RevealTrigger from "../../ui/display/RevealTrigger.tsx";
 import AwardScoreboard from "../../ui/display/AwardScoreboard.tsx";
 import { FormattedDescription } from "../../ui/display/FormattedDescription.tsx";
 import { Z_INDEX } from "@/constants/zIndex.ts";
+import { GamePopover } from "../../ui/GamePopover";
 import GameButton, { ANGLE_INDENT, BUTTON_SPACING } from "../../ui/buttons/GameButton.tsx";
 
 const SLOTS_PER_SIDE = 3;
@@ -26,6 +30,8 @@ type ChipKind = "milestone" | "award";
 
 const MilestoneAwardStatusStrip: React.FC = () => {
   const game = useGameStore((state) => state.game);
+  const [productionOpen, setProductionOpen] = useState(false);
+  const supportRef = useRef<HTMLButtonElement>(null);
 
   const allPlayers: PlayerInfo[] = useMemo(() => {
     if (!game) {
@@ -152,14 +158,54 @@ const MilestoneAwardStatusStrip: React.FC = () => {
     );
   };
 
+  const supportLabel = earthSupportLabel(game);
   const milestoneOrder = [2, 1, 0];
   const awardOrder = [0, 1, 2];
 
   return (
-    <div className="flex items-center pointer-events-auto">
-      {milestoneOrder.map((slot, i) => renderSlot("milestone", slot, i === 0 ? "none" : "overlap"))}
-      {awardOrder.map((slot, i) => renderSlot("award", slot, i === 0 ? "gap" : "overlap"))}
-    </div>
+    <>
+      <div className="relative flex items-center pointer-events-auto">
+        {milestoneOrder.map((slot, i) =>
+          renderSlot("milestone", slot, i === 0 ? "none" : "overlap"),
+        )}
+        {awardOrder.map((slot, i) => renderSlot("award", slot, i === 0 ? "gap" : "overlap"))}
+        {supportLabel && (
+          <GameButton
+            ref={supportRef}
+            shape="toolbar"
+            surface="console"
+            emphasis="secondary"
+            leftEdge="slope-right"
+            rightEdge="slope-right"
+            height={32}
+            className="absolute top-full mt-0.5 !text-[11px] !font-normal"
+            style={
+              {
+                left: 21,
+                width: "calc(100% - 42px)",
+                "--button-angle": "16px",
+              } as React.CSSProperties
+            }
+            selected={productionOpen}
+            aria-expanded={productionOpen}
+            aria-label="Earth support and your production"
+            onClick={() => setProductionOpen((open) => !open)}
+          >
+            {supportLabel}
+          </GameButton>
+        )}
+      </div>
+      <GamePopover
+        isVisible={productionOpen}
+        onClose={() => setProductionOpen(false)}
+        position={{ type: "anchor", anchorRef: supportRef, placement: "below", align: "center" }}
+        theme="menu"
+        width={320}
+        header={{ title: "Your production", showCloseButton: true }}
+      >
+        <EarthSupportProduction production={game.currentPlayer?.modeProduction} />
+      </GamePopover>
+    </>
   );
 };
 

@@ -80,7 +80,7 @@ func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, pla
 		return fmt.Errorf("colony definition not found: %w", err)
 	}
 
-	option, err := baseaction.ValidateColonyTradeOption(p, tileState, definition, a.CardRegistry(), trackSteps)
+	option, err := baseaction.ValidateColonyTradeOption(p, tileState, definition, a.CardRegistryForGame(g), trackSteps)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, pla
 		step := definition.Steps[tileState.MarkerPosition]
 		for _, output := range step.Outputs {
 			if output.Amount > 0 {
-				pending := colonyaction.ApplyTradeOutput(ctx, g, p, output.Type, output.Amount, a.CardRegistry(), log)
+				pending := colonyaction.ApplyTradeOutput(ctx, g, p, output.Type, output.Amount, a.CardRegistryForGame(g), log)
 				if pending != nil {
 					pendingResources = append(pendingResources, pending)
 				}
@@ -105,7 +105,7 @@ func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, pla
 
 	// Handle pending card-targeted resources (floaters, microbes, animals)
 	if len(pendingResources) > 0 {
-		colonyaction.SetPendingColonyResourceFromTrade(p, pendingResources, definition.Name, colonyID, "trade", a.CardRegistry(), log)
+		colonyaction.SetPendingColonyResourceFromTrade(p, pendingResources, definition.Name, colonyID, "trade", a.CardRegistryForGame(g), log)
 	}
 
 	// Apply colony bonus to all players with colonies
@@ -117,7 +117,7 @@ func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, pla
 		var ownerPendings []*colonyaction.PendingResource
 		for _, bonus := range definition.ColonyBonus {
 			if bonus.Amount > 0 {
-				pending := colonyaction.ApplyTradeOutput(ctx, g, colonyOwner, bonus.Type, bonus.Amount, a.CardRegistry(), log)
+				pending := colonyaction.ApplyTradeOutput(ctx, g, colonyOwner, bonus.Type, bonus.Amount, a.CardRegistryForGame(g), log)
 				if pending != nil {
 					ownerPendings = append(ownerPendings, pending)
 				}
@@ -125,7 +125,7 @@ func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, pla
 		}
 		if len(ownerPendings) > 0 {
 			reason := "colony-tax"
-			colonyaction.SetPendingColonyResourceFromTrade(colonyOwner, ownerPendings, definition.Name, colonyID, reason, a.CardRegistry(), log)
+			colonyaction.SetPendingColonyResourceFromTrade(colonyOwner, ownerPendings, definition.Name, colonyID, reason, a.CardRegistryForGame(g), log)
 		}
 	}
 

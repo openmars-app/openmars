@@ -49,6 +49,10 @@ func (a *FundAwardAction) Execute(ctx context.Context, gameID string, playerID s
 		return err
 	}
 
+	if !g.Settings().AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
+		return fmt.Errorf("award is not available in this game mode")
+	}
+
 	if err := baseaction.ValidateGamePhase(g, shared.GamePhaseAction, log); err != nil {
 		return err
 	}
@@ -89,7 +93,7 @@ func (a *FundAwardAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 
 	fundingCost := def.GetCostForFundedCount(awardState.FundedCount())
-	quote, err := cards.QuotePayment(player, g, a.CardRegistry(), cards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: fundingCost}, Action: "fund-award"})
+	quote, err := cards.QuotePayment(player, g, a.CardRegistryForGame(g), cards.PaymentContext{Costs: map[shared.ResourceType]int{shared.ResourceCredit: fundingCost}, Action: "fund-award"})
 	if err != nil {
 		return err
 	}

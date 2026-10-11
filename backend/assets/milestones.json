@@ -3,7 +3,7 @@
     "id": "terraformer",
     "name": "Terraformer",
     "description": "Have a Terraform Rating of at least 35",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -16,7 +16,7 @@
     "id": "mayor",
     "name": "Mayor",
     "description": "Own at least 4 city tiles",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -29,7 +29,7 @@
     "id": "gardener",
     "name": "Gardener",
     "description": "Own at least 4 greenery tiles",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -42,7 +42,7 @@
     "id": "builder",
     "name": "Builder",
     "description": "Have at least 8 building tags in play",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -55,7 +55,7 @@
     "id": "planner",
     "name": "Planner",
     "description": "Have at least 12 cards in hand",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -68,7 +68,8 @@
     "id": "hoverlord",
     "name": "Hoverlord",
     "description": "Have at least 7 floater resources on your cards",
-    "pack": "venus-next",
+    "gameModes": ["classic"],
+    "requiresSystems": ["venus"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -81,7 +82,7 @@
     "id": "diversifier",
     "name": "Diversifier",
     "description": "Have at least 8 different tags in play",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -94,7 +95,7 @@
     "id": "tactician",
     "name": "Tactician",
     "description": "Have at least 5 cards in play with requirements",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -107,7 +108,7 @@
     "id": "polar-explorer",
     "name": "Polar Explorer",
     "description": "Have at least 3 tiles on the two bottom rows",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -120,7 +121,7 @@
     "id": "energizer",
     "name": "Energizer",
     "description": "Have at least 6 energy production",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -133,7 +134,7 @@
     "id": "rim-settler",
     "name": "Rim Settler",
     "description": "Have at least 3 jovian tags in play",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -146,7 +147,7 @@
     "id": "generalist",
     "name": "Generalist",
     "description": "Have increased all 6 productions at least 1 step",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -159,7 +160,7 @@
     "id": "specialist",
     "name": "Specialist",
     "description": "Have at least 10 production of any resource",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -172,7 +173,7 @@
     "id": "ecologist",
     "name": "Ecologist",
     "description": "Have at least 4 bio tags (plant, microbe, or animal) in play",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -185,7 +186,7 @@
     "id": "tycoon",
     "name": "Tycoon",
     "description": "Have at least 15 automated and event cards played",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {
@@ -198,7 +199,7 @@
     "id": "legend",
     "name": "Legend",
     "description": "Have at least 5 event cards played",
-    "pack": "base-game",
+    "gameModes": ["classic", "earth-withdrawal"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],
     "requirement": {

@@ -851,7 +851,7 @@ func TestPoseidon_ForcedColonyDoesNotBlockInitAdvance_Repro568(t *testing.T) {
 
 	testGame.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers: 4,
-		CardPacks:  []string{"base-game", string(shared.PackColonies)},
+		GameModeID: "classic", Features: []string{}, Systems: []string{"colonies"},
 	})
 
 	err = testGame.UpdateStatus(ctx, shared.GameStatusActive)
@@ -944,7 +944,7 @@ func TestPoseidon_ForcedColonyInitAdvance_FourPlayerPrelude_Repro568(t *testing.
 
 	testGame.UpdateSettings(ctx, shared.GameSettings{
 		MaxPlayers: 5,
-		CardPacks:  []string{"base-game", "prelude", string(shared.PackColonies)},
+		GameModeID: "classic", Features: []string{"prelude"}, Systems: []string{"colonies"},
 	})
 
 	err = testGame.UpdateStatus(ctx, shared.GameStatusActive)
@@ -1063,7 +1063,7 @@ func TestStormcraft_PaysHeatActionWithoutPayingCreditCosts(t *testing.T) {
 func setupCorporationColoniesGame(t *testing.T) (*game.Game, game.GameRepository, gamecards.CardRegistry, string, string) {
 	g, repo, registry, id, other := testutil.SetupTwoPlayerGame(t)
 	settings := g.Settings()
-	settings.CardPacks = append(settings.CardPacks, shared.PackColonies)
+	settings.Systems = append(settings.Systems, "colonies")
 	g.UpdateSettings(context.Background(), settings)
 	defs, err := colony.LoadColoniesFromJSON("../../../assets/colonies.json")
 	testutil.AssertNoError(t, err, "load colony catalog")

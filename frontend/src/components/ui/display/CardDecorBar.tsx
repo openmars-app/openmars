@@ -26,7 +26,10 @@ const CardDecorBar: React.FC<CardDecorBarProps> = ({
   }
 
   const vpDescription: string | null =
-    vpConditions?.find((condition: any) => condition.description)?.description ?? null;
+    vpConditions
+      ?.map((condition: any) => condition.description)
+      .filter(Boolean)
+      .join(" ") || null;
 
   return (
     <div className="relative w-fit" ref={ref}>

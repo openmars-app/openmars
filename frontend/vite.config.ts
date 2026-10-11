@@ -5,12 +5,12 @@ import { assetWatcher } from "./scripts/assets/vite.ts";
 
 const backendProxy = {
   "/api": {
-    target: "http://localhost:3001",
+    target: process.env.OPENMARS_BACKEND_ORIGIN ?? "http://localhost:3001",
     changeOrigin: true,
     secure: false,
   },
   "/ws": {
-    target: "http://localhost:3001",
+    target: process.env.OPENMARS_BACKEND_ORIGIN ?? "http://localhost:3001",
     ws: true,
     changeOrigin: true,
   },

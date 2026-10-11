@@ -295,3 +295,18 @@ type GameEndedEvent struct {
 	IsTie     bool
 	Timestamp time.Time
 }
+
+// ModeStateChangedEvent describes a baseline state change, excluding temporary overrides.
+type ModeStateChangedEvent struct {
+	PlayerID string
+	GameID   string
+	State    string
+	Old      int
+	New      int
+}
+
+// ProductionStartingEvent runs dependent recurring grants before production is settled.
+type ProductionStartingEvent struct {
+	GameID     string
+	Generation int
+}

@@ -107,6 +107,13 @@ func productionCopyOptions(copy *shared.CopyCondition, p *player.Player, g *game
 					return nil, fmt.Errorf("production box on %s contains a non-production output", id)
 				}
 				clone := shared.CloneCondition(production).(*shared.ProductionCondition)
+				if behavior.Dependency != "" {
+					d, err := DependencyForBehavior(card, behavior)
+					if err != nil {
+						return nil, err
+					}
+					clone.Dependency = d
+				}
 				if clone.Per != nil {
 					if clone.Per.Amount <= 0 {
 						return nil, fmt.Errorf("production count divisor must be positive")
@@ -164,7 +171,7 @@ func canApplyProductionBox(outputs []shared.BehaviorCondition, p, target *player
 			if resource == shared.ResourceCreditProduction {
 				floor = -5
 			}
-			if owner.Resources().Production().GetAmount(resource)+amount < floor {
+			if owner.Resources().PermanentProduction().GetAmount(resource)+amount < floor {
 				return false
 			}
 		}

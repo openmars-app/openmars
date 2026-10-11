@@ -23,6 +23,7 @@ import { GamePopover } from "../../ui/GamePopover";
 import { HamburgerIcon, EyeIcon } from "../../ui/menuIcons.tsx";
 import GameButton, { ANGLE_INDENT, BUTTON_SPACING } from "../../ui/buttons/GameButton.tsx";
 import MilestoneAwardStatusStrip from "./MilestoneAwardStatusStrip.tsx";
+import GameModeRules from "../../ui/lobby/GameModeRules.tsx";
 
 const HAMBURGER_WIDTH = 65;
 const TRAVEL_WIDTH = 140;
@@ -120,6 +121,10 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
   const { activePlanet } = usePlanetFocus();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showTravelPopover, setShowTravelPopover] = useState(false);
+  const [showModeRules, setShowModeRules] = useState(false);
+  const gameMode = gameState.settings.availableGameModes.find(
+    (mode) => mode.id === gameState.settings.gameModeId,
+  );
   const travelButtonRef = useRef<HTMLButtonElement>(null);
 
   const [spectatorsOpen, setSpectatorsOpen] = useState(false);
@@ -307,6 +312,24 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
                     <EyeIcon />
                   </GameButton>
                 )}
+                {gameMode && (
+                  <GameButton
+                    shape="toolbar"
+                    surface="console"
+                    emphasis="secondary"
+                    width={165}
+                    height={buttonHeight}
+                    onClick={() => setShowModeRules(true)}
+                    selected={showModeRules}
+                    aria-expanded={showModeRules}
+                    aria-label="Gamemode"
+                    leftEdge="slope-left"
+                    rightEdge="slope-right"
+                    style={{ marginRight: -ANGLE_INDENT + BUTTON_SPACING }}
+                  >
+                    GAMEMODE
+                  </GameButton>
+                )}
                 <GameButton
                   shape="toolbar"
                   surface="console"
@@ -346,6 +369,14 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
             onClose={() => setShowTravelPopover(false)}
             anchorRef={travelButtonRef}
           />
+          {gameMode && (
+            <GameModeRules
+              mode={gameMode}
+              parameters={gameState.settings.gameModeParameters}
+              open={showModeRules}
+              onClose={() => setShowModeRules(false)}
+            />
+          )}
 
           <StandardProjectPopover
             isVisible={showStandardProjectsPopover}

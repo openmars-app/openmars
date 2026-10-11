@@ -36,6 +36,7 @@ func HasAvailableActions(
 	milestoneRegistry milestone.MilestoneRegistry,
 	awardRegistry award.AwardRegistry,
 ) bool {
+	cardRegistry = cards.ForGame(cardRegistry, g)
 	if g.HasAnyPendingSelection(p.ID()) {
 		return true
 	}
@@ -92,7 +93,7 @@ func HasAvailableActions(
 
 // hasAvailableStandardProject reports whether any standard project the player can
 // reach this game is available, covering the registry-backed projects (filtered to
-// the enabled packs, mirroring the DTO mapper) plus the two resource conversions
+// the selected mode, mirroring the DTO mapper) plus the two resource conversions
 // and sell-patents, which the per-project calculator already validates.
 func hasAvailableStandardProject(
 	g *game.Game,
@@ -100,10 +101,10 @@ func hasAvailableStandardProject(
 	cardRegistry cards.CardRegistry,
 	stdProjRegistry standardproject.StandardProjectRegistry,
 ) bool {
-	enabledPacks := g.Settings().EnabledPacks()
+	settings := g.Settings()
 
 	for _, def := range stdProjRegistry.GetAll() {
-		if def.Pack != "" && !enabledPacks[def.Pack] {
+		if !settings.AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
 			continue
 		}
 		if CalculatePlayerStandardProjectState(shared.StandardProject(def.ID), p, g, cardRegistry).Available() {
@@ -122,7 +123,7 @@ func hasAvailableStandardProject(
 
 // FilterMilestones reduces the full milestone definition set to the ones actually
 // in play this game: the explicitly selected set when one exists, otherwise every
-// definition whose pack is enabled. It is the single source of truth for "which
+// definition eligible for the selected mode. It is the single source of truth for "which
 // milestones does this game expose", shared by the DTO mapper and the
 // HasAvailableActions aggregator so the two can never diverge.
 func FilterMilestones(allDefs []milestone.MilestoneDefinition, selectedIDs []string, settings shared.GameSettings) []milestone.MilestoneDefinition {
@@ -133,16 +134,15 @@ func FilterMilestones(allDefs []milestone.MilestoneDefinition, selectedIDs []str
 		}
 		filtered := make([]milestone.MilestoneDefinition, 0, len(selectedIDs))
 		for _, def := range allDefs {
-			if selectedSet[def.ID] {
+			if selectedSet[def.ID] && settings.AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
 				filtered = append(filtered, def)
 			}
 		}
 		return filtered
 	}
-	enabledPacks := settings.EnabledPacks()
 	var filtered []milestone.MilestoneDefinition
 	for _, def := range allDefs {
-		if def.Pack != "" && !enabledPacks[def.Pack] {
+		if !settings.AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
 			continue
 		}
 		filtered = append(filtered, def)
@@ -161,16 +161,15 @@ func FilterAwards(allDefs []award.AwardDefinition, selectedIDs []string, setting
 		}
 		filtered := make([]award.AwardDefinition, 0, len(selectedIDs))
 		for _, def := range allDefs {
-			if selectedSet[def.ID] {
+			if selectedSet[def.ID] && settings.AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
 				filtered = append(filtered, def)
 			}
 		}
 		return filtered
 	}
-	enabledPacks := settings.EnabledPacks()
 	var filtered []award.AwardDefinition
 	for _, def := range allDefs {
-		if def.Pack != "" && !enabledPacks[def.Pack] {
+		if !settings.AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
 			continue
 		}
 		filtered = append(filtered, def)

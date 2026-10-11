@@ -120,10 +120,10 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 	if !ok {
 		return fmt.Errorf("invalid trade payment type: %s", paymentType)
 	}
-	effectiveCosts, _ := baseaction.CalculateEffectiveTradeCosts(traderPlayer, a.cardRegistry)
+	effectiveCosts, _ := baseaction.CalculateEffectiveTradeCosts(traderPlayer, cards.ForGame(a.cardRegistry, g))
 	effectiveCost := effectiveCosts[string(paymentResource)]
 
-	quote, err := cards.QuotePayment(traderPlayer, g, a.cardRegistry, cards.PaymentContext{Costs: map[shared.ResourceType]int{paymentResource: effectiveCost}, Action: "colony-trade"})
+	quote, err := cards.QuotePayment(traderPlayer, g, cards.ForGame(a.cardRegistry, g), cards.PaymentContext{Costs: map[shared.ResourceType]int{paymentResource: effectiveCost}, Action: "colony-trade"})
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 		return fmt.Errorf("colony definition not found: %w", err)
 	}
 
-	option, err := baseaction.ValidateColonyTradeOption(traderPlayer, tileState, definition, a.cardRegistry, trackSteps)
+	option, err := baseaction.ValidateColonyTradeOption(traderPlayer, tileState, definition, cards.ForGame(a.cardRegistry, g), trackSteps)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 		step := definition.Steps[tileState.MarkerPosition]
 		for _, output := range step.Outputs {
 			if output.Amount > 0 {
-				pending := applyOutput(ctx, g, traderPlayer, output.Type, output.Amount, a.cardRegistry, log)
+				pending := applyOutput(ctx, g, traderPlayer, output.Type, output.Amount, cards.ForGame(a.cardRegistry, g), log)
 				if pending != nil {
 					pendingByPlayer[playerID] = append(pendingByPlayer[playerID], pending)
 				}
@@ -179,7 +179,7 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 		}
 		for _, bonus := range definition.ColonyBonus {
 			if bonus.Amount > 0 {
-				pending := applyOutput(ctx, g, colonyOwner, bonus.Type, bonus.Amount, a.cardRegistry, log)
+				pending := applyOutput(ctx, g, colonyOwner, bonus.Type, bonus.Amount, cards.ForGame(a.cardRegistry, g), log)
 				if pending != nil {
 					pendingByPlayer[colonyOwnerID] = append(pendingByPlayer[colonyOwnerID], pending)
 				}
@@ -202,7 +202,7 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 			reason = "trade"
 		}
 		for _, combined := range combinePendingResources(pendings) {
-			setPendingColonyResource(p, combined, definition.Name, colonyID, reason, a.cardRegistry, log)
+			setPendingColonyResource(p, combined, definition.Name, colonyID, reason, cards.ForGame(a.cardRegistry, g), log)
 		}
 	}
 

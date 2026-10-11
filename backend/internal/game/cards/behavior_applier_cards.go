@@ -23,7 +23,7 @@ func (a *BehaviorApplier) applyCardStorageOutput(ctx context.Context, o *shared.
 	}
 
 	// Generic card-resource: add resources of whatever type the target card stores
-	if rt == shared.ResourceCardResource {
+	if rt == shared.ResourceCardResource && o.Target != "self-card" {
 		targetID := a.nextTargetCardID()
 		if amount == 0 || (targetID == "" && amount > 0) {
 			return nil
@@ -160,7 +160,7 @@ func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *share
 			for _, cardID := range matched {
 				a.player.Hand().AddCard(cardID)
 			}
-			if a.sourceType == shared.SourceTypeCorporationFirstAction {
+			if a.sourceType == shared.SourceTypeCorporationFirstAction || a.sourceType == shared.SourceTypeCardAction || (a.sourceType == shared.SourceTypeCardPlay && a.game.CurrentPhase() == shared.GamePhaseAction) {
 				a.player.Selection().AddCardReceipt(a.source, a.sourceCardID, matched)
 			}
 			if len(discarded) > 0 {
@@ -176,7 +176,7 @@ func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *share
 			for _, cardID := range drawnCards {
 				a.player.Hand().AddCard(cardID)
 			}
-			if a.sourceType == shared.SourceTypeCorporationFirstAction {
+			if a.sourceType == shared.SourceTypeCorporationFirstAction || a.sourceType == shared.SourceTypeCardAction || (a.sourceType == shared.SourceTypeCardPlay && a.game.CurrentPhase() == shared.GamePhaseAction) {
 				a.player.Selection().AddCardReceipt(a.source, a.sourceCardID, drawnCards)
 			}
 			log.Debug("Drew cards and added to hand", slog.Int("amount", len(drawnCards)))

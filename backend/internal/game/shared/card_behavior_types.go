@@ -28,6 +28,7 @@ type MinMaxValue struct {
 // Multiple fields within a Selector use AND logic (all must match).
 // Multiple Selectors in a slice use OR logic (any match is sufficient).
 type Selector struct {
+	Dependency           string            `json:"dependency,omitempty"`
 	TagCount             *MinMaxValue      `json:"tagCount,omitempty"`
 	Tags                 []CardTag         `json:"tags,omitempty"`
 	CardTypes            []string          `json:"cardTypes,omitempty"`
@@ -41,6 +42,9 @@ type Selector struct {
 
 // ResourceTriggerCondition represents what triggers an automatic resource exchange
 type ResourceTriggerCondition struct {
+	Direction            string         `json:"direction,omitempty"`
+	State                string         `json:"state,omitempty"`
+	To                   *int           `json:"to,omitempty"`
 	Type                 string         `json:"type"`
 	ResourceTypes        []ResourceType `json:"resourceTypes,omitempty"`
 	Location             *string        `json:"location,omitempty"`
@@ -100,28 +104,36 @@ const (
 // It is only used internally for JSON unmarshaling, then converted to typed conditions
 // via categorizeCondition. All runtime code uses BehaviorCondition and typed category structs.
 type resourceConditionJSON struct {
-	Source                     *PaymentSource     `json:"source,omitempty"`
-	TargetResource             ResourceType       `json:"targetResource,omitempty"`
-	Destination                string             `json:"destination,omitempty"`
-	OnMatch                    *RevealMatch       `json:"onMatch,omitempty"`
-	Scope                      string             `json:"scope,omitempty"`
-	Zone                       string             `json:"zone,omitempty"`
-	SelectionGroup             string             `json:"selectionGroup,omitempty"`
-	ResourceType               ResourceType       `json:"type"`
-	Amount                     int                `json:"amount"`
-	Target                     string             `json:"target"`
-	Selectors                  []Selector         `json:"selectors,omitempty"`
-	MaxTrigger                 *int               `json:"maxTrigger,omitempty"`
-	Per                        *PerCondition      `json:"per,omitempty"`
-	TileRestrictions           *TileRestrictions  `json:"tileRestrictions,omitempty"`
-	TileType                   string             `json:"tileType,omitempty"`
-	VariableAmount             bool               `json:"variableAmount,omitempty"`
-	Against                    string             `json:"against,omitempty"`
-	Temporary                  string             `json:"temporary,omitempty"`
-	Optional                   bool               `json:"optional,omitempty"`
-	PaymentAllowed             []ResourceType     `json:"paymentAllowed,omitempty"`
-	TargetRestriction          *TargetRestriction `json:"targetRestriction,omitempty"`
-	AllowDuplicatePlayerColony bool               `json:"allowDuplicatePlayerColony,omitempty"`
+	Description                string               `json:"description,omitempty"`
+	MinimumProduction          *ProductionThreshold `json:"minimumProduction,omitempty"`
+	DependencyGroup            *DependencyGroup     `json:"dependencyGroup,omitempty"`
+	State                      string               `json:"state,omitempty"`
+	Value                      int                  `json:"value,omitempty"`
+	Dependency                 string               `json:"dependency,omitempty"`
+	Start                      *WindowBoundary      `json:"start,omitempty"`
+	End                        *WindowBoundary      `json:"end,omitempty"`
+	Source                     *PaymentSource       `json:"source,omitempty"`
+	TargetResource             ResourceType         `json:"targetResource,omitempty"`
+	Destination                string               `json:"destination,omitempty"`
+	OnMatch                    *RevealMatch         `json:"onMatch,omitempty"`
+	Scope                      string               `json:"scope,omitempty"`
+	Zone                       string               `json:"zone,omitempty"`
+	SelectionGroup             string               `json:"selectionGroup,omitempty"`
+	ResourceType               ResourceType         `json:"type"`
+	Amount                     int                  `json:"amount"`
+	Target                     string               `json:"target"`
+	Selectors                  []Selector           `json:"selectors,omitempty"`
+	MaxTrigger                 *int                 `json:"maxTrigger,omitempty"`
+	Per                        *PerCondition        `json:"per,omitempty"`
+	TileRestrictions           *TileRestrictions    `json:"tileRestrictions,omitempty"`
+	TileType                   string               `json:"tileType,omitempty"`
+	VariableAmount             bool                 `json:"variableAmount,omitempty"`
+	Against                    string               `json:"against,omitempty"`
+	Temporary                  string               `json:"temporary,omitempty"`
+	Optional                   bool                 `json:"optional,omitempty"`
+	PaymentAllowed             []ResourceType       `json:"paymentAllowed,omitempty"`
+	TargetRestriction          *TargetRestriction   `json:"targetRestriction,omitempty"`
+	AllowDuplicatePlayerColony bool                 `json:"allowDuplicatePlayerColony,omitempty"`
 }
 
 // TargetRestriction restricts which players can be targeted by an output.
@@ -167,9 +179,10 @@ type ChoiceRequirements struct {
 
 // Choice represents a player choice option
 type Choice struct {
-	Inputs       []BehaviorCondition `json:"inputs,omitempty"`
-	Outputs      []BehaviorCondition `json:"outputs,omitempty"`
-	Requirements *ChoiceRequirements `json:"requirements,omitempty"` // If set, choice is only available when requirements are met
+	StateRequirements []StateRequirement  `json:"stateRequirements,omitempty"`
+	Inputs            []BehaviorCondition `json:"inputs,omitempty"`
+	Outputs           []BehaviorCondition `json:"outputs,omitempty"`
+	Requirements      *ChoiceRequirements `json:"requirements,omitempty"` // If set, choice is only available when requirements are met
 }
 
 // Clone returns an independent copy of a count specification.

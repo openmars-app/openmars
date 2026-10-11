@@ -12,7 +12,7 @@ import { invalidatePlantShadesAfterContextRestore } from "../board/plantShade.ts
 import { invalidateGpuTimersAfterContextRestore } from "../board/gpuTimer.ts";
 import { restoreTextureArraysAfterContextRestore } from "../board/textureArray.ts";
 import { Z_INDEX } from "@/constants/zIndex.ts";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, type RootState } from "@react-three/fiber";
 import * as THREE from "three";
 import { PanControls } from "../controls/PanControls.tsx";
 import { FreeCamera, CameraFrustumHelper } from "../controls/FreeCamera.tsx";
@@ -29,8 +29,7 @@ import GameIcon from "../../ui/display/GameIcon.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
 import { MarsRotationProvider } from "../../../contexts/MarsRotationContext.tsx";
 import { usePlanetFocus } from "../../../contexts/PlanetFocusContext.tsx";
-import { getLayoutMode, useLayoutMode } from "@/hooks/useLayoutMode.ts";
-import { sendTileSelection, usePlacementSelectionStore } from "@/stores/placementSelectionStore.ts";
+import { useLayoutMode } from "@/hooks/useLayoutMode.ts";
 import { getTileIconType } from "@/utils/boardOverlay.ts";
 import { useWorld3DSettings } from "../../../contexts/World3DSettingsContext.tsx";
 import { usePlanetSurface } from "../../../hooks/useTextures.ts";
@@ -298,6 +297,9 @@ function TravelFade() {
 
 interface Game3DViewProps {
   gameState: GameDto;
+  onHexClick: (coordinate: string) => void;
+  manualFrames?: boolean;
+  onCreated?: (state: RootState) => void;
   animateHexEntrance?: boolean;
   startDark?: boolean;
   tilesHidden?: boolean;
@@ -309,6 +311,9 @@ interface Game3DViewProps {
 
 export default function Game3DView({
   gameState,
+  onHexClick,
+  manualFrames = false,
+  onCreated,
   animateHexEntrance = false,
   startDark = false,
   tilesHidden = false,
@@ -327,7 +332,7 @@ export default function Game3DView({
       cities: previous.gameId === gameState.id && previous.cities,
     }));
   }, [gameState.id]);
-  const handleCityReady = useCallback(() => {
+  const handleStructureReady = useCallback(() => {
     setWarmup((previous) => ({
       gameId: gameState.id,
       cities: true,
@@ -359,28 +364,6 @@ export default function Game3DView({
     offset.applyQuaternion(quat);
     return [center.x + offset.x, center.y + offset.y, center.z + offset.z];
   }, []);
-
-  const handleHexClick = useCallback(
-    (hexCoordinate: string) => {
-      const pendingTileSelection = gameState.currentPlayer?.pendingTileSelection;
-      if (!pendingTileSelection?.availableHexes.includes(hexCoordinate)) {
-        return;
-      }
-
-      if (getLayoutMode().isCompact) {
-        const { selectedHex, select } = usePlacementSelectionStore.getState();
-        if (selectedHex === hexCoordinate) {
-          sendTileSelection(hexCoordinate);
-        } else {
-          select(hexCoordinate);
-        }
-        return;
-      }
-
-      sendTileSelection(hexCoordinate);
-    },
-    [gameState.currentPlayer],
-  );
 
   const renderPaused = useRenderPauseStore(isRenderPaused);
   usePauseWhileDocumentHidden("game-hidden");
@@ -415,7 +398,8 @@ export default function Game3DView({
       <TravelFade />
 
       <Canvas
-        frameloop={renderPaused ? "never" : "always"}
+        frameloop={manualFrames || renderPaused ? "never" : "always"}
+        onCreated={onCreated}
         camera={{
           position: initialCameraPos,
           fov: DESKTOP_FOV,
@@ -459,20 +443,20 @@ export default function Game3DView({
 
               <MarsSphere
                 gameState={gameState}
-                onHexClick={handleHexClick}
+                onHexClick={onHexClick}
                 animateHexEntrance={animateHexEntrance}
                 startHidden={tilesHidden}
-                onCityReady={handleCityReady}
+                onStructureReady={handleStructureReady}
               />
 
               <group userData={{ perfGroup: "other planets & moons" }}>
-                <PhobosBody gameState={gameState} onHexClick={handleHexClick} />
+                <PhobosBody gameState={gameState} onHexClick={onHexClick} />
                 {PLANET_CONFIGS.map((config) => (
                   <CelestialBody
                     key={config.id}
                     config={config}
                     gameState={gameState}
-                    onHexClick={handleHexClick}
+                    onHexClick={onHexClick}
                   />
                 ))}
               </group>

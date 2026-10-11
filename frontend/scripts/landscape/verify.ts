@@ -3,16 +3,16 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { HexGrid2D } from "../../src/utils/hex-grid-2d";
 import {
-  CityBatchStore,
-  createCityWarmupGeometry,
-} from "../../src/components/game/board/cityBatch";
-import { createGeometry } from "../../src/components/game/board/cityGeometry";
+  StructureBatchStore,
+  createStructureWarmupGeometry,
+} from "../../src/components/game/board/structureBatch";
+import { createGeometry } from "../../src/components/game/board/structureGeometry";
 import {
-  generateCityLayout,
-  createCityShowcase,
+  generateStructureLayout,
+  createStructureShowcase,
   insideBuilding,
-  cityWallDistance,
-} from "../../src/components/game/board/cityLayout";
+  structureWallDistance,
+} from "../../src/components/game/board/structureLayout";
 import {
   boardCenter,
   projectBoardPoint,
@@ -46,18 +46,15 @@ import type {
   LandscapeRequest,
   LandscapeDelta,
 } from "../../src/components/game/board/landscapeTypes";
-import type { CityStyleRequestDto } from "../../src/types/generated/api-types";
+import type { StructureStyleRequestDto } from "../../src/types/generated/api-types";
 const coord = (q: number, r = 0) => ({ q, r, s: -q - r });
 const cards = JSON.parse(
-  readFileSync(
-    new URL("../../../backend/assets/cards.json", import.meta.url),
-    "utf8",
-  ),
-) as { id: string; name: string; style?: { tile: CityStyleRequestDto } }[];
+  readFileSync(new URL("../../../backend/assets/cards.json", import.meta.url), "utf8"),
+) as { id: string; name: string; style?: { tile: StructureStyleRequestDto } }[];
 const requests = cards.filter((c) => c.style?.tile);
-assert.equal(requests.length, 8);
+assert.equal(requests.length, 12);
 const phobosCard = requests.find((c) => c.id === "021")!;
-const phobosLayout = generateCityLayout(42, phobosCard.style!.tile, phobosCard.name);
+const phobosLayout = generateStructureLayout(42, phobosCard.style!.tile, phobosCard.name);
 assert.equal(phobosLayout.style.cover, "dome");
 const moonRadius = 0.4;
 const moonCenter = { x: 0.06, y: -0.02 };
@@ -98,17 +95,17 @@ for (const geometry of createGeometry(phobosLayout, {
 }
 for (const card of requests) {
   for (let seed = 1; seed <= 20; seed++) {
-    const layout = generateCityLayout(seed, card.style!.tile, card.name);
+    const layout = generateStructureLayout(seed, card.style!.tile, card.name);
     assert.deepEqual(
       layout,
-      generateCityLayout(seed, structuredClone(card.style!.tile), card.name),
+      generateStructureLayout(seed, structuredClone(card.style!.tile), card.name),
     );
     assert.ok(layout.buildings.length > 0, card.name);
     assert.ok(layout.roads.length > 0);
     assert.notEqual(layout.style.perimeter, "open", "Every city must have a perimeter wall");
     if (card.id === "120") {
       assert.ok(layout.entrances.length >= 2 && layout.entrances.length <= 3);
-      const balanced = generateCityLayout(
+      const balanced = generateStructureLayout(
         seed,
         { ...card.style!.tile, density: "balanced" },
         card.name,
@@ -131,7 +128,7 @@ for (const card of requests) {
             const x = b.x + dx * Math.cos(b.rotation) - dy * Math.sin(b.rotation);
             const y = b.y + dx * Math.sin(b.rotation) + dy * Math.cos(b.rotation);
             assert.ok(
-              cityWallDistance(layout, x, y) < -0.003,
+              structureWallDistance(layout, x, y) < -0.003,
               "Urbanized building intersects wall",
             );
           }
@@ -164,7 +161,10 @@ for (const card of requests) {
           for (const dy of [-b.depth / 2, b.depth / 2]) {
             const x = b.x + dx * Math.cos(b.rotation) - dy * Math.sin(b.rotation);
             const y = b.y + dx * Math.sin(b.rotation) + dy * Math.cos(b.rotation);
-            assert.ok(cityWallDistance(layout, x, y) < -0.004, "Capital building intersects wall");
+            assert.ok(
+              structureWallDistance(layout, x, y) < -0.004,
+              "Capital building intersects wall",
+            );
             assert.ok(!insideBuilding(tower, x, y, 0.005), "Building crowds the central tower");
           }
         }
@@ -187,7 +187,7 @@ for (const card of requests) {
   }
 }
 for (const card of requests) {
-  const layout = generateCityLayout(9183, card.style!.tile, card.name);
+  const layout = generateStructureLayout(9183, card.style!.tile, card.name);
   const coordinate = { q: 4, r: 0, s: -4 };
   const center = boardCenter(coordinate),
     worldPosition = projectBoardPoint(center.x, center.y);
@@ -207,7 +207,7 @@ for (const card of requests) {
     }
   }
 }
-const showcase = createCityShowcase().map((layout, i) => {
+const showcase = createStructureShowcase().map((layout, i) => {
   const coordinate = coord(i % 3, Math.floor(i / 3));
   const center = boardCenter(coordinate),
     worldPosition = projectBoardPoint(center.x, center.y);
@@ -222,7 +222,7 @@ for (const mode of ["normal", "bright"]) {
     materials.set(`${mode}:${i}`, new THREE.MeshStandardMaterial());
   }
 }
-const store = new CityBatchStore(materials);
+const store = new StructureBatchStore(materials);
 store.update(showcase, new Map());
 assert.equal(store.builds, showcase.length);
 assert.ok(store.meshes.size <= 22, "Cities must share material batches");
@@ -245,25 +245,25 @@ store.update([], new Map());
 store.dispose();
 const camera = new THREE.PerspectiveCamera();
 const scene = new THREE.Scene();
-const cityRenderer = { info: { render: { frame: 0 } } } as THREE.WebGLRenderer;
-function prepareCityBatches() {
+const structureRenderer = { info: { render: { frame: 0 } } } as THREE.WebGLRenderer;
+function prepareStructureBatches() {
   store.beginPreparation();
   let steps = 0;
   while (store.meshes.size === 0) {
     assert.equal(store.prepareNext(), false);
-    assert.ok(++steps <= 9, "Preparation must yield between the eight city fixtures");
+    assert.ok(++steps <= 13, "Preparation must yield between the structure fixtures");
   }
-  assert.equal(steps, 9);
+  assert.equal(steps, 13);
   assert.equal(store.meshes.size, 22, "Every production material must have a prepared batch");
   assert.equal(store.ready, false);
   return new Map([...store.meshes].map(([key, mesh]) => [key, { mesh, geometry: mesh.geometry }]));
 }
-function renderCityPreparation() {
+function renderStructurePreparation() {
   for (const mesh of store.meshes.values()) {
     assert.equal(mesh.geometry.index, null, "Warmup must use the production non-indexed draw path");
     assert.doesNotThrow(() =>
       mesh.onBeforeRender(
-        cityRenderer,
+        structureRenderer,
         scene,
         camera,
         mesh.geometry,
@@ -272,7 +272,7 @@ function renderCityPreparation() {
       ),
     );
     mesh.onAfterRender(
-      cityRenderer,
+      structureRenderer,
       scene,
       camera,
       mesh.geometry,
@@ -281,26 +281,26 @@ function renderCityPreparation() {
     );
   }
 }
-const abandoned = prepareCityBatches();
-renderCityPreparation();
+const abandoned = prepareStructureBatches();
+renderStructurePreparation();
 store.dispose();
 assert.equal(store.group.children.length, 0, "Disposed preparation must leave the scene");
 assert.equal(store.ready, false);
-const prepared = prepareCityBatches();
+const prepared = prepareStructureBatches();
 for (const [key, { mesh }] of prepared) {
   assert.notEqual(mesh, abandoned.get(key)!.mesh, "Effect replay must create fresh batches");
 }
 for (let frame = 0; frame < 2; frame++) {
-  cityRenderer.info.render.frame++;
-  renderCityPreparation();
-  renderCityPreparation();
+  structureRenderer.info.render.frame++;
+  renderStructurePreparation();
+  renderStructurePreparation();
   assert.equal(store.prepareNext(), false, "Repeated draws within a frame are not extra frames");
 }
-cityRenderer.info.render.frame++;
-renderCityPreparation();
+structureRenderer.info.render.frame++;
+renderStructurePreparation();
 assert.equal(store.prepareNext(), true);
 assert.equal(store.ready, true);
-const warmupSchema = createCityWarmupGeometry();
+const warmupSchema = createStructureWarmupGeometry();
 for (const [key, { mesh, geometry }] of prepared) {
   assert.equal(store.meshes.get(key), mesh);
   assert.equal(mesh.geometry, geometry, "Finishing preparation must retain uploaded buffers");
@@ -332,9 +332,9 @@ assert.ok(
 );
 console.log(
   JSON.stringify({
-    cityCount: showcase.length,
-    cityBatches: batchCount,
-    cityTriangles: triangles,
+    structureCount: showcase.length,
+    structureBatches: batchCount,
+    structureTriangles: triangles,
     unchangedUpdateMs: unchangedMs,
   }),
 );
@@ -385,7 +385,7 @@ pickMesh.material.dispose();
 const sources: LandscapeSource[] = [
   { coordinate: coord(0), kind: "greenery", seed: 1 },
   { coordinate: coord(1), kind: "ocean", seed: 2 },
-  { coordinate: coord(0, 1), kind: "city", seed: 3, layout: generateCityLayout(3) },
+  { coordinate: coord(0, 1), kind: "structure", seed: 3, layout: generateStructureLayout(3) },
   { coordinate: coord(-1), kind: "special-greenery", seed: 4 },
   { coordinate: coord(2), kind: "ocean", seed: 5 },
 ];
@@ -413,10 +413,10 @@ for (const width of [BEACH_WIDTH_MIN, BEACH_WIDTH_MAX]) {
 }
 const builder = new LandscapeBuilder();
 const capitalCard = requests.find((card) => card.id === "008")!;
-const capitalLayout = generateCityLayout(839, capitalCard.style!.tile, "Capital");
+const capitalLayout = generateStructureLayout(839, capitalCard.style!.tile, "Capital");
 const capitalSample = createLandscapeSampler({
   seed: 42,
-  sources: [{ coordinate: coord(0), kind: "city", seed: 839, layout: capitalLayout }],
+  sources: [{ coordinate: coord(0), kind: "structure", seed: 839, layout: capitalLayout }],
 });
 let capitalGround = 0,
   capitalGrass = 0,
@@ -424,7 +424,7 @@ let capitalGround = 0,
 for (let x = -0.13; x < 0.13; x += 0.004) {
   for (let y = -0.14; y < 0.14; y += 0.004) {
     if (
-      cityWallDistance(capitalLayout, x, y) > -0.007 ||
+      structureWallDistance(capitalLayout, x, y) > -0.007 ||
       Math.max(Math.abs(x), Math.abs(y)) < 0.045 ||
       capitalLayout.buildings.some((b) => insideBuilding(b, x, y, 0))
     ) {
@@ -450,12 +450,12 @@ const capitalPlants = [
   ...new LandscapeBuilder()
     .build({
       seed: 42,
-      sources: [{ coordinate: coord(0), kind: "city", seed: 839, layout: capitalLayout }],
+      sources: [{ coordinate: coord(0), kind: "structure", seed: 839, layout: capitalLayout }],
     })
     .values(),
 ]
   .flatMap((p) => p.plants)
-  .filter((p) => cityWallDistance(capitalLayout, p.x, p.y) < 0);
+  .filter((p) => structureWallDistance(capitalLayout, p.x, p.y) < 0);
 assert.ok(
   capitalPlants.filter((p) => p.kind === "tree").length >= 20,
   "Capital should have plentiful trees",
@@ -464,12 +464,12 @@ assert.ok(
   capitalPlants.filter((p) => p.kind === "bush").length >= 10,
   "Capital should have plentiful bushes",
 );
-const concreteLayout = generateCityLayout(839, {}, "City");
+const concreteLayout = generateStructureLayout(839, {}, "City");
 const concretePlants = [
   ...new LandscapeBuilder()
     .build({
       seed: 42,
-      sources: [{ coordinate: coord(0), kind: "city", seed: 839, layout: concreteLayout }],
+      sources: [{ coordinate: coord(0), kind: "structure", seed: 839, layout: concreteLayout }],
     })
     .values(),
 ].flatMap((p) => p.plants);
@@ -718,7 +718,9 @@ assert.ok(
 );
 const developed = createLandscapeSampler({
   seed: 42,
-  sources: [{ coordinate: coord(0), kind: "city", seed: 3, layout: generateCityLayout(3) }],
+  sources: [
+    { coordinate: coord(0), kind: "structure", seed: 3, layout: generateStructureLayout(3) },
+  ],
 });
 assert.equal(developed(0, 0).foundation, 1, "City interior must cover the red terrain");
 assert.equal(developed(0.4, 0).foundation, 0, "Foundations must stay near the city");
@@ -727,9 +729,9 @@ const circularCity = createLandscapeSampler({
   sources: [
     {
       coordinate: coord(0),
-      kind: "city",
+      kind: "structure",
       seed: 3,
-      layout: generateCityLayout(3, { plan: "radial" }),
+      layout: generateStructureLayout(3, { plan: "radial" }),
     },
   ],
 });
@@ -748,9 +750,9 @@ for (let i = 0; i < 72; i++) {
 const cupolaCard = requests.find((card) => card.name === "Cupola City")!;
 const cupolaSource: LandscapeSource = {
   coordinate: coord(0),
-  kind: "city",
+  kind: "structure",
   seed: 2069,
-  layout: generateCityLayout(2069, cupolaCard.style!.tile, cupolaCard.name),
+  layout: generateStructureLayout(2069, cupolaCard.style!.tile, cupolaCard.name),
 };
 const cupola = createLandscapeSampler({ seed: 42, sources: [cupolaSource] });
 assert.equal(cupola(0, 0).foundation, 1, "Cupola interior must use the shared city foundation");
@@ -786,7 +788,7 @@ for (let i = 0; i < 72; i++) {
 }
 const cityPair = createLandscapeSampler({
   seed: 42,
-  sources: [0, 1].map((q) => ({ coordinate: coord(q), kind: "city", seed: q + 3 })),
+  sources: [0, 1].map((q) => ({ coordinate: coord(q), kind: "structure", seed: q + 3 })),
 });
 const neighbor = boardCenter(coord(1));
 assert.equal(
@@ -796,7 +798,7 @@ assert.equal(
 );
 const separatedCities = createLandscapeSampler({
   seed: 42,
-  sources: [0, 2].map((q) => ({ coordinate: coord(q), kind: "city", seed: q + 3 })),
+  sources: [0, 2].map((q) => ({ coordinate: coord(q), kind: "structure", seed: q + 3 })),
 });
 assert.equal(
   separatedCities(neighbor.x, neighbor.y).foundation,
@@ -807,7 +809,7 @@ assert.equal(spreading(0, 0).foundation, 0, "Greenery must not receive city foun
 for (const coordinate of HexGrid2D.getNeighbors(coord(0))) {
   const greenCenter = boardCenter(coordinate);
   const mixedSources: LandscapeSource[] = [
-    { coordinate: coord(0), kind: "city", seed: 3, layout: generateCityLayout(3) },
+    { coordinate: coord(0), kind: "structure", seed: 3, layout: generateStructureLayout(3) },
     { coordinate, kind: "greenery", seed: 4 },
   ];
   const mixed = createLandscapeSampler({ seed: 42, sources: mixedSources });
@@ -870,7 +872,7 @@ for (const coordinate of HexGrid2D.getNeighbors(coord(0))) {
 const separatedCityGreenery = createLandscapeSampler({
   seed: 42,
   sources: [
-    { coordinate: coord(0), kind: "city", seed: 3, layout: generateCityLayout(3) },
+    { coordinate: coord(0), kind: "structure", seed: 3, layout: generateStructureLayout(3) },
     { coordinate: coord(2), kind: "greenery", seed: 4 },
   ],
 });
@@ -883,7 +885,7 @@ assert.equal(separatedCityGreenery(neighbor.x, neighbor.y).coverage, 0);
 assert.ok(spreading(0, 0).height > 0.0025, "Vegetated ground must have real relief");
 assert.equal(developed(0, 0).height, 0.0003, "City pads must stay level");
 assert.equal(isolated(0, 0).height, LAKE_BED_LEVEL);
-for (const kind of ["city", "excluded", "volcano"] as const) {
+for (const kind of ["structure", "excluded", "volcano"] as const) {
   const protectedGround = createLandscapeSampler({
     seed: 42,
     sources: [

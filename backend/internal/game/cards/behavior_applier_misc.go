@@ -133,6 +133,9 @@ func (a *BehaviorApplier) applyMiscOutput(ctx context.Context, o *shared.MiscCon
 		selected := a.game.SelectedAwards()
 		var ids []string
 		for _, def := range a.awardRegistry.GetAll() {
+			if !a.game.Settings().AllowsContent(def.GameModes, def.RequiresSystems, def.RequiresFeatures) {
+				continue
+			}
 			if len(selected) > 0 && !slices.Contains(selected, def.ID) {
 				continue
 			}

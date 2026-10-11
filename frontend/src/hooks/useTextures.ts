@@ -82,7 +82,7 @@ const TEXTURE_PATHS = {
   sunLod: assetUrl("textures/planets/sun/overview"),
 } as const;
 
-const CITY_FACADE_PATHS = [
+const STRUCTURE_FACADE_PATHS = [
   [
     assetUrl("textures/terrain/concrete-tile-facade-color"),
     assetUrl("textures/terrain/concrete-tile-facade-normal"),
@@ -101,8 +101,8 @@ const CITY_FACADE_PATHS = [
 ];
 // The loader cache is keyed by the whole URL list, so each preload must pass exactly the
 // array that useTextures later requests; per-URL preloads would never be reused.
-const CITY_FACADE_URLS = CITY_FACADE_PATHS.flat();
-useTexture.preload(CITY_FACADE_URLS);
+const STRUCTURE_FACADE_URLS = STRUCTURE_FACADE_PATHS.flat();
+useTexture.preload(STRUCTURE_FACADE_URLS);
 
 // Layer order of the landscape's ground texture array; shaders index layers by position.
 const GROUND_LAYER_NAMES = [
@@ -221,7 +221,7 @@ useLoader.preload(THREE.TextureLoader, RESOURCE_ICON_PATHS.ocean);
 useLoader.preload(THREE.TextureLoader, RESOURCE_ICON_PATHS.wild);
 
 interface TextureAssets {
-  cityFacades: { color: THREE.Texture; normal: THREE.Texture; roughness: THREE.Texture }[];
+  structureFacades: { color: THREE.Texture; normal: THREE.Texture; roughness: THREE.Texture }[];
   groundLayers: TextureLayers;
   iceLayers: TextureLayers;
   mars: THREE.Texture;
@@ -251,10 +251,10 @@ interface TextureAssets {
 }
 
 export function useTextures(): TextureAssets {
-  const facadeTextures = useTexture(CITY_FACADE_URLS);
-  const cityFacades = useMemo(
+  const facadeTextures = useTexture(STRUCTURE_FACADE_URLS);
+  const structureFacades = useMemo(
     () =>
-      CITY_FACADE_PATHS.map((_, i) => {
+      STRUCTURE_FACADE_PATHS.map((_, i) => {
         const [color, normal, roughness] = facadeTextures.slice(i * 3, i * 3 + 3);
         color.colorSpace = THREE.SRGBColorSpace;
         normal.colorSpace = roughness.colorSpace = THREE.NoColorSpace;
@@ -425,7 +425,7 @@ export function useTextures(): TextureAssets {
   );
 
   return {
-    cityFacades,
+    structureFacades,
     groundLayers,
     iceLayers,
     mars,

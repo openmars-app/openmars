@@ -653,7 +653,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
       }
     >
       <div className="menu-grid">
-        <div className="min-w-0 flex flex-col">
+        <div className="min-w-0 flex flex-col justify-between">
           <div className="mb-6 min-w-0">
             {playerSection}
             <div className="mt-4 flex justify-center gap-2">{lobbyActions}</div>
