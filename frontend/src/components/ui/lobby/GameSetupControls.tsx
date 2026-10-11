@@ -5,6 +5,7 @@ import type {
   UpdateGameSettingsRequest,
 } from "@/types/generated/api-types.ts";
 import GameSelect from "../GameSelect.tsx";
+import CollapsibleSection from "../CollapsibleSection";
 import GameButton from "../buttons/GameButton.tsx";
 import MapPreview from "./MapPreview.tsx";
 import GameModeRules, { modeText } from "./GameModeRules.tsx";
@@ -20,6 +21,9 @@ interface Props {
   onChange?: (patch: UpdateGameSettingsRequest) => void;
   disabled?: boolean;
   layout?: "stacked" | "split";
+  showMapPreview?: boolean;
+  showMapSelect?: boolean;
+  collapsibleFeatures?: boolean;
 }
 
 export default function GameSetupControls({
@@ -33,6 +37,9 @@ export default function GameSetupControls({
   onChange,
   disabled,
   layout = "stacked",
+  showMapPreview = true,
+  showMapSelect = true,
+  collapsibleFeatures = false,
 }: Props) {
   const id = useId();
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -62,7 +69,7 @@ export default function GameSetupControls({
   const settings = (
     <div className="flex flex-col gap-5 min-w-0">
       <div className="flex items-center justify-between gap-4">
-        <label htmlFor={`${id}-mode`} className="text-sm text-white/60">
+        <label htmlFor={`${id}-mode`} className="text-sm text-white/60 shrink-0">
           Game mode
         </label>
         {onChange ? (
@@ -80,7 +87,7 @@ export default function GameSetupControls({
         )}
       </div>
       {mode && (
-        <div className="border-l-2 border-space-blue-400/60 pl-4">
+        <div className="pl-4">
           <p className="text-sm leading-relaxed text-white/75">
             {modeText(mode.summary, gameModeParameters)}
           </p>
@@ -111,7 +118,10 @@ export default function GameSetupControls({
               disabled={disabled}
               onChange={(value) =>
                 onChange({
-                  gameModeParameters: { ...gameModeParameters, [parameter.id]: Number(value) },
+                  gameModeParameters: {
+                    ...gameModeParameters,
+                    [parameter.id]: Number(value),
+                  },
                 })
               }
               className="w-24"
@@ -129,15 +139,17 @@ export default function GameSetupControls({
         if (!options.length) {
           return null;
         }
-        return (
+        const label = experimental ? "Experimental features" : "Options";
+        const fields = (
           <fieldset
             key={String(experimental)}
-            className="border-t border-white/10 pt-3"
+            aria-label={label}
+            className={collapsibleFeatures ? "" : "border-t border-white/10 pt-3"}
             disabled={disabled || !onChange}
           >
-            <legend className="font-orbitron text-xs text-white/60 pr-3">
-              {experimental ? "Experimental features" : "Options"}
-            </legend>
+            {!collapsibleFeatures && (
+              <legend className="font-orbitron text-xs text-white/60 pr-3">{label}</legend>
+            )}
             {options.map((feature) => (
               <label
                 key={feature.id}
@@ -159,25 +171,35 @@ export default function GameSetupControls({
             ))}
           </fieldset>
         );
+        if (!collapsibleFeatures) {
+          return fields;
+        }
+        return (
+          <CollapsibleSection key={String(experimental)} label={label}>
+            {fields}
+          </CollapsibleSection>
+        );
       })}
-      <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-4">
-        <label htmlFor={`${id}-map`} className="text-sm text-white/60">
-          Map
-        </label>
-        {onChange ? (
-          <GameSelect
-            id={`${id}-map`}
-            label="Map"
-            value={mapId}
-            options={maps}
-            disabled={disabled}
-            onChange={(value) => onChange({ mapId: value })}
-            className="w-full max-w-60"
-          />
-        ) : (
-          <span className="font-orbitron text-sm">{activeMap?.name ?? mapId}</span>
-        )}
-      </div>
+      {showMapSelect && (
+        <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-4">
+          <label htmlFor={`${id}-map`} className="text-sm text-white/60">
+            Map
+          </label>
+          {onChange ? (
+            <GameSelect
+              id={`${id}-map`}
+              label="Map"
+              value={mapId}
+              options={maps}
+              disabled={disabled}
+              onChange={(value) => onChange({ mapId: value })}
+              className="w-full max-w-60"
+            />
+          ) : (
+            <span className="font-orbitron text-sm">{activeMap?.name ?? mapId}</span>
+          )}
+        </div>
+      )}
     </div>
   );
   return (
@@ -191,16 +213,18 @@ export default function GameSetupControls({
       >
         {settings}
       </div>
-      <div
-        key={mapId}
-        className={
-          layout === "split"
-            ? "menu-enter shrink-0 self-center max-w-[40%] w-72 [&_svg]:w-full [&_svg]:h-auto"
-            : "menu-enter flex justify-center py-3 [&_svg]:w-full [&_svg]:max-w-[300px] [&_svg]:h-auto compact:hidden"
-        }
-      >
-        <MapPreview tiles={activeMap?.tiles ?? []} />
-      </div>
+      {showMapPreview && (
+        <div
+          key={mapId}
+          className={
+            layout === "split"
+              ? "menu-enter shrink-0 self-center max-w-[40%] w-72 [&_svg]:w-full [&_svg]:h-auto"
+              : "menu-enter flex justify-center py-3 [&_svg]:w-full [&_svg]:max-w-[300px] [&_svg]:h-auto compact:hidden"
+          }
+        >
+          <MapPreview tiles={activeMap?.tiles ?? []} />
+        </div>
+      )}
       {mode && (
         <GameModeRules
           mode={mode}
