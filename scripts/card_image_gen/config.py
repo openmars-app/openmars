@@ -4,7 +4,6 @@ from pathlib import Path
 
 # ComfyUI settings
 COMFYUI_URL = "http://127.0.0.1:8188"
-COMFYUI_PATH = Path("/mnt/HDD/ComfyUI")
 
 # Model files (relative to ComfyUI models folder)
 UNET_MODEL = "flux1-schnell-fp8-e4m3fn.safetensors"
@@ -28,10 +27,6 @@ CFG = 1.0
 SAMPLER = "euler"
 SCHEDULER = "simple"
 GUIDANCE = 3.5
-
-# Retry settings
-MAX_RETRIES = 3
-RETRY_DELAY = 2.0
 
 # Batch settings
 BATCH_DELAY = 1.0  # Delay between generations in seconds

@@ -1,173 +1,96 @@
 # Card Image Generation
 
-Generates card artwork for Open Mars using [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with [Flux Schnell](https://huggingface.co/black-forest-labs/FLUX.1-schnell) (FP8 quantized).
+Generates project and prelude artwork through a local [ComfyUI](https://github.com/Comfy-Org/ComfyUI) server using FLUX.1 Schnell FP8. Corporation logos use a separate art process and are excluded from this generator.
 
-## Prerequisites
+## Local setup
 
-- NVIDIA GPU with 8GB+ VRAM (tested on RTX 4060)
-- Python 3.10+
-- ~17GB disk space for models
-- [uv](https://docs.astral.sh/uv/) for running the generation script (or install deps manually with pip)
+Use an NVIDIA GPU with at least 8 GB VRAM, sufficient system RAM for offloading, and approximately 17 GB for model files plus Python dependencies. Other applications also consume VRAM; actual throughput and available memory must be checked with a sample generation.
 
-## ComfyUI Setup
-
-### 1. Clone ComfyUI
+Install outside the game checkout, in an isolated Python environment. Python 3.12 avoids depending on the system Python version. These commands use [uv](https://docs.astral.sh/uv/):
 
 ```bash
-git clone https://github.com/comfyanonymous/ComfyUI.git
-cd ComfyUI
+mkdir -p ~/ai
+git clone https://github.com/Comfy-Org/ComfyUI.git ~/ai/ComfyUI
+cd ~/ai/ComfyUI
+uv python install 3.12
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+uv pip install --python .venv/bin/python -r requirements.txt huggingface-hub
+.venv/bin/python -c 'import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name())'
 ```
 
-### 2. Create a virtual environment and install dependencies
+The CUDA wheel must support the installed NVIDIA driver. Consult the current [ComfyUI installation instructions](https://docs.comfy.org/installation/manual_install) and [PyTorch installer](https://pytorch.org/get-started/locally/) when installing on another machine. A separate CUDA toolkit installation is unnecessary for the bundled wheels.
 
-```bash
-python -m venv venv
-source venv/bin/activate    # Linux/macOS
-# venv\Scripts\activate     # Windows
+Download these exact files through Hugging Face, pinning each repository revision when recording an art batch:
 
-pip install --upgrade pip
-pip install -r requirements.txt
+| Repository | File | ComfyUI directory |
+| --- | --- | --- |
+| `Kijai/flux-fp8` | `flux1-schnell-fp8-e4m3fn.safetensors` | `models/diffusion_models/` |
+| `Kijai/flux-fp8` | `flux-vae-bf16.safetensors` | `models/vae/` |
+| `comfyanonymous/flux_text_encoders` | `clip_l.safetensors` | `models/text_encoders/` |
+| `comfyanonymous/flux_text_encoders` | `t5xxl_fp8_e4m3fn.safetensors` | `models/text_encoders/` |
+
+For example, from the ComfyUI directory:
+
+```python
+from huggingface_hub import HfApi, hf_hub_download
+
+repo = "Kijai/flux-fp8"
+revision = HfApi().model_info(repo).sha
+hf_hub_download(repo, "flux1-schnell-fp8-e4m3fn.safetensors",
+                revision=revision, local_dir="models/diffusion_models")
 ```
 
-### 3. Install PyTorch with CUDA
-
-Pick the command matching your CUDA version from https://pytorch.org/get-started/locally/.
-
-For CUDA 12.8:
+Repeat for the other three files and their directories. No custom nodes or checkpoint symlinks are needed. Start the server manually, bound only to this machine:
 
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+cd ~/ai/ComfyUI
+.venv/bin/python main.py --listen 127.0.0.1 --port 8188 --lowvram
 ```
 
-### 4. Download models
+Open `http://127.0.0.1:8188`. The game generator submits its node graph through the API, so no manual workflow construction is required. Keep generation sequential on an 8 GB card. The client waits up to 30 minutes for an individual job, including cold model loading and queue time; a timeout does not cancel or automatically resubmit it.
 
-From inside the ComfyUI directory, with the venv activated:
+## Review candidates before publishing
+
+Run commands from the game worktree root. Install the generator's pinned requirements through uv when invoking it:
 
 ```bash
-pip install huggingface_hub   # if not already installed
+# Inspect a prompt without contacting ComfyUI or writing files.
+uv run --python 3.12 --with-requirements scripts/card_image_gen/requirements.txt \
+  python -m scripts.card_image_gen.generate_cards --card ES004 --dry-run
 
-python -c "
-from huggingface_hub import hf_hub_download
-
-# Flux Schnell FP8 checkpoint (~12GB)
-hf_hub_download(
-    repo_id='Kijai/flux-fp8',
-    filename='flux1-schnell-fp8-e4m3fn.safetensors',
-    local_dir='models/checkpoints'
-)
-
-# Flux VAE (~160MB)
-hf_hub_download(
-    repo_id='Kijai/flux-fp8',
-    filename='flux-vae-bf16.safetensors',
-    local_dir='models/vae'
-)
-
-# CLIP-L text encoder (~235MB)
-hf_hub_download(
-    repo_id='comfyanonymous/flux_text_encoders',
-    filename='clip_l.safetensors',
-    local_dir='models/text_encoders'
-)
-
-# T5-XXL text encoder, FP8 (~4.6GB)
-hf_hub_download(
-    repo_id='comfyanonymous/flux_text_encoders',
-    filename='t5xxl_fp8_e4m3fn.safetensors',
-    local_dir='models/text_encoders'
-)
-"
+# Save one isolated review candidate with a known seed.
+uv run --python 3.12 --with-requirements scripts/card_image_gen/requirements.txt \
+  python -m scripts.card_image_gen.generate_cards --card ES004 --seed 1001 \
+  --candidate-dir output/imagegen/earth-withdrawal-review
 ```
 
-### 5. Symlink the checkpoint for UNETLoader
+Candidate mode writes `CARD-seed-SEED/image.png` and `manifest.json` inside the requested directory. It never calls the asset exporter or changes production images or `assets/catalog.json`. Existing candidates cannot be overwritten; use another seed or another review directory. Destinations inside production assets or the frontend are rejected, including symlinks to those directories.
 
-The generation script uses `UNETLoader` which reads from `models/diffusion_models/`. Create a symlink so it can find the checkpoint:
+Each manifest preserves the full prompt, seed, exact ComfyUI node graph, server software/device information and PNG SHA-256. Keep an `environment.json` alongside the batch recording the ComfyUI Git revision, installed packages, model repository revisions and model SHA-256 values. Same seed and software inputs support reproduction, but identical bytes across GPU or library changes are not guaranteed.
 
-```bash
-# Linux/macOS
-ln -sf ../checkpoints/flux1-schnell-fp8-e4m3fn.safetensors models/diffusion_models/flux1-schnell-fp8-e4m3fn.safetensors
+For a review batch, use explicit card IDs. Compare contact sheets with existing art, then inspect each selected image in its real card crop before promotion. All cards use the original subject, tag hints and deterministic lighting, perspective and palette recipe. Add only short subject overrides for persistent text or subject errors. Selected production images and their generation provenance are recorded in `assets/card-art-generation.json`.
 
-# Windows (run as admin)
-# mklink models\diffusion_models\flux1-schnell-fp8-e4m3fn.safetensors models\checkpoints\flux1-schnell-fp8-e4m3fn.safetensors
-```
+## Production output
 
-### 6. Start ComfyUI
-
-For GPUs with 8GB VRAM, use `--lowvram` to enable automatic model offloading:
+Omitting `--candidate-dir` writes directly to `assets/original/cards/CARD.png`, updates the catalog and runs the shared exporter. It can replace existing artwork. Use this only when production replacement is intended:
 
 ```bash
-python main.py --lowvram
-```
-
-For GPUs with 12GB+ VRAM, you can omit the flag:
-
-```bash
-python main.py
-```
-
-Add `--listen 0.0.0.0` if you want to access the web UI from another device on the network.
-
-ComfyUI will be available at http://localhost:8188.
-
-## Configuration
-
-Before running, update `config.py` to match your setup:
-
-- `COMFYUI_URL` - ComfyUI server address (default: `http://127.0.0.1:8188`)
-- `COMFYUI_PATH` - Path to your ComfyUI installation
-- `IMAGE_WIDTH` / `IMAGE_HEIGHT` - Output dimensions (default: 960x720)
-- `WEBP_QUALITY` - WebP compression quality (default: 90)
-- `STEPS` - Sampling steps (default: 4; Flux Schnell is optimized for 4)
-- `GUIDANCE` - Guidance scale (default: 3.5)
-
-## Generating Card Images
-
-Make sure ComfyUI is running, then run from the project root:
-
-```bash
-# Preview the prompt for a card without generating
-uv run --with aiohttp --with Pillow \
-  python -m scripts.card_image_gen.generate_cards --card 042 --dry-run
-
-# Generate a single card
-uv run --with aiohttp --with Pillow \
-  python -m scripts.card_image_gen.generate_cards --card 042
-
-# Generate a range of cards
-uv run --with aiohttp --with Pillow \
-  python -m scripts.card_image_gen.generate_cards --start 042 --end 100
-
-# Generate all cards that don't have images yet
-uv run --with aiohttp --with Pillow \
-  python -m scripts.card_image_gen.generate_cards --missing
-
-# Use a fixed seed for reproducibility
-uv run --with aiohttp --with Pillow \
+uv run --python 3.12 --with-requirements scripts/card_image_gen/requirements.txt \
   python -m scripts.card_image_gen.generate_cards --card 042 --seed 12345
 ```
 
-If you don't use `uv`, install the dependencies from `requirements.txt` into a venv and call the module directly:
+To publish an already selected candidate, copy its original PNG to `assets/original/cards/CARD.png`, register it with profile `card` in `assets/catalog.json`, then run `bun run assets` from `frontend/`. Do not regenerate an approved candidate during promotion. The exporter produces the 480- and 960-pixel runtime WebP variants from the master; Node 24+, Bun, frontend dependencies and Git LFS sources are required.
+
+The CLI also accepts `--start ID --end ID` or `--missing`. Missing artwork is determined by both catalog entry and source-file existence. Review the target set with `--dry-run` first; `--missing` can include cards outside the current feature.
+
+Failed jobs report server validation or execution details and cause a nonzero command exit. Successful candidates from a partial batch are preserved. A timed-out job may still run in ComfyUI: inspect its queue before retrying. Nothing is automatically resubmitted.
+
+## Verification
 
 ```bash
-pip install -r scripts/card_image_gen/requirements.txt
-python -m scripts.card_image_gen.generate_cards --card 042
+uv run --python 3.12 --with-requirements scripts/card_image_gen/requirements.txt \
+  python -m unittest scripts.card_image_gen.test_card_generation
 ```
 
-Generated PNG masters are saved to `assets/original/cards/{id}.png` and registered in `assets/catalog.json`. The shared exporter creates the runtime WebP variants. Node 24+, Bun, frontend dependencies, and Git LFS sources are required.
-
-## How It Works
-
-1. Reads card data from `backend/assets/cards.json`
-2. Builds a prompt from the card name, tags, and type using a consistent sci-fi Martian art style
-3. Sends a Flux Schnell workflow to ComfyUI's API (UNETLoader + DualCLIPLoader + VAELoader + KSampler)
-4. Retrieves the generated image, resizes to 960x720, and saves as WebP
-
-## Troubleshooting
-
-**`BrokenPipeError` during generation** - Your GPU is running out of VRAM. Restart ComfyUI with `--lowvram`.
-
-**`Connection refused`** - ComfyUI is not running. Start it first (see step 6 above).
-
-**`Entry Not Found` when downloading models** - The Hugging Face repo or filename may have changed. Check the repos manually:
-- https://huggingface.co/Kijai/flux-fp8
-- https://huggingface.co/comfyanonymous/flux_text_encoders
+Tests cover candidate isolation and reproduction records, overwrite protection, invalid output, failed workflows, GPU execution errors, timeout identification and nonzero batch failure.
