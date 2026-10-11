@@ -23,8 +23,8 @@ func TestHTTP_ServerInformation(t *testing.T) {
 		t.Fatalf("meta: status %d, %+v", status, meta)
 	}
 	options := srv.GameOptions(t)
-	if options.Defaults.DevelopmentMode {
-		t.Fatalf("new games should not default to development mode")
+	if !options.Defaults.DevelopmentMode {
+		t.Fatalf("new games should default to development mode")
 	}
 	if options.Defaults.GameModeID == "" || len(options.GameModes) == 0 || len(options.AvailableMaps) == 0 {
 		t.Fatalf("game options should offer game modes and maps: %+v", options.Defaults)

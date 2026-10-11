@@ -141,6 +141,7 @@ func TestCreateGameRequestOptions(t *testing.T) {
 	registry := testutil.CreateTestModeCatalog()
 	action := gameAction.NewCreateGameAction(repo, registry, testutil.CreateTestMapRegistry(), testutil.TestLogger())
 	options := dto.MapGameOptions(action.Options())
+	testutil.AssertTrue(t, options.Defaults.DevelopmentMode, "new games default to development mode")
 	if len(options.AvailableMaps) == 0 || len(options.AvailableMaps[0].Tiles) == 0 {
 		t.Fatal("setup must include map previews")
 	}

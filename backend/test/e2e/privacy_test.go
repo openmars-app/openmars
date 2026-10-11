@@ -141,7 +141,7 @@ func TestPrivacy_AdminCommandsNeedDevelopmentModeAndAPlayer(t *testing.T) {
 		})
 	}
 
-	normal := srv.Play(t, nil, "alice", "bob")
+	normal := srv.Play(t, func(s *dto.GameSetupDto) { s.DevelopmentMode = false }, "alice", "bob")
 	setTo(normal.Players[1], 999)
 	normal.Players[1].AwaitError(t)
 	normal.Host().ExpectQuiet(t)

@@ -136,6 +136,7 @@ func (a *CreateGameAction) Options() GameOptions {
 	return GameOptions{Defaults: shared.GameSettings{
 		MaxPlayers: game.DefaultMaxPlayers, MapID: board.DefaultMapID(),
 		GameModeID: "classic", Features: []string{"prelude"},
+		DevelopmentMode: true,
 	}, AvailableMaps: availableMaps, GameModes: cards.ModeDefinitions(a.cardRegistry)}
 }
 
