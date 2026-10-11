@@ -1,137 +1,50 @@
-# Board - 3D Mars Tile Rendering
+# Board rendering instructions
 
-React Three Fiber components that render the hexagonal game board on a 3D Mars sphere. Tiles are projected from 2D hex coordinates onto the sphere surface using azimuthal projection.
+## Required visual review
 
-## Component Hierarchy
+Before completing a board rendering change, run `just frontend inspect --card ID` or `--tile TYPE` from the repository root and open the screenshots. Review gameplay and close cameras beside the comparison city, greenery, and ocean, on desktop plus iPhone and Android landscape.
 
-```
-MarsSphere          -> Textured sphere + rotation context
-+-- TileGrid        -> Generates projected hex positions, detects new tiles
-|   +-- Tile        -> Base hex tile (chrome border, hover, highlights, VP text)
-|   +-- CityRenderer     -> Procedural city geometry with rise emergence
-|   |   +-- VolcanoTile   -> Procedural volcano (custom GLSL shaders + smoke)
-|   +-- LandscapeRenderer -> Shared ground fields, recessed lakes, and shoreline materials
-|   +-- GreeneryRenderer  -> InstancedMesh vegetation (trees, bushes, clover, rocks)
-+-- GpuWarmup       -> Invisible warmup meshes to prevent first-render stalls
-```
+For animation changes, capture placement stages such as `--state placement --frames 0,30,120`. Repeat captures after visual fixes. Judge grounding, scale, silhouette, texture detail, lighting, overlap, and smoke density in the real board scene.
 
-## Tile Types
+An isolated model, custom preview lighting, geometry assertions, or successful screenshot generation does not replace this review. Report the images actually inspected and any verification gap. See [inspector instructions](../../../../scripts/README.md) for frame controls and reports.
 
-Each hex can be one of: `empty`, `ocean`, `greenery`, `city`, `special`, `volcano`.
+## Shared structure and vegetation
 
-- **Tile** (`Tile.tsx`) — Base component for every hex. Renders the chrome border, hover/available glow, owner color, VP text. Delegates to child components based on type.
-- **LandscapeRenderer** — Owns `LandscapeSurface`: instanced lake stencil masks, opaque basin and ground terrain, blended ground edges, and water. `landscapeFields.ts` builds continuous height/material fields in a worker; adjacent ocean junctions are filled while island holes remain. Water is below the Mars surface and sandy banks rise to surrounding ground. Lake and Mohole masks use independent stencil bits. All passes share texture layers and a 600 ms transition clock.
-- **CityRenderer** — Renders seeded procedural cities on Mars and celestial bodies; surface projection uses the body radius.
-- **VolcanoTile** — Procedural volcano cone with crater, lava flows, and smoke particles. Uses custom vertex/fragment shaders (`volcano.vert.glsl`, `volcano.frag.glsl`). Height field is generated on both GPU (shaders) and CPU (flow map computation in `volcanoFlowMap.ts`). Smoke effect in `effects/VolcanoSmoke.tsx`.
-- **GreeneryRenderer** — Handles ALL vegetation (trees, bushes, clover, rocks) for both greenery tiles AND volcano tiles using InstancedMesh.
+- Use [structureLayout.ts](structureLayout.ts), [StructureRenderer](StructureRenderer.tsx), and [StructureBatchRenderer](StructureBatchRenderer.tsx) for built structures, including cities and factories.
+- Author reusable feature requests through `style.tile` in [cards.json](../../../../../backend/assets/cards.json). Inspect the existing request vocabulary, geometry, materials, and placement logic before adding a feature.
+- Extend the shared generator for missing features such as factory halls, smokestacks, or tanks. Do not introduce a renderer or fixed layout for one card, or select bespoke geometry by card ID/name.
+- Keep gameplay tile types separate from visual composition: shared rendering must preserve each tile's placement, adjacency, and scoring rules.
+- Place trees and bushes through [GreeneryRenderer](GreeneryRenderer.tsx), not standalone meshes in individual tile components. Preserve deterministic placement, stable slots/ranks, terrain grounding, and structure/volcano exclusions.
 
-## Vegetation Management
+## Climate and landscape
 
-**CRITICAL**: All trees and bushes MUST be placed through `GreeneryRenderer`. Never create standalone tree/bush meshes in individual tile components.
+Read the mutable climate values through `useClimate()` in `useFrame` and update uniforms. Do not trigger React renders every frame. Plant gating uses target state and stable ranks so rising gates add plants without reshuffling them.
 
-- GreeneryRenderer receives the displayed and previous landscape states and the terrain transition timestamp from TileGrid.
-- The landscape worker deterministically scatters plants in world-space cells, with city/volcano exclusions, beach clearances, and reduced tree density near exposed hex borders.
-- Uses InstancedMesh per variant with stable slots; plant heights interpolate with the displayed terrain.
-- Vegetation models come from `useModels()` through `createVariantsFromScene()`.
+When changing landscape rendering:
 
-## Climate
+- Preserve shared terrain heights between ground and vegetation.
+- Keep lake and Mohole stencil masks independent.
+- Update bake invalidation in `LandscapeSurface.updateBake` whenever adding an input to the ground material. Include the corresponding material result in bake outputs and fall back to live shading immediately when inputs change.
+- Preserve placement ordering: upload changed layers before activation, cover the union of previous/current basin cutouts during interpolation, and release removed slots after the transition.
 
-`climate.ts` maps temperature, oxygen and oceans to normalized signals (frost, ice, plant gates, sky, ...). `ClimateProvider` (inside `MarsSphere`) eases them in a mutable ref each frame; read it with `useClimate()` in `useFrame` and write uniforms, never re-render per frame. Plant gating uses the target state and each plant's stable `rank`, so rising gates only add plants. Override values from the Admin Tools "Climate" page.
+See [LandscapeSurface](landscapeSurface.ts) and [groundBake](groundBake.ts) for current passes, uniforms, and timing rather than duplicating their constants.
 
-## Landscape Depth
+## GPU and shader constraints
 
-- `uDetailField` (RGBA8, mirrors `uMaterials`): R shoreline meadow outside greeneries, G hummock noise, B greenery weight. Greenery hummocks are added to the height field in the worker, so plants stay grounded.
-- `PlantShadeMap` (`plantShade.ts`) bakes a top-down occlusion map of the visible plants whenever the gated set or tree sizes change. The ground reads it via `uPlantShade`.
-- Ground occlusion (cavity from layer heights, plant shade, canopy litter) replaces `aomap_fragment` (`landscape-ao.frag.glsl`). It dims indirect light and applies a micro-shadow to the sun, since the board has no shadow maps.
+- Opaque ground writes actual surface depth; blended ground edges do not. Keep shared geometry and alpha behavior aligned between passes.
+- Foliage depth and shading passes must use identical vertex transforms and polygon offsets, including `invariant gl_Position`, so equal-depth shading matches its prepass.
+- Set `forceSinglePass: true` on transparent DoubleSide materials to avoid extra draws and program-update churn.
+- Avoid allocations in `useFrame` and `onBeforeRender`, including new arrays, closures, and string-based color conversion.
+- Check fragment texture-unit use before adding samplers. Add compatible terrain layers to the existing texture arrays instead of consuming another sampler; preserve their sampling orientation.
+- Keep volcano shader height generation synchronized with CPU sampling in [volcanoFlowMap.ts](volcanoFlowMap.ts). Lava flow and rendered terrain must agree.
+- Keep shader code in `.glsl` files loaded through the existing shader utilities; use uniform offsets rather than baking varying values into shader strings.
 
-## Rendering Cost
+## React material lifetime
 
-- **Ground bake** (`groundBake.ts`): when the landscape, climate uniforms, plant shade and view hold still, the board region in view (+25 % margin) is baked at screen density into two 4096×2048 targets: albedo+alpha (sRGB) and surface (slope, roughness, AO). The live ground shader then takes the `uGroundBaked` branch and reads two texels. Any input change falls back to the live branch at once; rebakes wait 3 steady frames and render in 4 strips. Anything added to the ground's material stage must also be listed in `LandscapeSurface.updateBake` inputs and land in the bake outputs (`base`, `groundAlpha`, `surfaceSlope`, `surfaceRoughness`, `landscapeAO`).
-- **Ground depth**: fully opaque ground writes color and actual surface depth together. A separate transparent pass draws only the soft edge without writing depth; both use the same geometry and live or baked alpha. The Mars sphere (`renderOrder` 16, after plants) fills uncovered pixels and remains behind blended edges. Only actual holes use stencil masks.
-- **Foliage depth pre-pass**: each foliage batch draws `userData.depthMaterial` first (alpha-to-coverage cut-out, depth only, `renderOrder` 14), then the Lambert shading pass with `EqualDepth` and no discard, so each pixel is shaded once. Both programs declare `invariant gl_Position`; keep their vertex transform and polygon offset identical.
-- **Transparent DoubleSide materials need `forceSinglePass: true`**: otherwise three draws them twice and flags `needsUpdate` on every draw, which rebuilds program parameters (heavy GC).
-- `useFrame` and `onBeforeRender` code must not allocate (no closures, arrays, `color.set(string)`).
+Keep `useMemo` material factories free of ref-assignment side effects. Strict Mode can invoke the factory more than once, leaving a ref pointing at a material that the mesh does not render. Update uniforms on the material returned by `useMemo`, rather than on a ref assigned inside that factory.
 
-## Texture Budget
+## Projection and assets
 
-Landscape ground uses 15 of the 16 fragment texture units (fields: terrain, materials, detail; plus Mars, climate noise, dry grass, sand, rock, paving, plant shade, the two ground arrays and the two ground-bake targets). Same-sized terrain layers go into `sampler2DArray`s built by `textureArray()` (`groundLayers` and `iceLayers` in `useTextures`), sampled with a negated v. Add a layer to an array instead of a new sampler.
+Use existing hex and sphere projection utilities: cube coordinates satisfy `q + r + s = 0`, and projection must use the target celestial body's radius. Reuse shared constants rather than copying numeric offsets or sizes.
 
-## Coordinate System
-
-Cube coordinates `(q, r, s)` where `q + r + s = 0`. TileGrid converts these to 2D pixel positions, then projects onto the sphere via azimuthal projection (`projectToSphere`). The projection maps the flat hex grid onto the front hemisphere.
-
-## Key Constants
-
-- `SPHERE_RADIUS = 2.02` — Mars sphere radius, shared by the board and landscape projection
-- `CHROME_Z_BASE = 0.0156` — Base z-offset for tile chrome to prevent z-fighting
-- `HEX_SIZE = 0.3` — Hex cell size for coordinate conversion
-- `HEX_RADIUS = 0.166` — Hex tile radius in world units
-- Projection scale `0.4` — Controls hex spacing on sphere
-
-## Volcano Shader System
-
-The volcano uses a custom procedural heightfield:
-
-- **Vertex shader** (`volcano.vert.glsl`): Generates cone + crater + rim + gullies from seed-based parameters. Uses domain warp and shape field to break circular silhouette. Normals via finite differences.
-- **Fragment shader** (`volcano.frag.glsl`): 3-layer rock material, flow-map-based lava, crater magma, grass at base. Debug modes (uDebugMode: 0=normal, 1=height, 2=slope, 3=gully, 4=flow).
-- **Flow map** (`volcanoFlowMap.ts`): CPU-side height sampling on 64x64 grid with steepest-descent flow accumulation. Uploaded as DataTexture for valley-seeking lava.
-- **Material factory** (`shaders/index.ts`): `createVolcanoMaterial(grassTexture, flowTexture, seed)` creates the ShaderMaterial with all uniforms.
-
-**Important**: The vertex shader and flow map TypeScript MUST stay in sync. Both implement the same `getHeight()` function. Any change to height generation in the shader must be mirrored in `volcanoFlowMap.ts`.
-
-## Shader Uniform Updates — useMemo + useRef Pitfall
-
-**CRITICAL**: Never use `useRef` to track materials created in `useMemo`, then update uniforms via the ref in `useFrame`. React Strict Mode runs `useMemo` callbacks **twice** in development, discarding the second return value but keeping side effects. A `materialRef.current = mat` inside `useMemo` ends up pointing to the discarded material, so all uniform updates in `useFrame` silently go to a ghost material the mesh doesn't render.
-
-```tsx
-// BAD — ref points to wrong material in Strict Mode
-const materialRef = useRef(null);
-const material = useMemo(() => {
-  const mat = createMyMaterial();
-  materialRef.current = mat; // overwrites with discarded 2nd run
-  return mat;
-}, [deps]);
-useFrame(() => {
-  materialRef.current.uniforms.uFoo.value = x;
-}); // ghost material
-
-// GOOD — use the useMemo return value directly
-const material = useMemo(() => createMyMaterial(), [deps]);
-useFrame(() => {
-  material.uniforms.uFoo.value = x;
-}); // always the real material
-```
-
-## Asset Loading
-
-All 3D models and textures are loaded via centralized hooks in `hooks/`:
-
-- `useModels()` — vegetation, rocks, and celestial models; cities use procedural geometry
-- `useTextures()` — terrain textures, resource icons, effects textures
-
-No direct `useGLTF`, `useTexture`, or `useLoader(TextureLoader)` calls in board components.
-
-- **GpuWarmup** renders tiny invisible instances of every material/shader to eliminate first-use GPU compilation hitches.
-
-## Shaders (`shaders/`)
-
-All GLSL shaders live in `.glsl` files imported via Vite `?raw`. The `shaders/index.ts` barrel exports all shaders plus a `splitSnippet()` utility for `onBeforeCompile` snippets (header/body separated by `//#pragma body`).
-
-- **Complete shaders**: ocean-renderer (vert+frag, GLSL 300 es), sphere projection (shared vert), ocean border, hover/available/endgame glow, tile border (vert+frag), volcano (vert+frag)
-- **onBeforeCompile snippets**: tile surface projection, greenery ground (vert+frag with hex SDF soft edges)
-- Z-offsets use `uZOffset` uniform (not baked into shader strings)
-
-## Effects (`effects/`)
-
-- **DustEffect** — Smoke particle cloud using billboard planes with a smoke texture. Used by CityRenderer for city placement.
-- **VolcanoSmoke** — Sprite-based smoke particles emitted from crater. Uses `renderOrder = 100` to render above tile geometry.
-
-Landscape placement transitions live in `LandscapeSurface.tick`: changed layers upload before activation, lake cutouts cover the previous/current basin union during interpolation, and removed slots are released after the transition.
-
-## External Exports
-
-Other parts of the codebase import from this directory:
-
-- `TileHighlightMode` type from `Tile` — used by view, layout, and display components for VP scoring highlights
-- `variantCache`, `createVariantsFromScene`, tree/bush/clover name arrays from `GreeneryRenderer` — used by GpuWarmup
-- `addSphereProjectionWithSoftEdges` from `GreeneryRenderer` — used by VolcanoTile for ground mesh
+Load models and textures through [useModels](../../../hooks/useModels.ts) and [useTextures](../../../hooks/useTextures.ts). Do not add direct `useGLTF`, `useTexture`, or `useLoader(TextureLoader)` calls to board components. Include new rendering paths in GPU warmup where needed to avoid first-use compilation stalls.

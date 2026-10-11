@@ -1,92 +1,26 @@
-# Data Transfer Objects (DTOs) - Frontend Communication Layer
+# Client DTO instructions
 
-**CRITICAL**: DTOs in this directory are the ONLY data structures exposed to the frontend. They define the contract between backend and frontend.
+DTOs define the client contract. Keep domain models internal; only this package belongs in [tygo.yaml](../../../tygo.yaml).
 
-## Core Principles
+## Contract changes
 
-1. **Frontend Contract**: DTOs are "artifacts" created from internal models before sending to frontend
-2. **Bidirectional**: Frontend sends DTOs to backend, backend sends DTOs to frontend
-3. **Must Generate TypeScript**: ALL DTOs are exported to TypeScript types via `tygo generate`
-4. **NEVER Export Models**: Only DTOs are allowed in `tygo.yaml` - NEVER add model objects
+1. Add or update the relevant DTO alongside related definitions in this package.
+2. Update its `mapper_*.go` conversion and affected consumers together.
+3. Run `just generate` from the repository root and inspect the generated TypeScript change.
+4. Verify mapping and visibility with affected backend tests and frontend type checking.
 
-## Development Workflow
+An internal model field does not automatically belong in a DTO. Expose only information required by the client contract. Preserve the distinction between a player's private view, opponent summaries, and spectator views; see [mapper_player.go](mapper_player.go), [mapper_game.go](mapper_game.go), and [mapper_spectator.go](mapper_spectator.go).
 
-### When Adding/Modifying DTOs
+When removing or renaming a public field, update mappings and consumers without retaining a compatibility field.
 
-1. **Create/Update DTO struct** in `game_dto.go` with `json:` tags
-2. **Add `tstype:` tags only where needed** — tygo infers types from Go types automatically. Only use `tstype:` to override (e.g., string literal unions for discriminated unions)
-3. **Add/Update mapper function** in `mapper_*.go` to convert model to DTO
-4. **Run `just generate`** to create TypeScript types
-5. **Verify TypeScript types** in `frontend/src/types/generated/api-types.ts`
+## Type generation
 
-### DTO Structure Template
+- `json:"fieldName"` controls the serialized and generated field name; `omitempty` makes the TypeScript field optional.
+- Let tygo infer types. Use `tstype:` only for overrides such as literal unions.
+- `ts:` tags are ignored; do not add them.
+- Use `//tygo:emit` for required TypeScript union declarations, following existing definitions.
+- Use the root `just generate` recipe, which also formats the output. Do not hand-edit generated types.
 
-```go
-type PlayerDto struct {
-    ID       string `json:"id"`
-    Credits  int    `json:"credits"`
-    IsActive bool   `json:"isActive"`
-}
-```
+## Behavior conditions
 
-### Tag Reference
-
-```go
-`json:"fieldName"`              // Required: controls TS field name
-`json:"fieldName,omitempty"`    // Makes field optional (?) in TS
-`tstype:"'a' | 'b' | 'c'"`     // Override: generates literal union type
-`tstype:"CustomType[]"`         // Override: use a custom TS type
-```
-
-**Do NOT use `ts:` tags** — they are ignored by tygo.
-
-### Emitting Custom TypeScript
-
-Use `//tygo:emit` directly above a struct to inject literal TypeScript (e.g., union type aliases):
-
-```go
-//tygo:emit export type MyUnion = TypeA | TypeB;
-type TypeA struct { ... }
-```
-
-## Resource Condition DTOs
-
-Card behavior conditions use a **discriminated union** pattern. 10 category-specific DTO structs generate TypeScript interfaces with literal `type` fields:
-
-```go
-type BasicResourceConditionDto struct {
-    Type   string `json:"type" tstype:"'credit' | 'steel' | 'titanium' | 'plant' | 'energy' | 'heat'"`
-    Amount int    `json:"amount"`
-    Target TargetType `json:"target"`
-    // ... category-specific fields only
-}
-```
-
-The `//tygo:emit` directive generates the `ResourceCondition` union type. The mapper in `mapper_card.go` returns the right DTO struct per category.
-
-## Synchronization Rules
-
-**CRITICAL**: When model changes, DTO MUST be updated:
-
-1. Model field added → Add to DTO with `json:` tag
-2. Model field removed → Remove from DTO
-3. Model field renamed → Update DTO field name
-4. **ALWAYS** update mapper function in `mapper_*.go`
-5. **ALWAYS** run `just generate` after DTO changes
-
-## Common Mistakes to Avoid
-
-- Adding `ts:` tags (tygo ignores them, only `tstype:` works for overrides)
-- Adding models to `tygo.yaml` (only DTOs allowed)
-- Using DTOs internally in backend (use domain models instead)
-- Updating DTO without updating mapper function
-- Not running `just generate` after DTO changes
-- Adding `// DEPRECATED` comments — delete deprecated fields entirely
-
-## File Organization
-
-- `game_dto.go`: All DTO struct definitions (including resource condition category DTOs)
-- `mapper_card.go`: Card and behavior condition mappers
-- `mapper_game.go`: Game state mappers
-- `mapper_player.go`: Player state mappers
-- `mapper_helpers.go`: Shared mapping utilities
+Conditions map to category-specific DTOs and a discriminated TypeScript union. For a client-visible condition change, update its DTO, the union where necessary, and `toResourceConditionDto` in [mapper_card.go](mapper_card.go). Follow the [shared-condition checklist](../../game/shared/AGENTS.md) so JSON conversion, validation, copying, and execution remain aligned.

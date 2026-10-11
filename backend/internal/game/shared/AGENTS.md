@@ -1,94 +1,23 @@
-# Shared Types - Behavior Condition System
+# Shared behavior-condition instructions
 
-Card behaviors use a **discriminated union** pattern. The `BehaviorCondition` interface has 10 typed category structs, each with only the fields that make sense for that category.
+Card JSON uses flat conditions. [card_behavior_types.go](card_behavior_types.go) defines that JSON shape; [behavior_condition_categories.go](behavior_condition_categories.go) categorizes it into typed conditions and flattens it for serialization. Use the typed `BehaviorCondition` interface in domain code.
 
-## Architecture
+## Adding a type or field
 
-```
-Card JSON (flat) → UnmarshalJSON → categorizeCondition() → Typed struct (e.g., *BasicResourceCondition)
-                                                                    ↓
-                                                        BehaviorCondition interface
-                                                                    ↓
-                                              behavior_applier type-switches per category
-```
+- For a new resource type, add its constant in [resource_type.go](resource_type.go), register it in `AllResourceTypes` in [resource_condition_rules.go](resource_condition_rules.go), and update its `classifyResourceType` mapping.
+- Add fields to the flat JSON representation and the relevant typed condition. Follow existing dedicated condition files when extending those categories.
+- Update both `categorizeCondition` and `flattenCondition`; a field must survive JSON round trips.
+- Update `deepCopyCondition` for reference-valued fields so copies do not share mutable pointers, slices, or maps.
+- Update input/output validation profiles in [resource_condition_rules.go](resource_condition_rules.go).
+- For a new category, implement the interface and its copy behavior, and extend the execution dispatch in [cards](../cards).
+- If the client needs the new data, update the DTO, `toResourceConditionDto`, and generated union together. Follow [DTO instructions](../../delivery/dto/AGENTS.md).
+- Update applicable frontend guards in [resourceConditions.ts](../../../../frontend/src/types/resourceConditions.ts) when changing the client condition union.
+- Add backend tests for execution and affected conversion, validation, or copy behavior. Use constructed conditions in [behavior tests](../../../test/action/behavior).
 
-## Key Files
+Use `just generate` when the client contract changes and run the affected backend tests. Do not assume that adding a JSON field alone gives it executable behavior.
 
-| File | Purpose |
-|------|---------|
-| `behavior_condition.go` | `BehaviorCondition` interface, `ConditionBase`, accessor helpers (`GetPerCondition`, `IsVariableAmount`, etc.) |
-| `behavior_condition_categories.go` | 10 typed structs, `categorizeCondition`, `classifyResourceType` |
-| `card_behavior_types.go` | `resourceConditionJSON` (flat JSON format), `Trigger`, `PerCondition`, `Choice` |
-| `behavior.go` | `CardBehavior` with `[]BehaviorCondition` inputs/outputs, `UnmarshalJSON` |
-| `resource_condition_rules.go` | Field validation profiles per resource type |
-| `resource_type.go` | `ResourceType` constants |
+## Access and authoring
 
-## Categories
+Use interface methods for common fields and the accessor helpers in [behavior_condition.go](behavior_condition.go) for optional category fields. Use a type assertion when the category is known; do not add irrelevant fields to every category.
 
-| Category Struct | Resource Types | Category-Specific Fields |
-|----------------|----------------|------------------------|
-| `BasicResourceCondition` | credit, steel, titanium, plant, energy, heat | Per, VariableAmount, MaxTrigger, Optional, TargetRestriction, PaymentAllowed |
-| `ProductionCondition` | *-production, any-production | Per, VariableAmount |
-| `TilePlacementCondition` | city/greenery/ocean/volcano/tile-placement, land-claim | TileRestrictions, TileType, Optional |
-| `GlobalParameterCondition` | temperature, oxygen, ocean, venus, tr, global-parameter | Per |
-| `CardOperationCondition` | card-draw/take/peek/buy/discard | Selectors, Optional, PaymentAllowed, VariableAmount |
-| `CardStorageCondition` | microbe, animal, floater, science, asteroid, fighter, disease, card-resource | Selectors, Per, Optional, VariableAmount |
-| `PaymentSubstituteCondition` | payment-substitute | Source, TargetResource, Selectors |
-| `EffectCondition` | discount, value-modifier, defense, etc. | Selectors, Temporary |
-| `ColonyCondition` | colony/count/bonus/track-step | AllowDuplicatePlayerColony |
-| `TileModificationCondition` | tile-destruction/replacement | TileType |
-| `MiscCondition` | extra-actions, bonus-tags, world-tree-tile, award-fund, trade | Per, Selectors |
-
-All structs embed `ConditionBase` (ResourceType, Amount, Target).
-
-## Adding a New Resource Type
-
-1. Add constant to `resource_type.go` and add it to `AllResourceTypes`
-2. Determine which category it belongs to (or create a new one)
-3. Add to `classifyResourceType()` switch in `behavior_condition_categories.go`
-4. Add to `categorizeCondition()` and `flattenCondition()` in the same file
-5. Add field validation profile in `resource_condition_rules.go` (both input and output maps)
-6. If new category: create the struct, implement `deepCopyCondition()` and `isBehaviorCondition()`
-7. Add handler in `internal/game/cards/behavior_applier_*.go`
-8. Add DTO struct in `internal/delivery/dto/game_dto.go` with `tstype:` literal union on `type` field
-9. Update the `tygo:emit` union type alias and `toResourceConditionDto` mapper
-10. Update frontend type guards in `frontend/src/types/resourceConditions.ts`
-11. Run `just generate` and `just test`
-
-## Adding a New Field to an Existing Category
-
-1. Add field to the category struct in `behavior_condition_categories.go`
-2. Add to `categorizeCondition()` (copy from JSON) and `flattenCondition()` (copy back)
-3. Update `deepCopyCondition()` if the field is a pointer or slice
-4. Add to the corresponding DTO struct in `game_dto.go`
-5. Update `toResourceConditionDto` mapper in `mapper_card.go`
-6. Update validation profile in `resource_condition_rules.go` if needed
-7. Run `just generate` and `just test`
-
-## Accessing Fields
-
-Common fields via interface methods:
-```go
-bc.GetResourceType()  // ResourceType
-bc.GetAmount()        // int
-bc.GetTarget()        // string
-```
-
-Category-specific fields via accessor helpers:
-```go
-shared.GetPerCondition(bc)       // *PerCondition or nil
-shared.IsVariableAmount(bc)      // bool
-shared.GetSelectors(bc)          // []Selector or nil
-shared.GetTileRestrictions(bc)   // *TileRestrictions or nil
-shared.GetTemporary(bc)          // string
-shared.IsOptional(bc)            // bool
-shared.GetPaymentAllowed(bc)     // []ResourceType or nil
-```
-
-Or via type assertion when you know the category:
-```go
-if basic, ok := bc.(*shared.BasicResourceCondition); ok {
-    basic.Per           // directly accessible
-    basic.MaxTrigger    // directly accessible
-}
-```
+Read [asset instructions](../../../assets/AGENTS.md) when changing card or mode definitions. Keep authored conditions, dependencies, and descriptions consistent with what the engine actually executes.
