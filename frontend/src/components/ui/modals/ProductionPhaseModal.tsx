@@ -173,6 +173,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   );
 
   const isLastRound = gameState?.isLastRound ?? false;
+  const nextLabel = isLastRound ? "Next" : "Buy cards";
 
   const handleNextClick = useCallback(() => {
     clearAnimationTimers();
@@ -349,7 +350,11 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     return () => {};
   }, [isOpen, hasSubmittedCardSelection, showCardSelection, handleNextClick]);
 
-  if (!isOpen) {
+  if (
+    !isOpen ||
+    hasSubmittedCardSelection ||
+    gameState?.currentPlayer?.productionPhase?.selectionComplete
+  ) {
     return null;
   }
   if (!modalProductionData) {
@@ -375,7 +380,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           onPlayerSelect={handlePlayerSelect}
           animationPhase={effectivePhase}
           showNextButton={showNextButton}
-          nextLabel={isLastRound ? "Continue" : "Buy cards"}
+          nextLabel={nextLabel}
           onNext={handleNextClick}
           onHide={isLastRound ? undefined : onHide}
         />
@@ -432,7 +437,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
                   onClick={handleNextClick}
                   className="whitespace-nowrap"
                 >
-                  Buy cards
+                  {nextLabel}
                   <NextArrowIcon />
                 </GameButton>
               </div>
