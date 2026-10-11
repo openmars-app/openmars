@@ -46,7 +46,7 @@ export default function HandRow({
   return (
     <div
       ref={rowRef}
-      className="relative h-full flex items-start justify-center-safe gap-3 px-4 py-2 overflow-x-auto overflow-y-hidden snap-x snap-proximity overscroll-x-contain"
+      className="relative h-full flex items-start justify-center-safe gap-5 px-6 py-2 scroll-px-6 overflow-x-auto overflow-y-hidden snap-x snap-proximity overscroll-x-contain"
     >
       {cards.length === 0 && (
         <div className="self-center text-[13px] text-white/50">{emptyMessage}</div>
