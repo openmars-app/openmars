@@ -928,6 +928,7 @@ export interface VariableInputAmountDto {
  */
 export interface CardBehaviorDto {
   id?: string;
+  optional?: boolean;
   dependency?: string;
   dependencyStatus?: DependencyStatusDto;
   stateRequirements?: StateRequirementDto[];
@@ -964,6 +965,7 @@ export interface CardRequirementsDto {
  * RequirementDto represents a card requirement for client consumption
  */
 export interface RequirementDto {
+  target?: "self-player";
   permanent?: boolean;
   state?: string;
   equals?: number /* int */;
@@ -979,6 +981,8 @@ export interface RequirementDto {
  */
 export interface ResourceStorageDto {
   type: ResourceType;
+  icon?: string;
+  label?: string;
   capacity?: number /* int */;
   starting: number /* int */;
   description?: string;
@@ -1399,9 +1403,15 @@ export interface PendingCardDrawSelectionDto {
 /**
  * PendingBehaviorResolutionDto describes one independently resolvable decision.
  */
+export interface OptionalEffectDto {
+  behavior: CardBehaviorDto;
+  available: boolean;
+  errors: StateErrorDto[];
+}
 export interface PendingBehaviorResolutionDto {
+  optionalEffect?: OptionalEffectDto;
   id: string;
-  kind: "card-discard" | "choice";
+  kind: "card-discard" | "choice" | "optional";
   source: string;
   sourceCardId: string;
   sourceBehaviorIndex: number /* int */;
@@ -1495,7 +1505,12 @@ export interface CardReceiptDto {
   sourceCardId: string;
   cards: CardDto[];
 }
+export interface ModeProductionDto {
+  connected: ProductionDto;
+  disconnected: ProductionDto;
+}
 export interface PlayerDto {
+  modeProduction?: ModeProductionDto;
   permanentProduction: ProductionDto;
   cardReceipts: CardReceiptDto[];
   resourceRemovalTargets: ResourceRemovalTargetDto[];
@@ -2038,9 +2053,9 @@ export interface GenerationalEventRequirementDto {
   target?: TargetType;
 }
 /**
- * CityStyleRequestDto contains optional visual requests, independent of placement rules.
+ * StructureStyleRequestDto contains optional visual requests, independent of placement rules.
  */
-export interface CityStyleRequestDto {
+export interface StructureStyleRequestDto {
   plan?: "clustered" | "radial" | "grid" | "courtyard";
   density?: "sparse" | "balanced" | "dense";
   heights?: "low" | "mixed" | "tall";
@@ -2048,7 +2063,7 @@ export interface CityStyleRequestDto {
   exposure?: "surface" | "mostly-buried";
   perimeter?: "open" | "low-wall" | "high-wall";
   cover?: "none" | "dome" | "flat-glass";
-  landmark?: "none" | "hall" | "observatory";
+  landmark?: "none" | "hall" | "observatory" | "factory" | "globe" | "headquarters";
   connections?: "paths" | "skybridges" | "enclosed";
   landscaping?: "sparse" | "parks" | "lush";
   lighting?: "normal" | "bright";
@@ -2061,14 +2076,14 @@ export interface CityStyleRequestDto {
  * CardStyleDto contains card tile appearance requests.
  */
 export interface CardStyleDto {
-  tile?: CityStyleRequestDto;
+  tile?: StructureStyleRequestDto;
 }
 /**
  * TileVisualDto is the stable visual input shared by every viewer.
  */
 export interface TileVisualDto {
   seed: number /* uint32 */;
-  city?: CityStyleRequestDto;
+  structure?: StructureStyleRequestDto;
 }
 /**
  * CopyConditionDto describes the source and scope of a copy operation.
@@ -2295,6 +2310,8 @@ export interface GetGameHistoryResponse {
 // source: game_mode_dto.go
 
 export interface GameModeRuleDto {
+  icon?: string;
+  advanced?: boolean;
   title: string;
   text: string;
 }
@@ -2332,6 +2349,22 @@ export interface GameModeDto {
   features: GameModeFeatureDto[];
   systems: string[];
   statuses: GameModeStatusDto[];
+  stateVisuals: { [key: string]: StateVisualDto };
+}
+/**
+ * StateVisualDto selects the symbols used by state-aware card presentations.
+ */
+export interface StateVisualDto {
+  icon: string;
+  label: string;
+  values?: { [key: string]: StateValueVisualDto };
+}
+/**
+ * StateValueVisualDto describes a particular value of a mode state.
+ */
+export interface StateValueVisualDto {
+  icon: string;
+  label: string;
 }
 export interface GameModesResponse {
   gameModes: GameModeDto[];
@@ -2587,6 +2620,8 @@ export const MessageTypeActionConfirmProductionCards: MessageType =
 export const MessageTypeActionCardDrawConfirmed: MessageType = "action.card.card-draw-confirmed";
 export const MessageTypeActionCardDiscardConfirmed: MessageType =
   "action.card.card-discard-confirmed";
+export const MessageTypeActionConfirmOptionalBehavior: MessageType =
+  "action.card.confirm-optional-behavior";
 export const MessageTypeActionBehaviorChoiceConfirmed: MessageType =
   "action.card.behavior-choice-confirmed";
 export const MessageTypeActionConfirmResourceRemoval: MessageType =
@@ -2643,6 +2678,8 @@ export interface StateRequirementDto {
  */
 export interface DependencyStatusDto {
   id: string;
+  state: string;
+  equals: number /* int */;
   label?: string;
   active: boolean;
   imported: boolean;
@@ -2696,13 +2733,19 @@ export interface ModeRuntimeDto {
   sequence: number /* int */;
 }
 /**
- * ModePresentationHintDto supplies an optional visual hint.
+ * ModePresentationEffectDto requests an optional presentation capability.
  */
-export interface ModePresentationHintDto {
+export interface ModePresentationEffectDto {
   kind: string;
-  from?: string;
-  to?: string;
-  connected?: boolean;
+  link?: LinkTransitionDto;
+}
+/**
+ * LinkTransitionDto describes the endpoints and outcome of a link transition.
+ */
+export interface LinkTransitionDto {
+  from: string;
+  to: string;
+  connected: boolean;
 }
 /**
  * ModePresentationEventDto is an ordered state transition with an accessible fallback.
@@ -2714,8 +2757,9 @@ export interface ModePresentationEventDto {
   oldValue: number /* int */;
   newValue: number /* int */;
   title: string;
+  soundId?: string;
   description?: string;
-  presentation?: ModePresentationHintDto;
+  effects?: ModePresentationEffectDto[];
 }
 /**
  * BehaviorResourceRequirementDto describes an availability constraint.
@@ -2815,6 +2859,7 @@ export interface GameChangesDto {
  * CalculatedOutputDto represents an actual output value that was applied
  */
 export interface CalculatedOutputDto {
+  operation?: StateConditionDto;
   resourceType: string;
   amount: number /* int */;
   isScaled: boolean;

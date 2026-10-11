@@ -99,7 +99,7 @@
     "id": "venuphile",
     "name": "Venuphile",
     "description": "Most Venus tags in play",
-    "gameModes": [],
+    "gameModes": ["classic"],
     "requiresSystems": ["venus"],
     "costs": [
       { "awardsBought": 0, "cost": 8 },

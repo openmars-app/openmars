@@ -102,7 +102,10 @@ func formatPendingActions(player *dto.PlayerDto) string {
 	}
 	for i := range player.PendingBehaviorResolutions {
 		resolution := &player.PendingBehaviorResolutions[i]
-		if resolution.Kind == "card-discard" {
+		if resolution.Kind == "optional" {
+			data, _ := json.Marshal(resolution.OptionalEffect)
+			parts = append(parts, fmt.Sprintf("Optional effect from %s (resolutionId=%s): %s. Use confirm_optional_behavior with accept=true to pay or accept=false to skip.", resolution.Source, resolution.ID, data))
+		} else if resolution.Kind == "card-discard" {
 			parts = append(parts, formatPendingCardDiscard(resolution))
 		} else {
 			parts = append(parts, formatPendingBehaviorChoice(resolution))

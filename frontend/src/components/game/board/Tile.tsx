@@ -265,6 +265,7 @@ interface TileProps {
     | "special"
     | "volcano"
     | "nuclear-zone"
+    | "industrial-center"
     | "mining"
     | "restricted"
     | "ecological-zone"
@@ -294,6 +295,7 @@ interface TileProps {
   sphereCenter?: THREE.Vector3;
   groupInverseMatrix?: THREE.Matrix4;
   tileOpacity?: RefObject<number>;
+  hasStructure?: boolean;
   vpHighlightIntensity?: number;
   vpHighlightColor?: [number, number, number];
 }
@@ -328,11 +330,13 @@ function Tile({
   sphereCenter = ORIGIN,
   groupInverseMatrix,
   tileOpacity,
+  hasStructure = false,
   vpHighlightIntensity = 0,
   vpHighlightColor = [0.95, 0.95, 1.0],
 }: TileProps) {
   const contentType = outgoingType ?? tileType;
-  const shownName = hideLabels ? undefined : displayName;
+  const shownName =
+    hideLabels || (hasStructure && contentType !== "city") ? undefined : displayName;
   const contentNewlyPlaced = nuclearTransition?.outgoing ? false : isNewlyPlaced;
   const tileGroupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -554,11 +558,13 @@ function Tile({
       color: baseTileColor,
       transparent: true,
       opacity:
+        hasStructure ||
         isGreenery ||
         tileType === "ocean" ||
         tileType === "city" ||
         tileType === "volcano" ||
         tileType === "nuclear-zone" ||
+        tileType === "industrial-center" ||
         tileType === "mining" ||
         tileType === "restricted" ||
         tileType === "ecological-zone" ||
@@ -594,21 +600,23 @@ function Tile({
     };
 
     return material;
-  }, [baseTileColor, tileType, sphereRadius, sphereCenter]);
+  }, [baseTileColor, tileType, hasStructure, sphereRadius, sphereCenter]);
 
   const baseHexOpacity = useMemo(() => {
     if (
+      hasStructure ||
       tileType === "greenery" ||
       tileType === "city" ||
       tileType === "volcano" ||
       tileType === "nuclear-zone"
-    )
+    ) {
       return 0;
+    }
     if (tileType === "empty") {
       return EMPTY_HEX_OPACITY;
     }
     return 0.7;
-  }, [tileType]);
+  }, [tileType, hasStructure]);
 
   const borderMaterial = useMemo(() => {
     return new THREE.ShaderMaterial({
@@ -745,6 +753,7 @@ function Tile({
         {/* Volcano 3D tile */}
         {contentType === "volcano" && (
           <VolcanoTile
+            seed={visualSeed}
             isNewlyPlaced={contentNewlyPlaced}
             surfaceNormal={tileData.normal}
             worldPosition={adjustedPosition}
@@ -755,6 +764,7 @@ function Tile({
         {/* Mohole 3D tile */}
         {contentType === "mohole" && (
           <MoholeTile
+            seed={visualSeed}
             isNewlyPlaced={contentNewlyPlaced}
             surfaceNormal={tileData.normal}
             worldPosition={adjustedPosition}
@@ -766,6 +776,7 @@ function Tile({
         {/* Mining 3D tile */}
         {contentType === "mining" && (
           <MiningTile
+            seed={visualSeed}
             isNewlyPlaced={contentNewlyPlaced}
             surfaceNormal={tileData.normal}
             worldPosition={adjustedPosition}
@@ -789,6 +800,7 @@ function Tile({
         {/* World Tree 3D tile */}
         {contentType === "world-tree" && (
           <WorldTreeTile
+            seed={visualSeed}
             isNewlyPlaced={contentNewlyPlaced}
             surfaceNormal={tileData.normal}
             worldPosition={adjustedPosition}

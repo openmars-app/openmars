@@ -7,8 +7,10 @@ export default function CanvasClock() {
     // R3F resets its clock when frameloop changes; retain animation time across pauses.
     if (state.frameloop !== "never") {
       elapsed.current += Math.min(delta, 0.05);
+      state.clock.elapsedTime = elapsed.current;
+    } else {
+      elapsed.current = state.clock.elapsedTime;
     }
-    state.clock.elapsedTime = elapsed.current;
   }, -Infinity);
   return null;
 }

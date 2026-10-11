@@ -156,6 +156,7 @@ func RegisterHandlers(
 
 	confirmBehaviorChoiceHandler := confirmation.NewConfirmBehaviorChoiceHandler(confirmBehaviorChoiceAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionBehaviorChoiceConfirmed, confirmBehaviorChoiceHandler)
+	hub.RegisterHandler(dto.MessageTypeActionConfirmOptionalBehavior, confirmBehaviorChoiceHandler)
 
 	confirmResourceRemovalHandler := confirmation.NewConfirmResourceRemovalHandler(confirmResourceRemovalAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConfirmResourceRemoval, confirmResourceRemovalHandler)

@@ -1,3 +1,4 @@
+import { useScenePreparation } from "../../../contexts/ScenePreparationContext";
 import { useEffect, useRef, useState } from "react";
 import landscapeWorkerUrl from "./landscape.worker.ts?worker&url";
 import { serverUrl } from "@/config.ts";
@@ -9,6 +10,7 @@ import {
   type LandscapeDelta,
 } from "./landscapeTypes";
 export function useLandscape(input: LandscapeInput, signature: string) {
+  const { begin, finish } = useScenePreparation("Landscape worker");
   const worker = useRef<Worker | null>(null);
   const generation = useRef(0);
   const accepted = useRef(EMPTY_LANDSCAPE);
@@ -38,6 +40,7 @@ export function useLandscape(input: LandscapeInput, signature: string) {
       };
       accepted.current = state;
       setResult(state);
+      finish();
     };
     instance.onerror = (event) => {
       console.error("Landscape worker failed", event.message);
@@ -45,9 +48,11 @@ export function useLandscape(input: LandscapeInput, signature: string) {
     return () => {
       instance.terminate();
       worker.current = null;
+      finish();
     };
-  }, []);
+  }, [finish]);
   useEffect(() => {
+    begin();
     worker.current!.postMessage({
       ...input,
       id: ++generation.current,
@@ -55,7 +60,7 @@ export function useLandscape(input: LandscapeInput, signature: string) {
         [...accepted.current.patches].map(([key, p]) => [key, p.signature]),
       ),
     } satisfies LandscapeRequest);
-  }, [signature]);
+  }, [signature, begin]);
   return result;
 }
 

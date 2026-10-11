@@ -112,7 +112,7 @@ func toCardRequirementsDto(reqs *gamecards.CardRequirements) *CardRequirementsDt
 }
 
 func toRequirementDto(req gamecards.Requirement) RequirementDto {
-	return RequirementDto{Permanent: req.Permanent,
+	return RequirementDto{Permanent: req.Permanent, Target: req.Target,
 		State: req.State, Equals: req.Equals,
 		Type:     RequirementType(req.Type),
 		Min:      req.Min,
@@ -129,6 +129,7 @@ func toCardBehaviorDto(behavior shared.CardBehavior) CardBehaviorDto {
 			return BehaviorResourceRequirementDto{Location: r.Location, Type: ResourceType(r.Type), Min: r.Min, Max: r.Max, Permanent: r.Permanent, Target: r.Target}
 		}), MaxUsesPerGeneration: behavior.MaxUsesPerGeneration, StateRequirements: mapSlice(behavior.StateRequirements, toStateRequirementDto),
 		ProductionBox: behavior.ProductionBox,
+		Optional:      behavior.Optional,
 		Description:   behavior.Description,
 		Triggers:      mapSlice(behavior.Triggers, toTriggerDto),
 		Inputs:        mapSlice(behavior.Inputs, toResourceConditionDto),
@@ -407,6 +408,8 @@ func toPerConditionDto(pc shared.PerCondition) PerConditionDto {
 func toResourceStorageDto(storage gamecards.ResourceStorage) ResourceStorageDto {
 	return ResourceStorageDto{
 		Type:        ResourceType(storage.Type),
+		Icon:        storage.Icon,
+		Label:       storage.Label,
 		Capacity:    storage.Capacity,
 		Starting:    storage.Starting,
 		Description: storage.Description,
@@ -432,13 +435,13 @@ func toCardStyleDto(style *shared.CardStyle) *CardStyleDto {
 	if style == nil {
 		return nil
 	}
-	return &CardStyleDto{Tile: toCityStyleDto(style.Tile)}
+	return &CardStyleDto{Tile: toStructureStyleDto(style.Tile)}
 }
-func toCityStyleDto(style *shared.CityStyleRequest) *CityStyleRequestDto {
+func toStructureStyleDto(style *shared.StructureStyleRequest) *StructureStyleRequestDto {
 	if style == nil {
 		return nil
 	}
-	return &CityStyleRequestDto{
+	return &StructureStyleRequestDto{
 		Plan:          style.Plan,
 		Density:       style.Density,
 		Heights:       style.Heights,
@@ -460,5 +463,13 @@ func toTileVisualDto(visual *shared.TileVisual) *TileVisualDto {
 	if visual == nil {
 		return nil
 	}
-	return &TileVisualDto{Seed: visual.Seed, City: toCityStyleDto(visual.City)}
+	return &TileVisualDto{Seed: visual.Seed, Structure: toStructureStyleDto(visual.Structure)}
+}
+
+func calculatedOperationDto(operation *shared.StateCondition) *StateConditionDto {
+	if operation == nil {
+		return nil
+	}
+	result := toResourceConditionDto(operation).(StateConditionDto)
+	return &result
 }

@@ -8,9 +8,9 @@ import {
   collapseProgress,
   NUCLEAR_COLLAPSE_SECONDS,
 } from "../../src/components/game/board/nuclearTransitions";
-import { createGeometry } from "../../src/components/game/board/cityGeometry";
-import { generateCityLayout } from "../../src/components/game/board/cityLayout";
-import { CityBatchStore } from "../../src/components/game/board/cityBatch";
+import { createGeometry } from "../../src/components/game/board/structureGeometry";
+import { generateStructureLayout } from "../../src/components/game/board/structureLayout";
+import { StructureBatchStore } from "../../src/components/game/board/structureBatch";
 import {
   createNuclearGeometry,
   nuclearSurfaceHeight,
@@ -467,7 +467,7 @@ console.log(
   "Seeded rubble grounding, border clearance, protected neighbors, impact timing and settled poses verified.",
 );
 
-const layout = generateCityLayout(42);
+const layout = generateStructureLayout(42);
 const plot = {
   coordinate: outgoing.coordinates,
   layout,
@@ -480,8 +480,8 @@ for (const geometry of createGeometry(layout, plot)) {
     continue;
   }
   const positions = geometry.getAttribute("position");
-  const pivots = geometry.getAttribute("cityCollapsePivot");
-  const motions = geometry.getAttribute("cityCollapseMotion");
+  const pivots = geometry.getAttribute("structureCollapsePivot");
+  const motions = geometry.getAttribute("structureCollapseMotion");
   for (let i = 0; i < positions.count; i++) {
     const pivot = new THREE.Vector3().fromBufferAttribute(pivots, i);
     const motion = new THREE.Vector4().fromBufferAttribute(motions, i);
@@ -510,14 +510,14 @@ for (const mode of ["normal", "bright"]) {
     materials.set(`${mode}:${i}`, new THREE.MeshStandardMaterial());
   }
 }
-const store = new CityBatchStore(materials);
+const store = new StructureBatchStore(materials);
 store.update([plot], new Map([[key, -1000]]));
 const builds = store.builds;
 const meshes = [...store.meshes.values()];
 const instances = meshes.reduce((sum, mesh) => sum + mesh.instanceCount, 0);
 store.setCollapses(transitions.active);
 for (const mesh of meshes) {
-  const starts = mesh.geometry.getAttribute("cityCollapseStart");
+  const starts = mesh.geometry.getAttribute("structureCollapseStart");
   assert.ok(
     Array.from(starts.array).some((value) => Math.abs(value - impactTime) < 1e-6),
     "City collapse must start at the slowed missile impact",

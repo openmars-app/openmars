@@ -46,7 +46,7 @@ func QuoteActionPayment(g *game.Game, p *player.Player, registry cards.CardRegis
 		context.Action = shared.ActionCardPlaying
 		var inputs []shared.BehaviorCondition
 		for _, b := range card.Behaviors {
-			if cards.HasAutoTrigger(b) {
+			if cards.HasAutoTrigger(b) && !b.Optional {
 				if intent.ChoiceIndex != nil && (*intent.ChoiceIndex < 0 || *intent.ChoiceIndex >= len(b.Choices)) && len(b.Choices) > 0 {
 					return shared.PaymentQuote{}, fmt.Errorf("invalid choice")
 				}

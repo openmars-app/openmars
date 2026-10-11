@@ -29,8 +29,8 @@ func BehaviorAvailable(g *game.Game, p *player.Player, cardID string, b shared.C
 		}
 		return nil
 	}
-	if !g.ModeRequirementsMet(b.StateRequirements) {
-		return fmt.Errorf("mode state requirement not met")
+	if err := g.ValidateModeRequirements(b.StateRequirements); err != nil {
+		return err
 	}
 	if b.Dependency != "" {
 		if p == nil || registry == nil {
@@ -51,7 +51,13 @@ func BehaviorAvailable(g *game.Game, p *player.Player, cardID string, b shared.C
 			}
 		}
 		if !installation && !p.Resources().DependencyActive(cardID, *d) {
-			return fmt.Errorf("operation is unavailable while its dependency is inactive")
+			if p.Resources().DependencyStatus(cardID, d.ID).Retired {
+				return fmt.Errorf("This operation has been shut down")
+			}
+			if err := g.ValidateModeRequirements([]shared.StateRequirement{{State: d.State, Equals: d.Equals}}); err != nil {
+				return err
+			}
+			return fmt.Errorf("This operation is no longer available")
 		}
 	}
 	if p != nil {

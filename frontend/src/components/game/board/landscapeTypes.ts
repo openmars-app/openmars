@@ -1,9 +1,9 @@
 import type { MarsRelief } from "./marsRelief";
 import type { HexCoordinate } from "../../../utils/hex-grid-2d";
-import type { CityLayout } from "./cityLayout";
+import type { StructureLayout } from "./structureLayout";
 
 export type LandscapeKind =
-  | "city"
+  | "structure"
   | "greenery"
   | "special-greenery"
   | "ocean"
@@ -13,7 +13,7 @@ export interface LandscapeSource {
   coordinate: HexCoordinate;
   kind: LandscapeKind;
   seed: number;
-  layout?: CityLayout;
+  layout?: StructureLayout;
 }
 export interface LandscapeInput {
   relief?: MarsRelief;

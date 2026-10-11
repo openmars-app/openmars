@@ -119,3 +119,50 @@ func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string
 
 	return nil
 }
+
+// ExecuteOptional resolves an optional effect after its card's guaranteed gains.
+func (a *ConfirmBehaviorChoiceAction) ExecuteOptional(ctx context.Context, gameID, playerID, resolutionID string, accept bool) error {
+	log := a.InitLogger(gameID, playerID)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	if err != nil {
+		return err
+	}
+	p, err := a.GetPlayerFromGame(g, playerID, log)
+	if err != nil {
+		return err
+	}
+	selection := p.Selection().GetPendingBehaviorResolution(resolutionID)
+	if selection == nil || selection.Kind != "optional" || selection.OptionalBehavior == nil {
+		return fmt.Errorf("no pending optional effect found")
+	}
+	var outputs []shared.CalculatedOutput
+	if accept {
+		if errors := baseaction.CalculateOptionalEffectErrors(selection, p, g, a.CardRegistryForGame(g)); len(errors) > 0 {
+			return fmt.Errorf("optional effect unavailable: %s", errors[0].Message)
+		}
+		behavior := selection.OptionalBehavior
+		applier := gamecards.NewBehaviorApplier(p, g, selection.Source, log).WithSourceCardID(selection.SourceCardID).WithCardRegistry(a.CardRegistryForGame(g)).WithSourceType(shared.SourceTypeCardPlay)
+		if err := applier.ValidateModeOutputs(behavior.Outputs); err != nil {
+			return err
+		}
+		if err := applier.ValidateResourceOutputs(behavior.Outputs); err != nil {
+			return err
+		}
+		if err := applier.ApplyInputs(ctx, behavior.Inputs); err != nil {
+			return err
+		}
+		outputs, err = applier.ApplyOutputsAndGetCalculated(ctx, behavior.Outputs)
+		if err != nil {
+			return err
+		}
+	}
+	p.Selection().RemovePendingBehaviorResolution(resolutionID)
+	description := "Skipped optional effect"
+	if accept {
+		description = "Applied optional effect"
+	}
+	a.WriteStateLogWithChoiceAndOutputs(ctx, g, selection.Source, shared.SourceTypeCardPlay, playerID, description, nil, outputs)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	log.Info("Optional effect resolved", slog.String("resolution_id", resolutionID), slog.Bool("accepted", accept))
+	return nil
+}

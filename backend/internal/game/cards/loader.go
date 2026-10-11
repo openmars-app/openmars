@@ -164,7 +164,7 @@ func validateModeCard(c Card, d mode.Definition) error {
 		}
 	}
 	for _, system := range c.RequiresSystems {
-		if !slices.Contains(d.Systems, system) {
+		if !d.SupportsSystem(system) {
 			return fmt.Errorf("card %s requires unsupported system %s in %s", c.ID, system, d.ID)
 		}
 	}

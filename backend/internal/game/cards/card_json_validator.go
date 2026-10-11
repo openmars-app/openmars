@@ -47,6 +47,9 @@ func ValidateCardJSON(card *Card) []error {
 	}
 
 	for i, behavior := range card.Behaviors {
+		if behavior.Optional && (i != len(card.Behaviors)-1 || !HasAutoTrigger(behavior) || len(behavior.Triggers) != 1 || behavior.Triggers[0].Condition != nil || len(behavior.Choices) > 0 || behavior.ChoicePolicy != nil || behavior.ID == "") {
+			errors = append(errors, fmt.Errorf("card %s: optional effects must be terminal auto behaviors without choices", card.ID))
+		}
 		behaviorErrors := validateBehavior(card.ID, i, behavior)
 		errors = append(errors, behaviorErrors...)
 	}
@@ -81,6 +84,10 @@ func ValidateCardJSON(card *Card) []error {
 func validateRequirement(cardID string, index int, req Requirement) error {
 	if !isValidRequirementType(req.Type) {
 		return fmt.Errorf("card %s: requirement[%d] has invalid type: %s", cardID, index, req.Type)
+	}
+
+	if req.Target != "" && (req.Target != "self-player" || req.Type != RequirementCities) {
+		return fmt.Errorf("card %s: requirement[%d] has invalid target: %s", cardID, index, req.Target)
 	}
 
 	if req.Type == RequirementTags && req.Tag != nil {
@@ -273,7 +280,7 @@ func isValidRequirementType(rt RequirementType) bool {
 	case RequirementState, RequirementTemperature, RequirementOxygen, RequirementOceans,
 		RequirementTags, RequirementProduction, RequirementTR,
 		RequirementResource, RequirementVenus, RequirementCities,
-		RequirementGreeneries:
+		RequirementGreeneries, RequirementColony:
 		return true
 	default:
 		return false

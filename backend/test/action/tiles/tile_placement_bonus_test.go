@@ -3,9 +3,12 @@ package tiles_test
 import (
 	"context"
 	"fmt"
+	"slices"
 	"testing"
 
+	"openmars/internal/action/confirmation"
 	tileAction "openmars/internal/action/tile"
+	"openmars/internal/delivery/dto"
 	"openmars/internal/game"
 	"openmars/internal/game/board"
 	"openmars/internal/game/player"
@@ -108,7 +111,8 @@ func TestSelectTileAction_CardDrawBonusRemovedAfterClaim(t *testing.T) {
 	}
 
 	// Record initial hand size
-	initialHandSize := len(p.Hand().Cards())
+	initialHand := slices.Clone(p.Hand().Cards())
+	initialHandSize := len(initialHand)
 
 	// Set up pending tile selection
 	hexStr := formatHexCoords(*cardDrawTileCoords)
@@ -128,6 +132,28 @@ func TestSelectTileAction_CardDrawBonusRemovedAfterClaim(t *testing.T) {
 	finalHandSize := len(p.Hand().Cards())
 	testutil.AssertTrue(t, finalHandSize > initialHandSize,
 		"Player should have received card draw bonus")
+	receipts := p.Selection().CardReceipts()
+	testutil.AssertEqual(t, 1, len(receipts), "tile reward opens one received-cards receipt")
+	testutil.AssertEqual(t, "Tile bonus", receipts[0].Source, "receipt identifies the placement bonus")
+	testutil.AssertEqual(t, finalHandSize-initialHandSize, len(receipts[0].Cards), "receipt includes every awarded card")
+	for _, cardID := range receipts[0].Cards {
+		testutil.AssertTrue(t, slices.Contains(p.Hand().Cards(), cardID), "received card is already in hand")
+		testutil.AssertTrue(t, !slices.Contains(initialHand, cardID), "receipt contains only newly drawn cards")
+	}
+	testutil.AssertEqual(t, 1, len(dto.ToGameDto(testGame, cardRegistry, playerID).CurrentPlayer.CardReceipts), "owner receives the modal data")
+	otherID := testGame.TurnOrder()[1]
+	testutil.AssertEqual(t, 0, len(dto.ToGameDto(testGame, cardRegistry, otherID).CurrentPlayer.CardReceipts), "opponent cannot see the received cards")
+	testutil.AssertEqual(t, 0, len(dto.ToGameDto(testGame, cardRegistry, "").CurrentPlayer.CardReceipts), "spectator cannot see the received cards")
+	ack := confirmation.NewConfirmCardDrawAction(repo, cardRegistry, logger)
+	testutil.AssertNoError(t, ack.AcknowledgeReceipt(ctx, testGame.ID(), otherID, receipts[0].ID), "other player dismissal")
+	testutil.AssertEqual(t, 1, len(p.Selection().CardReceipts()), "other player cannot dismiss receipt")
+	actionsRemaining := testGame.CurrentTurn().ActionsRemaining()
+	for range 2 {
+		testutil.AssertNoError(t, ack.AcknowledgeReceipt(ctx, testGame.ID(), playerID, receipts[0].ID), "dismiss received cards")
+	}
+	testutil.AssertEqual(t, 0, len(p.Selection().CardReceipts()), "receipt dismissed")
+	testutil.AssertEqual(t, finalHandSize, len(p.Hand().Cards()), "dismissal never grants duplicate cards")
+	testutil.AssertEqual(t, actionsRemaining, testGame.CurrentTurn().ActionsRemaining(), "dismissal consumes no action")
 
 	// Verify bonus was removed from the tile
 	placedTile, err := testGame.Board().GetTile(*cardDrawTileCoords)

@@ -8,6 +8,7 @@ import (
 	cardAction "openmars/internal/action/card"
 	gameAction "openmars/internal/action/game"
 	"openmars/internal/game"
+	"openmars/internal/game/board"
 	"openmars/internal/game/cards"
 	"openmars/internal/game/player"
 	"openmars/internal/game/shared"
@@ -204,6 +205,65 @@ func TestEarthPublishedImportedManualServiceRetainsItsActionCost(t *testing.T) {
 			selection := p.Selection().GetPendingCardDrawSelection()
 			if selection == nil || len(selection.AvailableCards) != 3 || selection.FreeTakeCount != 1 {
 				t.Fatalf("imported action changed its outputs: %+v", selection)
+			}
+		})
+	}
+}
+
+func TestMunicipalPowerExchangeRequiresOwnedMarsCityOnPlay(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		owner    string
+		location board.TileLocation
+		allowed  bool
+	}{
+		{name: "no city"},
+		{name: "opponent city", owner: "opponent", location: board.TileLocationMars},
+		{name: "own space city", owner: "p", location: board.TileLocationPhobos},
+		{name: "own Mars city", owner: "p", location: board.TileLocationMars, allowed: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, p, play, registry := earthPlayableFixture(t)
+			if tc.owner != "" {
+				placed := false
+				for _, tile := range g.Board().Tiles() {
+					if tile.Location == tc.location && tile.OccupiedBy == nil {
+						if err := g.Board().UpdateTileOccupancy(context.Background(), tile.Coordinates, board.TileOccupant{Type: shared.ResourceCityTile}, tc.owner); err != nil {
+							t.Fatal(err)
+						}
+						placed = true
+						break
+					}
+				}
+				if !placed {
+					t.Fatal("missing city fixture location")
+				}
+			}
+			before := p.Resources().Get()
+			err := playEarthCard(t, g, p, play, registry, "ES038", nil, nil)
+			if tc.allowed {
+				if err != nil {
+					t.Fatal(err)
+				}
+				if p.Resources().Production().Credits != 1 {
+					t.Fatal("initial production missing")
+				}
+			} else {
+				if err == nil {
+					t.Fatal("card played without an owned Mars city")
+				}
+				if p.Resources().Get() != before || !p.Hand().HasCard("ES038") {
+					t.Fatal("rejected play consumed card or resources")
+				}
+			}
+			card, err := cards.ForGame(registry, g).GetByID("ES038")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, behavior := range card.Behaviors {
+				if behavior.ID == "power-exchange" && len(behavior.ResourceRequirements) != 0 {
+					t.Fatal("city requirement still gates the action")
+				}
 			}
 		})
 	}

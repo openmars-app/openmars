@@ -7,6 +7,8 @@ import (
 // ResourceStorage represents a card's ability to hold resources
 type ResourceStorage struct {
 	Type        shared.ResourceType `json:"type"`
+	Icon        string              `json:"icon,omitempty"`
+	Label       string              `json:"label,omitempty"`
 	Capacity    *int                `json:"capacity,omitempty"`
 	Starting    int                 `json:"starting"`
 	Description string              `json:"description,omitempty" ts:"string | undefined"`

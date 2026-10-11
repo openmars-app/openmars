@@ -67,9 +67,10 @@ type GameChangesDto struct {
 
 // CalculatedOutputDto represents an actual output value that was applied
 type CalculatedOutputDto struct {
-	ResourceType string `json:"resourceType"`
-	Amount       int    `json:"amount"`
-	IsScaled     bool   `json:"isScaled"`
+	Operation    *StateConditionDto `json:"operation,omitempty"`
+	ResourceType string             `json:"resourceType"`
+	Amount       int                `json:"amount"`
+	IsScaled     bool               `json:"isScaled"`
 }
 
 // ComputedBehaviorValueDto holds pre-computed per-condition output values for a behavior.

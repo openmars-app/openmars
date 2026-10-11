@@ -153,5 +153,5 @@ func historicalDependencyStatus(runtime shared.ModeRuntimeState, group shared.De
 		value, ok := runtime.Values[group.RetireOnState.State]
 		status.Retired = status.Retired || (ok && value == group.RetireOnState.Equals)
 	}
-	return DependencyStatusDto{ID: group.ID, Label: group.Label, Active: shared.DependencyEnabled(runtime, group, status), Imported: status.Removed, Retired: status.Retired}
+	return DependencyStatusDto{ID: group.ID, State: group.State, Equals: group.Equals, Label: group.Label, Active: shared.DependencyEnabled(runtime, group, status), Imported: status.Removed, Retired: status.Retired}
 }

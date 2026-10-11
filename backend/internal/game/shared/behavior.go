@@ -28,6 +28,7 @@ type ChoicePolicy struct {
 // CardBehavior represents card behaviors (immediate and repeatable)
 type CardBehavior struct {
 	ID                            string                         `json:"id,omitempty"`
+	Optional                      bool                           `json:"optional,omitempty"`
 	Dependency                    string                         `json:"dependency,omitempty"`
 	Scope                         string                         `json:"scope,omitempty"`
 	StateRequirements             []StateRequirement             `json:"stateRequirements,omitempty"`
@@ -50,6 +51,7 @@ type CardBehavior struct {
 func (cb CardBehavior) DeepCopy() CardBehavior {
 	var result CardBehavior
 	result.ID = cb.ID
+	result.Optional = cb.Optional
 	result.Dependency = cb.Dependency
 	result.Scope = cb.Scope
 	result.StateRequirements = append([]StateRequirement(nil), cb.StateRequirements...)
@@ -310,6 +312,7 @@ func IsProductionResourceType(rt ResourceType) bool {
 func (cb *CardBehavior) UnmarshalJSON(data []byte) error {
 	type cardBehaviorJSON struct {
 		ID                            string                         `json:"id,omitempty"`
+		Optional                      bool                           `json:"optional,omitempty"`
 		Dependency                    string                         `json:"dependency,omitempty"`
 		Scope                         string                         `json:"scope,omitempty"`
 		StateRequirements             []StateRequirement             `json:"stateRequirements,omitempty"`
@@ -332,6 +335,7 @@ func (cb *CardBehavior) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	cb.ID = raw.ID
+	cb.Optional = raw.Optional
 	cb.Dependency = raw.Dependency
 	cb.Scope = raw.Scope
 	cb.StateRequirements = raw.StateRequirements

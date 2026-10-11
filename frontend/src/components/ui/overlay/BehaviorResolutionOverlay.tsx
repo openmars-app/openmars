@@ -110,6 +110,17 @@ export default function BehaviorResolutionOverlay({
     return null;
   }
 
+  const optional = active.optionalEffect;
+  const optionalInput = optional?.behavior.inputs?.[0];
+  let optionalLabel = "Apply effect";
+  if (optionalInput?.type === "credit") {
+    optionalLabel = `Pay ${optionalInput.amount} M€`;
+  } else if (optionalInput?.type === "energy") {
+    optionalLabel = `Pay ${optionalInput.amount} energy`;
+  } else if (optionalInput?.type === "energy-production") {
+    optionalLabel = "Decrease energy production";
+  }
+
   const choice = active.choices?.find((item) => item.originalIndex === choiceIndex);
   const storageTargets = choice?.storageTargets ?? [];
   const validCards = selectedCards.filter((id) => handCards.some((card) => card.id === id));
@@ -128,14 +139,20 @@ export default function BehaviorResolutionOverlay({
   }
 
   const submit = async (skip = false) => {
-    if (submission.current || (active.kind === "choice" && !canConfirmChoice)) {
+    if (
+      submission.current ||
+      (active.kind === "choice" && !canConfirmChoice) ||
+      (active.kind === "optional" && !skip && !optional?.available)
+    ) {
       return;
     }
     submission.current = active.id;
     setSubmitting(true);
     setError(null);
     try {
-      if (active.kind === "card-discard") {
+      if (active.kind === "optional") {
+        await globalWebSocketManager.confirmOptionalBehavior(active.id, !skip);
+      } else if (active.kind === "card-discard") {
         await globalWebSocketManager.confirmCardDiscard(active.id, skip ? [] : validCards);
       } else if (choice && canConfirmChoice) {
         await globalWebSocketManager.confirmBehaviorChoice(
@@ -151,32 +168,41 @@ export default function BehaviorResolutionOverlay({
     }
   };
 
+  let panelClass = "w-[min(920px,95vw)]! max-h-[90dvh]! text-white";
+  if (optional) {
+    panelClass = "w-[min(480px,95vw)]! max-h-[90dvh]! text-white";
+  }
+  if (isCompact) {
+    panelClass = "text-white";
+  }
+
   return (
-    <GameFlowPopover
-      isVisible
-      type="interactive-mandatory"
-      className={isCompact ? "text-white" : "w-[min(920px,95vw)]! max-h-[90dvh]! text-white"}
-      compactFill
-    >
+    <GameFlowPopover isVisible type="interactive-mandatory" className={panelClass} compactFill>
       <GameFlowTitle className="compact:py-2.5">
-        Resolve effects · {resolutions.length} remaining
+        <h3 className="font-orbitron text-base font-bold">
+          {active.kind === "optional"
+            ? "Optional effect"
+            : `Resolve effects · ${resolutions.length} remaining`}
+        </h3>
       </GameFlowTitle>
-      <div className="shrink-0 flex flex-wrap gap-2 px-4 pb-3 compact:flex-nowrap compact:overflow-x-auto compact:overscroll-contain compact:pt-2 compact:pb-2">
-        {[...groups.entries()].map(([key, entries]) => (
-          <GameButton
-            key={key}
-            size="sm"
-            emphasis="secondary"
-            aria-pressed={entries.some((item) => item.id === active.id)}
-            selected={entries.some((item) => item.id === active.id)}
-            disabled={submitting}
-            className="shrink-0 compact:min-h-11"
-            onClick={() => setActiveId(entries[0].id)}
-          >
-            {entries[0].source} · {entries.length}
-          </GameButton>
-        ))}
-      </div>
+      {groups.size > 1 && (
+        <div className="shrink-0 flex flex-wrap gap-2 px-4 pb-3 compact:flex-nowrap compact:overflow-x-auto compact:overscroll-contain compact:pt-2 compact:pb-2">
+          {[...groups.entries()].map(([key, entries]) => (
+            <GameButton
+              key={key}
+              size="sm"
+              emphasis="secondary"
+              aria-pressed={entries.some((item) => item.id === active.id)}
+              selected={entries.some((item) => item.id === active.id)}
+              disabled={submitting}
+              className="shrink-0 compact:min-h-11"
+              onClick={() => setActiveId(entries[0].id)}
+            >
+              {entries[0].source} · {entries.length}
+            </GameButton>
+          ))}
+        </div>
+      )}
       <GameFlowBody>
         <div className="flex flex-col gap-4 compact:gap-2 p-1 compact:min-h-full">
           <div>
@@ -185,6 +211,24 @@ export default function BehaviorResolutionOverlay({
               <p className="text-sm text-white/70">Triggered by {active.triggeringCardName}</p>
             )}
           </div>
+          {optional && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-white/80">{optional.behavior.description}</p>
+              <BehaviorSection
+                cardId={active.sourceCardId}
+                behaviors={[optional.behavior]}
+                noContainer
+                showTooltips={false}
+                greyOutAll={!optional.available}
+              />
+              {!optional.available &&
+                optional.errors.map((issue, index) => (
+                  <p key={index} className="text-sm text-red-300">
+                    {issue.message}
+                  </p>
+                ))}
+            </div>
+          )}
           {active.kind === "card-discard" ? (
             <>
               <p className="text-sm">
@@ -193,6 +237,7 @@ export default function BehaviorResolutionOverlay({
                 card(s) to discard.
               </p>
               <BehaviorSection
+                cardId={active.sourceCardId}
                 behaviors={[{ outputs: active.outputs }]}
                 noContainer
                 showTooltips={false}
@@ -230,76 +275,79 @@ export default function BehaviorResolutionOverlay({
               </DiscardRow>
             </>
           ) : (
-            <div className="flex flex-col gap-2">
-              {active.choices?.map((item) => (
-                <div key={item.originalIndex}>
-                  <GameButton
-                    emphasis="secondary"
-                    aria-pressed={choiceIndex === item.originalIndex}
-                    className="w-full p-3"
-                    selected={choiceIndex === item.originalIndex}
-                    disabled={!item.available || submitting}
-                    onClick={() => {
-                      setChoiceIndex(item.originalIndex);
-                      setTargets([]);
-                      setError(null);
-                    }}
-                  >
-                    <div className="flex flex-col gap-2">
-                      <BehaviorSection
-                        behaviors={[
-                          {
-                            triggers: [{ type: "manual" }],
-                            inputs: item.inputs,
-                            outputs: item.outputs,
-                          },
-                        ]}
-                        hideActionChip
-                        noContainer
-                        showTooltips={false}
-                      />
-                      {item.outputs
-                        ?.filter((output) => output.target === "triggering-card")
-                        .map((output, index) => (
-                          <span key={index} className="text-sm">
-                            Add {output.amount} {output.type} to {active.triggeringCardName}
-                          </span>
-                        ))}
-                    </div>
-                  </GameButton>
-                  {!item.available &&
-                    item.errors?.map((issue, index) => (
-                      <p key={index} className="text-sm text-white/60 mt-1">
-                        {issue.message}
-                      </p>
-                    ))}
-                </div>
-              ))}
-              {storageTargets.map((eligible, index) => (
-                <label key={index} className="flex flex-col gap-1 text-sm">
-                  Resource destination {index + 1}
-                  <select
-                    className="bg-black border border-white/30 rounded p-2 compact:min-h-11"
-                    value={targets[index] ?? ""}
-                    disabled={submitting}
-                    onChange={(event) =>
-                      setTargets((previous) => {
-                        const next = [...previous];
-                        next[index] = event.target.value;
-                        return next;
-                      })
-                    }
-                  >
-                    <option value="">Choose a card</option>
-                    {eligible.map((id) => (
-                      <option key={id} value={id}>
-                        {allCards.find((card) => card.id === id)?.name ?? id}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
-            </div>
+            !optional && (
+              <div className="flex flex-col gap-2">
+                {active.choices?.map((item) => (
+                  <div key={item.originalIndex}>
+                    <GameButton
+                      emphasis="secondary"
+                      aria-pressed={choiceIndex === item.originalIndex}
+                      className="w-full p-3"
+                      selected={choiceIndex === item.originalIndex}
+                      disabled={!item.available || submitting}
+                      onClick={() => {
+                        setChoiceIndex(item.originalIndex);
+                        setTargets([]);
+                        setError(null);
+                      }}
+                    >
+                      <div className="flex flex-col gap-2">
+                        <BehaviorSection
+                          cardId={active.sourceCardId}
+                          behaviors={[
+                            {
+                              triggers: [{ type: "manual" }],
+                              inputs: item.inputs,
+                              outputs: item.outputs,
+                            },
+                          ]}
+                          hideActionChip
+                          noContainer
+                          showTooltips={false}
+                        />
+                        {item.outputs
+                          ?.filter((output) => output.target === "triggering-card")
+                          .map((output, index) => (
+                            <span key={index} className="text-sm">
+                              Add {output.amount} {output.type} to {active.triggeringCardName}
+                            </span>
+                          ))}
+                      </div>
+                    </GameButton>
+                    {!item.available &&
+                      item.errors?.map((issue, index) => (
+                        <p key={index} className="text-sm text-white/60 mt-1">
+                          {issue.message}
+                        </p>
+                      ))}
+                  </div>
+                ))}
+                {storageTargets.map((eligible, index) => (
+                  <label key={index} className="flex flex-col gap-1 text-sm">
+                    Resource destination {index + 1}
+                    <select
+                      className="bg-black border border-white/30 rounded p-2 compact:min-h-11"
+                      value={targets[index] ?? ""}
+                      disabled={submitting}
+                      onChange={(event) =>
+                        setTargets((previous) => {
+                          const next = [...previous];
+                          next[index] = event.target.value;
+                          return next;
+                        })
+                      }
+                    >
+                      <option value="">Choose a card</option>
+                      {eligible.map((id) => (
+                        <option key={id} value={id}>
+                          {allCards.find((card) => card.id === id)?.name ?? id}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            )
           )}
           {error && (
             <p role="alert" className="text-sm text-red-300">
@@ -310,21 +358,29 @@ export default function BehaviorResolutionOverlay({
       </GameFlowBody>
       <GameFlowFooter>
         <div className="flex justify-end gap-2">
-          {active.kind === "card-discard" && active.minCards === 0 && (
+          {(active.kind === "optional" ||
+            (active.kind === "card-discard" && active.minCards === 0)) && (
             <GameButton emphasis="quiet" disabled={submitting} onClick={() => void submit(true)}>
               Skip
             </GameButton>
           )}
           <GameButton
             disabled={
-              submitting || (active.kind === "choice" ? !canConfirmChoice : !canConfirmDiscard)
+              submitting ||
+              (active.kind === "optional" && !optional?.available) ||
+              (active.kind === "choice" && !canConfirmChoice) ||
+              (active.kind === "card-discard" && !canConfirmDiscard)
             }
             onClick={() => void submit()}
           >
-            {submitting ? "Resolving…" : "Confirm"}
+            {submitting ? "Resolving…" : optionalLabelForKind(active.kind, optionalLabel)}
           </GameButton>
         </div>
       </GameFlowFooter>
     </GameFlowPopover>
   );
+}
+
+function optionalLabelForKind(kind: string, label: string): string {
+  return kind === "optional" ? label : "Confirm";
 }

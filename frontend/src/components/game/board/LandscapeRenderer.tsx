@@ -1,3 +1,4 @@
+import { useScenePreparation } from "../../../contexts/ScenePreparationContext";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -23,6 +24,7 @@ function LandscapeRenderer({
   onReady?: (state: LandscapeState, transitionStart: number) => void;
   groupInverseMatrix?: THREE.Matrix4;
 }) {
+  const { begin, finish } = useScenePreparation("Landscape upload");
   const textures = useTextures();
   const gl = useThree((s) => s.gl);
   const { settings } = useWorld3DSettings();
@@ -54,8 +56,10 @@ function LandscapeRenderer({
     ],
   );
   useLayoutEffect(() => {
+    begin();
     surface.enqueue(state);
-  }, [surface, state]);
+    return finish;
+  }, [surface, state, begin, finish]);
   useLayoutEffect(() => {
     gl.initTexture(surface.terrain);
     gl.initTexture(surface.materials);
@@ -74,15 +78,16 @@ function LandscapeRenderer({
         surface.warmBake(gl);
       }
       onReady(committed, transitionStart);
+      finish();
     },
-    [surface, gl, plantShade, onReady],
+    [surface, gl, plantShade, onReady, finish],
   );
   useEffect(() => {
     surface.retain();
     return () => surface.release();
   }, [surface]);
-  useFrame(({ camera }) => {
-    surface.tick(gl, performance.now(), handleReady);
+  useFrame(({ camera, clock }) => {
+    surface.tick(gl, clock.elapsedTime * 1000, handleReady);
     if (plantShade && performanceStore.sectionDue("Landscape")) {
       performanceStore.setSection("Landscape", surface.stats());
     }
@@ -104,7 +109,7 @@ function LandscapeRenderer({
     shared.uFoam.value = climate.foam;
     shared.uShimmer.value = pulses.shimmer;
     const u = surface.water.uniforms;
-    u.time.value = performance.now() / 1000;
+    u.time.value = (clock.elapsedTime * 1000) / 1000;
     u.eye.value.copy(camera.position);
     if (groupInverseMatrix) {
       u.eye.value.applyMatrix4(groupInverseMatrix);
@@ -116,7 +121,7 @@ function LandscapeRenderer({
     u.sunIntensity.value = settings.sunIntensity;
     u.rf0.value = settings.reflectance;
     if (plantShade) {
-      surface.updateBake(gl, camera, performance.now(), plantShade.revision);
+      surface.updateBake(gl, camera, clock.elapsedTime * 1000, plantShade.revision);
       if (performanceStore.sectionDue("Ground bake")) {
         performanceStore.setSection("Ground bake", surface.bakeStats());
       }

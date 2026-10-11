@@ -3,8 +3,10 @@ package dto
 import "openmars/internal/game/mode"
 
 type GameModeRuleDto struct {
-	Title string `json:"title"`
-	Text  string `json:"text"`
+	Icon     string `json:"icon,omitempty"`
+	Advanced bool   `json:"advanced,omitempty"`
+	Title    string `json:"title"`
+	Text     string `json:"text"`
 }
 type GameModeParameterDto struct {
 	ID          string `json:"id"`
@@ -29,17 +31,31 @@ type GameModeStatusDto struct {
 	To     string            `json:"to,omitempty"`
 }
 type GameModeDto struct {
-	ID         string                 `json:"id"`
-	Name       string                 `json:"name"`
-	Summary    string                 `json:"summary"`
-	Scenario   string                 `json:"scenario"`
-	Rules      []GameModeRuleDto      `json:"rules"`
-	MinPlayers int                    `json:"minPlayers"`
-	MaxPlayers int                    `json:"maxPlayers"`
-	Parameters []GameModeParameterDto `json:"parameters"`
-	Features   []GameModeFeatureDto   `json:"features"`
-	Systems    []string               `json:"systems"`
-	Statuses   []GameModeStatusDto    `json:"statuses"`
+	ID           string                    `json:"id"`
+	Name         string                    `json:"name"`
+	Summary      string                    `json:"summary"`
+	Scenario     string                    `json:"scenario"`
+	Rules        []GameModeRuleDto         `json:"rules"`
+	MinPlayers   int                       `json:"minPlayers"`
+	MaxPlayers   int                       `json:"maxPlayers"`
+	Parameters   []GameModeParameterDto    `json:"parameters"`
+	Features     []GameModeFeatureDto      `json:"features"`
+	Systems      []string                  `json:"systems"`
+	Statuses     []GameModeStatusDto       `json:"statuses"`
+	StateVisuals map[string]StateVisualDto `json:"stateVisuals"`
+}
+
+// StateVisualDto selects the symbols used by state-aware card presentations.
+type StateVisualDto struct {
+	Icon   string                         `json:"icon"`
+	Label  string                         `json:"label"`
+	Values map[string]StateValueVisualDto `json:"values,omitempty"`
+}
+
+// StateValueVisualDto describes a particular value of a mode state.
+type StateValueVisualDto struct {
+	Icon  string `json:"icon"`
+	Label string `json:"label"`
 }
 type GameModesResponse struct {
 	GameModes []GameModeDto `json:"gameModes"`
@@ -50,7 +66,15 @@ func MapGameModes(definitions []mode.Definition) []GameModeDto {
 	for _, d := range definitions {
 		out := GameModeDto{ID: d.ID, Name: d.Name, Summary: d.Summary, Scenario: d.Scenario, MinPlayers: d.MinPlayers, MaxPlayers: d.MaxPlayers, Systems: append([]string{}, d.Systems...), Rules: []GameModeRuleDto{}, Parameters: []GameModeParameterDto{}, Features: []GameModeFeatureDto{}, Statuses: []GameModeStatusDto{}}
 		for _, r := range d.Rules {
-			out.Rules = append(out.Rules, GameModeRuleDto{Title: r.Title, Text: r.Text})
+			out.Rules = append(out.Rules, GameModeRuleDto{Title: r.Title, Text: r.Text, Icon: r.Icon, Advanced: r.Advanced})
+		}
+		out.StateVisuals = make(map[string]StateVisualDto, len(d.StateVisuals))
+		for state, visual := range d.StateVisuals {
+			values := make(map[string]StateValueVisualDto, len(visual.Values))
+			for value, symbol := range visual.Values {
+				values[value] = StateValueVisualDto{Icon: symbol.Icon, Label: symbol.Label}
+			}
+			out.StateVisuals[state] = StateVisualDto{Icon: visual.Icon, Label: visual.Label, Values: values}
 		}
 		for _, p := range d.Parameters {
 			out.Parameters = append(out.Parameters, GameModeParameterDto{ID: p.ID, Label: p.Label, Description: p.Description, Default: p.Default, Values: p.Values})

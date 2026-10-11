@@ -44,6 +44,7 @@ const (
 	MessageTypeActionConfirmProductionCards  MessageType = "action.card.confirm-production-cards"
 	MessageTypeActionCardDrawConfirmed       MessageType = "action.card.card-draw-confirmed"
 	MessageTypeActionCardDiscardConfirmed    MessageType = "action.card.card-discard-confirmed"
+	MessageTypeActionConfirmOptionalBehavior MessageType = "action.card.confirm-optional-behavior"
 	MessageTypeActionBehaviorChoiceConfirmed MessageType = "action.card.behavior-choice-confirmed"
 	MessageTypeActionConfirmResourceRemoval  MessageType = "action.card.confirm-resource-removal"
 

@@ -155,6 +155,8 @@ func (c *Client) ResolvePending(t testing.TB) bool {
 		c.expectAccepted(t, dto.MessageTypeActionCardDrawConfirmed, map[string]any{"cardsToTake": take, "cardsToBuy": []string{}})
 	case p.PendingAwardFundSelection != nil && len(p.PendingAwardFundSelection.AvailableAwards) > 0:
 		c.expectAccepted(t, dto.MessageTypeActionConfirmAwardFund, map[string]any{"awardType": p.PendingAwardFundSelection.AvailableAwards[0]})
+	case p.PendingColonySelection != nil && len(p.PendingColonySelection.AvailableColonyIDs) > 0:
+		c.expectAccepted(t, dto.MessageTypeActionConfirmColonyPlacement, map[string]any{"colonyId": p.PendingColonySelection.AvailableColonyIDs[0]})
 	case len(p.CardReceipts) > 0:
 		c.expectAccepted(t, dto.MessageTypeActionAcknowledgeCardReceipt, map[string]any{"receiptId": p.CardReceipts[0].ID})
 	default:

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	baseaction "openmars/internal/action"
 	gameaction "openmars/internal/action/game"
 	"openmars/internal/action/turn_management"
 	"openmars/internal/game"
@@ -378,6 +379,9 @@ func (a *KickPlayerAction) handleProductionPhaseKick(ctx context.Context, g *gam
 				slog.String("player_id", p.ID()),
 				slog.Any("error", err))
 		}
+	}
+	if !g.GlobalParameters().IsMaxed() {
+		baseaction.BeginModeGeneration(ctx, g)
 	}
 }
 

@@ -93,8 +93,8 @@ export function useCardPlayFlow() {
       const store = useCardPlayFlowStore.getState();
 
       if (card && selectedAmount === undefined) {
-        const autoTriggerBehaviors = card.behaviors?.filter((b) =>
-          b.triggers?.some((t) => t.type === "auto"),
+        const autoTriggerBehaviors = card.behaviors?.filter(
+          (b) => !b.optional && b.triggers?.some((t) => t.type === "auto"),
         );
         for (const behavior of autoTriggerBehaviors || []) {
           const matchedChoice =
@@ -160,8 +160,8 @@ export function useCardPlayFlow() {
           store.setShowCardResourceSelection(true);
           return;
         }
-        const autoTriggerBehaviors = card.behaviors?.filter((b) =>
-          b.triggers?.some((t) => t.type === "auto"),
+        const autoTriggerBehaviors = card.behaviors?.filter(
+          (b) => !b.optional && b.triggers?.some((t) => t.type === "auto"),
         );
         for (const behavior of autoTriggerBehaviors || []) {
           const matchedChoice2 =
@@ -398,8 +398,8 @@ export function useCardPlayFlow() {
           store.setPendingCardBehaviorIndex(behaviorWithChoices);
           store.setShowChoiceSelection(true);
         } else {
-          const autoTriggerBehaviors = card.behaviors?.filter((b) =>
-            b.triggers?.some((t) => t.type === "auto"),
+          const autoTriggerBehaviors = card.behaviors?.filter(
+            (b) => !b.optional && b.triggers?.some((t) => t.type === "auto"),
           );
 
           const allStorageNeeds: Array<{

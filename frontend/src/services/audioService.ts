@@ -10,7 +10,7 @@ interface AudioFileEntry {
 const CONSTRUCTION_SOUNDS = ["construction-1", "construction-2"] as const;
 
 class AudioService {
-  private nuclearPlayback = new Set<HTMLAudioElement>();
+  private activePlayback = new Map<HTMLAudioElement, string>();
   private audioCache: Map<string, HTMLAudioElement> = new Map();
   private ambientAudio: HTMLAudioElement | null = null;
   private isEnabled: boolean = true;
@@ -109,6 +109,16 @@ class AudioService {
         path: assetUrl("audio/effects/nuclear-blast"),
         volumeMultiplier: 0.8,
       },
+      {
+        key: "earth-withdrawal-warning",
+        path: assetUrl("audio/effects/earth-withdrawal-warning"),
+        volumeMultiplier: 0.7,
+      },
+      {
+        key: "earth-contact-lost",
+        path: assetUrl("audio/effects/earth-contact-lost"),
+        volumeMultiplier: 1.0,
+      },
       { key: "your-turn", path: assetUrl("audio/effects/your-turn"), volumeMultiplier: 1.0 },
       { key: "award-funded", path: assetUrl("audio/effects/award-funded"), volumeMultiplier: 1.0 },
       { key: "game-start", path: assetUrl("audio/effects/game-start"), volumeMultiplier: 1.0 },
@@ -179,7 +189,11 @@ class AudioService {
       const audioClone = audio.cloneNode() as HTMLAudioElement;
       const multiplier = this.volumeMultipliers.get(soundKey) ?? 1.0;
       audioClone.volume = this.volume * multiplier;
-      void audioClone.play().catch(() => audioClone.dispatchEvent(new Event("error")));
+      this.activePlayback.set(audioClone, soundKey);
+      const release = () => this.activePlayback.delete(audioClone);
+      audioClone.addEventListener("ended", release, { once: true });
+      audioClone.addEventListener("error", release, { once: true });
+      void audioClone.play().catch(release);
       return audioClone;
     } catch {
       return null;
@@ -222,34 +236,25 @@ class AudioService {
     return this.playSound("card-played");
   }
 
-  public playNuclearBlastSound(): HTMLAudioElement | null {
-    const audio = this.playSoundWithHandle("nuclear-blast");
+  public stopSound(audio: HTMLAudioElement | null): void {
     if (audio) {
-      this.nuclearPlayback.add(audio);
-      audio.addEventListener("ended", () => this.nuclearPlayback.delete(audio), { once: true });
-      audio.addEventListener("error", () => this.nuclearPlayback.delete(audio), { once: true });
+      audio.pause();
+      audio.currentTime = 0;
+      this.activePlayback.delete(audio);
     }
-    return audio;
+  }
+
+  public playNuclearBlastSound(): HTMLAudioElement | null {
+    return this.playSoundWithHandle("nuclear-blast");
   }
 
   public stopNuclearBlastSound(audio: HTMLAudioElement | null): void {
-    if (audio) {
-      audio.pause();
-      this.nuclearPlayback.delete(audio);
-    }
+    this.stopSound(audio);
   }
 
   public async playConstructionSound(): Promise<void> {
     const sound = CONSTRUCTION_SOUNDS[Math.floor(Math.random() * CONSTRUCTION_SOUNDS.length)];
     return this.playSound(sound);
-  }
-
-  public async playYourTurnSound(): Promise<void> {
-    return this.playSound("your-turn");
-  }
-
-  public async playAwardFundedSound(): Promise<void> {
-    return this.playSound("award-funded");
   }
 
   public async playGameStartSound(): Promise<void> {
@@ -437,15 +442,15 @@ class AudioService {
 
   public setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
-    this.nuclearPlayback.forEach((audio) => {
+    this.activePlayback.forEach((_, audio) => {
       audio.muted = !enabled;
     });
   }
 
   public setVolume(volume: number): void {
     this.volume = Math.max(0, Math.min(1, volume));
-    this.nuclearPlayback.forEach((audio) => {
-      audio.volume = this.volume * 0.8;
+    this.activePlayback.forEach((soundKey, audio) => {
+      audio.volume = this.volume * (this.volumeMultipliers.get(soundKey) ?? 1.0);
     });
 
     this.audioCache.forEach((audio, key) => {

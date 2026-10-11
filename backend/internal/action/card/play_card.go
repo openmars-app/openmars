@@ -122,7 +122,7 @@ func (a *PlayCardAction) Execute(
 	}
 
 	for _, behavior := range card.Behaviors {
-		if !gamecards.HasAutoTrigger(behavior) || !g.ModeRequirementsMet(behavior.StateRequirements) {
+		if behavior.Optional || !gamecards.HasAutoTrigger(behavior) || !g.ModeRequirementsMet(behavior.StateRequirements) {
 			continue
 		}
 		effectiveChoice := choiceIndex
@@ -188,8 +188,8 @@ func (a *PlayCardAction) Execute(
 		for _, behavior := range card.Behaviors {
 			if gamecards.HasAutoTrigger(behavior) && *choiceIndex >= 0 && *choiceIndex < len(behavior.Choices) {
 				selectedChoice := behavior.Choices[*choiceIndex]
-				if !g.ModeRequirementsMet(selectedChoice.StateRequirements) {
-					return fmt.Errorf("choice mode state requirement not met")
+				if err := g.ValidateModeRequirements(selectedChoice.StateRequirements); err != nil {
+					return err
 				}
 				if selectedChoice.Requirements != nil {
 					if err := validateChoiceRequirements(selectedChoice.Requirements, player, g, a.CardRegistryForGame(g)); err != nil {
@@ -227,7 +227,7 @@ func (a *PlayCardAction) Execute(
 
 	var immediateInputs []shared.BehaviorCondition
 	for _, behavior := range card.Behaviors {
-		if !gamecards.HasAutoTrigger(behavior) || gamecards.HasCardDiscardInput(behavior) {
+		if behavior.Optional || !gamecards.HasAutoTrigger(behavior) || gamecards.HasCardDiscardInput(behavior) {
 			continue
 		}
 		effectiveChoice := choiceIndex
@@ -327,9 +327,11 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 	for _, req := range card.Requirements.Items {
 		switch req.Type {
 		case gamecards.RequirementState:
-			value, ok := g.ModeStateValue(req.State)
-			if !ok || req.Equals == nil || value != *req.Equals {
-				return fmt.Errorf("mode state requirement not met")
+			if req.Equals == nil {
+				return fmt.Errorf("Requirement is incomplete")
+			}
+			if err := g.ValidateModeRequirements([]shared.StateRequirement{{State: req.State, Equals: *req.Equals}}); err != nil {
+				return err
 			}
 		case gamecards.RequirementTemperature:
 			lenience := calculator.CalculateGlobalParameterRequirementOffset(player, "temperature")
@@ -465,6 +467,12 @@ func (a *PlayCardAction) applyCardBehaviors(
 		log.Debug("Processing behavior",
 			slog.Int("index", behaviorIndex),
 			slog.Int("trigger_count", len(behavior.Triggers)))
+
+		if behavior.Optional {
+			optional := behavior.DeepCopy()
+			p.Selection().AddPendingBehaviorResolution(&shared.PendingBehaviorResolution{Kind: "optional", Source: card.Name, SourceCardID: card.ID, SourceBehaviorIndex: behaviorIndex, OptionalBehavior: &optional})
+			continue
+		}
 
 		// Apply auto-trigger behaviors immediately
 		if gamecards.HasAutoTrigger(behavior) && g.ModeRequirementsMet(behavior.StateRequirements) {
@@ -872,7 +880,7 @@ func validateProductionOutputs(card *gamecards.Card, p *player.Player, g *game.G
 	production := p.Resources().PermanentProduction()
 
 	for _, behavior := range card.Behaviors {
-		if !gamecards.HasAutoTrigger(behavior) || !g.ModeRequirementsMet(behavior.StateRequirements) {
+		if behavior.Optional || !gamecards.HasAutoTrigger(behavior) || !g.ModeRequirementsMet(behavior.StateRequirements) {
 			continue
 		}
 		for _, outputBC := range behavior.Outputs {
@@ -915,7 +923,7 @@ func validateNegativeResourceOutputs(card *gamecards.Card, p *player.Player, g *
 	resources := p.Resources().Get()
 
 	for _, behavior := range card.Behaviors {
-		if !gamecards.HasAutoTrigger(behavior) || !g.ModeRequirementsMet(behavior.StateRequirements) {
+		if behavior.Optional || !gamecards.HasAutoTrigger(behavior) || !g.ModeRequirementsMet(behavior.StateRequirements) {
 			continue
 		}
 		for _, outputBC := range behavior.Outputs {

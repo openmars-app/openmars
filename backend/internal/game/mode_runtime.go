@@ -42,14 +42,7 @@ func (g *Game) ModeRuntime() shared.ModeRuntimeState {
 		out.Windows = slices.Clone(out.Windows)
 		out.Events = slices.Clone(out.Events)
 		for i := range out.Events {
-			if out.Events[i].Presentation != nil {
-				hint := *out.Events[i].Presentation
-				if hint.Connected != nil {
-					v := *hint.Connected
-					hint.Connected = &v
-				}
-				out.Events[i].Presentation = &hint
-			}
+			out.Events[i].Effects = shared.ClonePresentationEffects(out.Events[i].Effects)
 		}
 	})
 	return out
@@ -60,13 +53,27 @@ func (g *Game) ModeStateValue(key string) (int, bool) { return g.ModeRuntime().E
 
 // ModeRequirementsMet checks declared state predicates.
 func (g *Game) ModeRequirementsMet(requirements []shared.StateRequirement) bool {
-	for _, r := range requirements {
-		v, ok := g.ModeStateValue(r.State)
-		if !ok || v != r.Equals {
-			return false
-		}
+	return g.ValidateModeRequirements(requirements) == nil
+}
+
+// ValidateModeRequirements explains the first unmet state requirement using the mode's wording.
+func (g *Game) ValidateModeRequirements(requirements []shared.StateRequirement) error {
+	if len(requirements) == 0 {
+		return nil
 	}
-	return true
+	runtime := g.ModeRuntime()
+	for _, requirement := range requirements {
+		value, ok := runtime.EffectiveValue(requirement.State)
+		if ok && value == requirement.Equals {
+			continue
+		}
+		message := runtime.Definition.RequirementMessages[requirement.State][requirement.Equals]
+		if message == "" {
+			message = "Requirement not met"
+		}
+		return fmt.Errorf("%s", message)
+	}
+	return nil
 }
 
 // ValidateModeStateChange checks all deadline bounds without mutating the game.
@@ -264,6 +271,46 @@ func appendModePresentation(r *shared.ModeRuntimeState, state string, old, value
 			continue
 		}
 		r.Sequence++
-		r.Events = append(r.Events, shared.ModePresentationEvent{ID: fmt.Sprintf("mode-event-%d", r.Sequence), Kind: "state-change", State: state, OldValue: old, NewValue: value, Title: rule.Title, Description: rule.Description, Presentation: rule.Presentation})
+		r.Events = append(r.Events, shared.ModePresentationEvent{ID: fmt.Sprintf("mode-event-%d", r.Sequence), Kind: "state-change", State: state, OldValue: old, NewValue: value, Title: rule.Title, SoundID: rule.SoundID, Description: rule.Description, Effects: shared.ClonePresentationEffects(rule.Effects)})
 	}
+}
+
+// BeginModeGeneration claims one generation's income and deadline warnings exactly once.
+func (g *Game) BeginModeGeneration() (*shared.GenerationIncomeRule, int) {
+	var income *shared.GenerationIncomeRule
+	amount := 0
+	changed := false
+	g.update(func(s *datastore.GameState) {
+		r := &s.ModeRuntime
+		if s.Generation <= r.LastStartedGeneration || (r.Definition.GenerationIncome == nil && len(r.Definition.Deadlines) == 0) {
+			return
+		}
+		changed = true
+		if s.Generation != r.LastStartedGeneration+1 {
+			r.IncomeStreak = 0
+		}
+		r.LastStartedGeneration = s.Generation
+		if rule := r.Definition.GenerationIncome; rule != nil {
+			value, ok := r.EffectiveValue(rule.State)
+			if ok && value == rule.Equals {
+				r.IncomeStreak++
+				copy := *rule
+				income = &copy
+				amount = rule.InitialAmount + (r.IncomeStreak-1)*rule.Increment
+			} else {
+				r.IncomeStreak = 0
+			}
+		}
+		for _, deadline := range r.Definition.Deadlines {
+			if deadline.WarningTitle == "" || r.Values[deadline.OccurredState] != 0 || r.Values[deadline.State] != s.Generation {
+				continue
+			}
+			r.Sequence++
+			r.Events = append(r.Events, shared.ModePresentationEvent{ID: fmt.Sprintf("mode-event-%d", r.Sequence), Kind: "deadline-warning", State: deadline.State, Title: deadline.WarningTitle, SoundID: deadline.WarningSoundID, Description: deadline.WarningDescription})
+		}
+	})
+	if changed {
+		events.Publish(g.eventBus, events.GameStateChangedEvent{GameID: g.id})
+	}
+	return income, amount
 }

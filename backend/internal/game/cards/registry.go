@@ -134,3 +134,43 @@ func convertVPCondition(vc VictoryPointCondition) shared.VPCondition {
 	}
 	return cond
 }
+
+// UniqueStructureCard resolves an unambiguous authored appearance for a special tile.
+func UniqueStructureCard(registry CardRegistry, tileType string) *Card {
+	var match *Card
+	for _, card := range registry.GetAll() {
+		if card.Style == nil || card.Style.Tile == nil {
+			continue
+		}
+		places := func(outputs []shared.BehaviorCondition) bool {
+			for _, output := range outputs {
+				switch condition := output.(type) {
+				case *shared.TilePlacementCondition:
+					if condition.TileType == tileType {
+						return true
+					}
+				case *shared.TileModificationCondition:
+					if condition.TileType == tileType {
+						return true
+					}
+				}
+			}
+			return false
+		}
+		found := false
+		for _, behavior := range card.Behaviors {
+			found = found || places(behavior.Outputs)
+			for _, choice := range behavior.Choices {
+				found = found || places(choice.Outputs)
+			}
+		}
+		if found {
+			if match != nil {
+				return nil
+			}
+			copy := card.DeepCopy()
+			match = &copy
+		}
+	}
+	return match
+}

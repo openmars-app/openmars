@@ -15,6 +15,7 @@ func ToStateDiffDto(diff *game.StateDiff) StateDiffDto {
 				ResourceType: output.ResourceType,
 				Amount:       output.Amount,
 				IsScaled:     output.IsScaled,
+				Operation:    calculatedOperationDto(output.Operation),
 			}
 		}
 	}

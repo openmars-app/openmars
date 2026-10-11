@@ -95,6 +95,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry gamecards.CardRegi
 		removalTargets = append(removalTargets, ResourceRemovalTargetDto{PlayerID: target.PlayerID, CardID: target.CardID, ResourceType: ResourceType(target.ResourceType), Amount: target.Amount})
 	}
 	return PlayerDto{
+		ModeProduction:         modeProductionPreview(p, g),
 		PermanentProduction:    toProductionDto(p.Resources().PermanentProduction()),
 		CardReceipts:           convertCardReceipts(p.Selection().CardReceipts(), cardRegistry),
 		ResourceRemovalTargets: removalTargets,
@@ -573,6 +574,10 @@ func convertPendingBehaviorResolutions(resolutions []*shared.PendingBehaviorReso
 			if card, err := registry.GetByID(resolution.TriggeringCardID); err == nil {
 				item.TriggeringCardName = card.Name
 			}
+		}
+		if resolution.OptionalBehavior != nil {
+			errors := action.CalculateOptionalEffectErrors(resolution, p, g, registry)
+			item.OptionalEffect = &OptionalEffectDto{Behavior: toCardBehaviorDto(*resolution.OptionalBehavior), Available: len(errors) == 0, Errors: convertStateErrors(errors)}
 		}
 		for i, choice := range resolution.Choices {
 			dto := toChoiceDtoWithState(i, choice, p, g, registry)
@@ -1196,4 +1201,19 @@ func convertCardReceipts(receipts []shared.CardReceipt, registry gamecards.CardR
 func dependencyTargets(state player.EntityState) []string {
 	targets, _ := state.Metadata["dependencyTargets"].([]string)
 	return targets
+}
+
+func modeProductionPreview(p *player.Player, g *game.Game) *ModeProductionDto {
+	runtime := g.ModeRuntime()
+	if len(runtime.Definition.Deadlines) == 0 {
+		return nil
+	}
+	deadline := runtime.Definition.Deadlines[0]
+	runtime.Windows = nil
+	runtime.Values[deadline.ActiveState] = deadline.ActiveValue
+	connected := p.Resources().ProductionForMode(runtime)
+	runtime.Values[deadline.ActiveState] = deadline.InactiveValue
+	runtime.Values[deadline.OccurredState] = 1
+	disconnected := p.Resources().ProductionForMode(runtime)
+	return &ModeProductionDto{Connected: toProductionDto(connected), Disconnected: toProductionDto(disconnected)}
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"testing"
 
@@ -175,7 +176,7 @@ func TestPublishedModeDecksAndEffectiveCards(t *testing.T) {
 	for _, test := range []struct {
 		id                                           string
 		projects, corporations, preludes, maxPlayers int
-	}{{"classic", 215, 17, 35, 8}, {"earth-withdrawal", 154, 17, 35, 5}} {
+	}{{"classic", 216, 17, 35, 8}, {"earth-withdrawal", 156, 17, 35, 5}} {
 		t.Run(test.id, func(t *testing.T) {
 			settings, definition, err := mode.Normalize(cards.ModeDefinitions(library), shared.GameSettings{GameModeID: test.id})
 			if err != nil {
@@ -186,6 +187,11 @@ func TestPublishedModeDecksAndEffectiveCards(t *testing.T) {
 				t.Fatal(err)
 			}
 			projects, corps, preludes := cards.GetCardIDs(effective)
+			for _, id := range []string{"EXP004", "097"} {
+				if !slices.Contains(projects, id) {
+					t.Fatalf("nuclear card %s must be available in the project deck", id)
+				}
+			}
 			if len(projects) != test.projects || len(corps) != test.corporations || len(preludes) != test.preludes {
 				t.Fatalf("wrong deck: %d projects, %d corps, %d preludes", len(projects), len(corps), len(preludes))
 			}
@@ -205,6 +211,11 @@ func TestPublishedModeDecksAndEffectiveCards(t *testing.T) {
 			_, _, disabled := cards.GetCardIDs(withoutPrelude)
 			if len(disabled) != 0 {
 				t.Fatal("Prelude disabled but prelude deck retained")
+			}
+			for _, id := range []string{"EXP004", "097"} {
+				if _, err := withoutPrelude.GetByID(id); err != nil {
+					t.Fatalf("nuclear card %s must not require Preludes", id)
+				}
 			}
 			if _, err := withoutPrelude.GetByID("PC4"); err == nil {
 				t.Fatal("Valley Trust requires Prelude")
@@ -239,5 +250,114 @@ func TestForGamePreservesCatalogScopeAcrossLobbyChanges(t *testing.T) {
 	standalone := cards.NewInMemoryCardRegistry(library.GetAll())
 	if cards.ForGame(standalone, g) != standalone {
 		t.Fatal("standalone fixture unexpectedly filtered")
+	}
+}
+
+func TestModeStateVisualValidation(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		state  string
+		visual mode.StateVisual
+		valid  bool
+	}{
+		{"declared state", "contact", mode.StateVisual{Icon: "connection", Label: "Contact", Values: map[string]mode.StateValueVisual{"0": {Icon: "connection-closed", Label: "Closed"}}}, true},
+		{"undeclared state", "unknown", mode.StateVisual{Icon: "connection", Label: "Contact"}, false},
+		{"missing icon", "contact", mode.StateVisual{Label: "Contact"}, false},
+		{"missing value label", "contact", mode.StateVisual{Icon: "connection", Label: "Contact", Values: map[string]mode.StateValueVisual{"0": {Icon: "connection-closed"}}}, false},
+		{"noninteger state value", "contact", mode.StateVisual{Icon: "connection", Label: "Contact", Values: map[string]mode.StateValueVisual{"closed": {Icon: "connection-closed", Label: "Closed"}}}, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			definition := mode.Definition{ID: "test", MinPlayers: 1, MaxPlayers: 2, Runtime: shared.ModeRuntimeDefinition{State: map[string]int{"contact": 1}}, StateVisuals: map[string]mode.StateVisual{test.state: test.visual}}
+			data, err := json.Marshal([]mode.Definition{definition})
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(t.TempDir(), "modes.json")
+			if err := os.WriteFile(path, data, 0600); err != nil {
+				t.Fatal(err)
+			}
+			_, err = mode.LoadFromJSON(path)
+			if (err == nil) != test.valid {
+				t.Fatalf("valid=%v, error=%v", test.valid, err)
+			}
+		})
+	}
+}
+
+func TestClassicExpansionOptionsSelectIndependentSystemsAndDecks(t *testing.T) {
+	library := testutil.CreateTestModeCatalog()
+	definitions := cards.ModeDefinitions(library)
+	for selection := 0; selection < 8; selection++ {
+		features := []string{}
+		if selection&1 != 0 {
+			features = append(features, "prelude")
+		}
+		if selection&2 != 0 {
+			features = append(features, "venus")
+		}
+		if selection&4 != 0 {
+			features = append(features, "colonies")
+		}
+		settings, _, err := mode.Normalize(definitions, shared.GameSettings{GameModeID: "classic", Features: features})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if settings.HasVenus() != (selection&2 != 0) || settings.HasColonies() != (selection&4 != 0) || settings.HasPrelude() != (selection&1 != 0) {
+			t.Fatalf("wrong systems for %v: %v", features, settings.Systems)
+		}
+		selected, err := cards.Resolve(library, settings)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, card := range []struct {
+			id      string
+			enabled bool
+		}{
+			{"213", settings.HasVenus()}, {"252", settings.HasVenus()}, {"V01", settings.HasVenus()},
+			{"C01", settings.HasColonies()}, {"C14", settings.HasColonies()}, {"CC3", settings.HasColonies()},
+			{"P01", settings.HasPrelude()}, {"ES001", false}, {"T01", false},
+		} {
+			_, err := selected.GetByID(card.id)
+			if (err == nil) != card.enabled {
+				t.Fatalf("card %s availability for %v: %v", card.id, features, err)
+			}
+		}
+		projects, corporations, _ := cards.GetCardIDs(selected)
+		expansions := 0
+		if settings.HasVenus() {
+			expansions++
+		}
+		if settings.HasColonies() {
+			expansions++
+		}
+		expectedCorps := 17 + expansions*5
+		if !settings.HasPrelude() {
+			expectedCorps--
+		}
+		if len(projects) != 216+expansions*49 || len(corporations) != expectedCorps {
+			t.Fatalf("unexpected deck for %v: %d projects, %d corporations", features, len(projects), len(corporations))
+		}
+	}
+	for _, feature := range []string{"venus", "colonies", "project-funding"} {
+		if _, _, err := mode.Normalize(definitions, shared.GameSettings{GameModeID: "earth-withdrawal", Features: []string{feature}}); err == nil {
+			t.Fatalf("Earth Withdrawal accepted %s", feature)
+		}
+	}
+	earth, definition, err := mode.Normalize(definitions, shared.GameSettings{GameModeID: "earth-withdrawal"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(definition.Features) != 1 || definition.Features[0].ID != "prelude" {
+		t.Fatal("Earth Withdrawal must only offer Preludes")
+	}
+	selected, err := cards.Resolve(library, earth)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"252", "C14", "CC3"} {
+		card, err := selected.GetByID(id)
+		if err != nil || len(card.RequiresSystems) != 0 {
+			t.Fatalf("curated Earth card %s now requires an expansion: %v", id, err)
+		}
 	}
 }

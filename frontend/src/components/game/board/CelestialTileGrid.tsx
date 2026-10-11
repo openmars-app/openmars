@@ -4,8 +4,8 @@ import { useCardDragStore } from "@/stores/cardDragStore.ts";
 import * as THREE from "three";
 import { HexGrid2D } from "../../../utils/hex-grid-2d";
 import Tile from "./Tile";
-import CityRenderer from "./CityRenderer";
-import { generateCityLayout, type CityPlot } from "./cityLayout";
+import StructureRenderer from "./StructureRenderer";
+import { generateStructureLayout, type StructurePlot } from "./structureLayout";
 import { BOARD_SCALE, hashSeed } from "./landscapeGeometry";
 import { GameDto, TileDto, TileBonusDto } from "../../../types/generated/api-types";
 import { usePreviousTiles } from "../../../hooks/usePreviousTiles";
@@ -200,9 +200,13 @@ export default function CelestialTileGrid({
       });
   }, [gameState?.board?.tiles, location, coordOffset, radius]);
 
-  const cityPlots = useMemo((): CityPlot[] => {
+  const structurePlots = useMemo((): StructurePlot[] => {
     return projectedTiles
-      .filter((tile) => tile.backendTile.occupiedBy?.type === "city-tile")
+      .filter(
+        (tile) =>
+          tile.backendTile.occupiedBy?.type === "city-tile" ||
+          tile.backendTile.occupiedBy?.visual?.structure != null,
+      )
       .map((tile) => {
         const visual = tile.backendTile.occupiedBy!.visual;
         const key = HexGrid2D.coordinateToKey(tile.coordinate);
@@ -214,10 +218,10 @@ export default function CelestialTileGrid({
             radius: contentRadius,
             center: { x: tile.position.x * BOARD_SCALE, y: tile.position.y * BOARD_SCALE },
           },
-          layout: generateCityLayout(
+          layout: generateStructureLayout(
             visual?.seed ?? hashSeed(`${gameState?.id}:${key}`),
-            { cover: "dome", landscaping: "sparse", heights: "low", ...visual?.city },
-            tile.backendTile.displayName ?? "City",
+            { cover: "dome", landscaping: "sparse", heights: "low", ...visual?.structure },
+            tile.backendTile.occupiedBy?.displayName ?? tile.backendTile.displayName ?? "Structure",
           ),
         };
       });
@@ -421,13 +425,15 @@ export default function CelestialTileGrid({
         />
       )}
 
-      <Html>
-        <TileTooltip data={tooltipData} positionRef={tooltipPositionRef} />
-      </Html>
-      {cityPlots.map((plot) => {
+      {tooltipData && (
+        <Html>
+          <TileTooltip data={tooltipData} positionRef={tooltipPositionRef} />
+        </Html>
+      )}
+      {structurePlots.map((plot) => {
         const key = HexGrid2D.coordinateToKey(plot.coordinate);
         return (
-          <CityRenderer
+          <StructureRenderer
             key={key}
             plot={plot}
             sphereCenter={worldCenter}

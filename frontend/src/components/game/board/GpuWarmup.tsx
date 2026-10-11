@@ -31,8 +31,8 @@ import { usePlanetSurface, usePlanetSurfaces, useTextures } from "../../../hooks
 import { GRAPHICS } from "@/utils/graphicsQuality.ts";
 import { coldStartTrace } from "@/services/performanceStore.ts";
 
-import { CityGroundPatch, getMaterials } from "./CityRenderer";
-import { createCityWarmupGeometry } from "./cityBatch";
+import { StructureGroundPatch, getMaterials } from "./StructureRenderer";
+import { createStructureWarmupGeometry } from "./structureBatch";
 import LandscapeRenderer from "./LandscapeRenderer";
 import { LandscapeBuilder } from "./landscapeFields";
 import type { LandscapeState } from "./landscapeTypes";
@@ -111,12 +111,12 @@ interface GpuWarmupProps {
 export default function GpuWarmup({ onReady }: GpuWarmupProps) {
   const { treesScene, pinesScene, rockScene, flowersScene } = useModels();
   const textures = useTextures();
-  const cityMaterials = useMemo(
+  const structureMaterials = useMemo(
     () => [...getMaterials("normal", textures), ...getMaterials("bright", textures).slice(0, 3)],
-    [textures.concrete, textures.grass, textures.sand, textures.cityFacades],
+    [textures.concrete, textures.grass, textures.sand, textures.structureFacades],
   );
-  const cityGeometry = useMemo(() => createCityWarmupGeometry(), []);
-  useEffect(() => () => cityGeometry.dispose(), [cityGeometry]);
+  const structureGeometry = useMemo(() => createStructureWarmupGeometry(), []);
+  useEffect(() => () => structureGeometry.dispose(), [structureGeometry]);
   const { rock: rockTexture, smoke: smokeTexture, grass: grassTexture } = textures;
 
   const warmupRoot = useRef<THREE.Group>(null);
@@ -455,15 +455,15 @@ export default function GpuWarmup({ onReady }: GpuWarmupProps) {
         <LandscapeRenderer capacity={16} state={landscapeWarmup} onReady={handleLandscapeReady} />
       </group>
       <group scale={WARMUP_SCALE} dispose={null}>
-        {cityMaterials.map((material) => (
+        {structureMaterials.map((material) => (
           <mesh
             key={material.uuid}
-            geometry={cityGeometry}
+            geometry={structureGeometry}
             material={material}
             frustumCulled={false}
           />
         ))}
-        <CityGroundPatch
+        <StructureGroundPatch
           radius={0.155}
           surface="soil"
           sphereCenter={ORIGIN}

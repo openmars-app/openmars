@@ -532,6 +532,7 @@ func ApplyPreludeCard(ctx context.Context, g *game.Game, p *player.Player, prelu
 
 // AdvanceToActionPhase transitions the game to the action phase and sets the first player's turn.
 func AdvanceToActionPhase(ctx context.Context, g *game.Game, allPlayers []*player.Player, log *slog.Logger) {
+	baseaction.BeginModeGeneration(ctx, g)
 	if err := g.UpdatePhase(ctx, shared.GamePhaseAction); err != nil {
 		log.Error("Failed to transition game phase", slog.Any("error", err))
 		return

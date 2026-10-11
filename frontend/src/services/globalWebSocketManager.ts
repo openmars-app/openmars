@@ -332,6 +332,11 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.confirmCardDiscard(resolutionId, cardsToDiscard);
   }
 
+  async confirmOptionalBehavior(resolutionId: string, accept: boolean): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.confirmOptionalBehavior(resolutionId, accept);
+  }
+
   async confirmBehaviorChoice(
     resolutionId: string,
     choiceIndex: number,

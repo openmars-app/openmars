@@ -33,6 +33,14 @@ func CalculatePlayerCardState(
 	if effective, err := cardRegistry.GetByID(card.ID); err == nil {
 		card = effective
 	}
+	required := *card
+	required.Behaviors = nil
+	for _, b := range card.Behaviors {
+		if !b.Optional {
+			required.Behaviors = append(required.Behaviors, b)
+		}
+	}
+	card = &required
 	for _, b := range card.Behaviors {
 		if gamecards.HasAutoTrigger(b) && g.ModeRequirementsMet(b.StateRequirements) {
 			errors = append(errors, modeBehaviorErrors(card.ID, b, p, g, cardRegistry, metadata)...)
@@ -110,6 +118,14 @@ func CalculatePendingCardPlayability(
 	if effective, err := cardRegistry.GetByID(card.ID); err == nil {
 		card = effective
 	}
+	required := *card
+	required.Behaviors = nil
+	for _, b := range card.Behaviors {
+		if !b.Optional {
+			required.Behaviors = append(required.Behaviors, b)
+		}
+	}
+	card = &required
 	for _, b := range card.Behaviors {
 		if gamecards.HasAutoTrigger(b) && g.ModeRequirementsMet(b.StateRequirements) {
 			errors = append(errors, modeBehaviorErrors(card.ID, b, p, g, cardRegistry, metadata)...)
@@ -1127,9 +1143,11 @@ func checkRequirement(
 ) *player.StateError {
 	switch req.Type {
 	case gamecards.RequirementState:
-		value, ok := g.ModeStateValue(req.State)
-		if !ok || req.Equals == nil || value != *req.Equals {
-			return &player.StateError{Code: player.ErrorCodeInvalidRequirement, Category: player.ErrorCategoryRequirement, Message: "Mode state requirement not met"}
+		if req.Equals == nil {
+			return &player.StateError{Code: player.ErrorCodeInvalidRequirement, Category: player.ErrorCategoryRequirement, Message: "Requirement is incomplete"}
+		}
+		if err := g.ValidateModeRequirements([]shared.StateRequirement{{State: req.State, Equals: *req.Equals}}); err != nil {
+			return &player.StateError{Code: player.ErrorCodeInvalidRequirement, Category: player.ErrorCategoryRequirement, Message: err.Error()}
 		}
 	case gamecards.RequirementTemperature:
 		lenience := calculator.CalculateGlobalParameterRequirementOffset(p, "temperature")

@@ -21,6 +21,7 @@ const TILE_TYPE_LABELS: Record<string, string> = {
   volcano: "Volcano",
   "nuclear-zone": "Nuclear Zone",
   mining: "Mining Area",
+  "industrial-center": "Industrial Center",
   restricted: "Reserved Area",
   special: "Special",
   "ecological-zone": "Ecological Zone",

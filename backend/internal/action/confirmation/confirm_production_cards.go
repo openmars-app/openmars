@@ -219,6 +219,8 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 			return fmt.Errorf("failed to transition game phase: %w", err)
 		}
 
+		baseaction.BeginModeGeneration(ctx, g)
+
 		turnOrder := g.TurnOrder()
 		activeCount := 0
 		firstPlayerID := ""

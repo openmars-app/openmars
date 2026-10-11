@@ -466,6 +466,7 @@ type VariableInputAmountDto struct {
 // CardBehaviorDto represents a card behavior for client consumption.
 type CardBehaviorDto struct {
 	ID                            string                            `json:"id,omitempty"`
+	Optional                      bool                              `json:"optional,omitempty"`
 	Dependency                    string                            `json:"dependency,omitempty"`
 	DependencyStatus              *DependencyStatusDto              `json:"dependencyStatus,omitempty"`
 	StateRequirements             []StateRequirementDto             `json:"stateRequirements,omitempty"`
@@ -499,6 +500,7 @@ type CardRequirementsDto struct {
 
 // RequirementDto represents a card requirement for client consumption
 type RequirementDto struct {
+	Target    string             `json:"target,omitempty" tstype:"'self-player'"`
 	Permanent bool               `json:"permanent,omitempty"`
 	State     string             `json:"state,omitempty"`
 	Equals    *int               `json:"equals,omitempty"`
@@ -513,6 +515,8 @@ type RequirementDto struct {
 // ResourceStorageDto represents a card's resource storage for client consumption
 type ResourceStorageDto struct {
 	Type        ResourceType `json:"type"`
+	Icon        string       `json:"icon,omitempty"`
+	Label       string       `json:"label,omitempty"`
 	Capacity    *int         `json:"capacity,omitempty"`
 	Starting    int          `json:"starting"`
 	Description string       `json:"description,omitempty"`
@@ -931,18 +935,25 @@ type PendingCardDrawSelectionDto struct {
 }
 
 // PendingBehaviorResolutionDto describes one independently resolvable decision.
+type OptionalEffectDto struct {
+	Behavior  CardBehaviorDto `json:"behavior"`
+	Available bool            `json:"available"`
+	Errors    []StateErrorDto `json:"errors"`
+}
+
 type PendingBehaviorResolutionDto struct {
-	ID                  string      `json:"id"`
-	Kind                string      `json:"kind" tstype:"'card-discard' | 'choice'"`
-	Source              string      `json:"source"`
-	SourceCardID        string      `json:"sourceCardId"`
-	SourceBehaviorIndex int         `json:"sourceBehaviorIndex"`
-	TriggeringCardID    string      `json:"triggeringCardId,omitempty"`
-	TriggeringCardName  string      `json:"triggeringCardName,omitempty"`
-	MinCards            int         `json:"minCards"`
-	MaxCards            int         `json:"maxCards"`
-	Outputs             []any       `json:"outputs,omitempty" tstype:"ResourceCondition[]"`
-	Choices             []ChoiceDto `json:"choices,omitempty"`
+	OptionalEffect      *OptionalEffectDto `json:"optionalEffect,omitempty"`
+	ID                  string             `json:"id"`
+	Kind                string             `json:"kind" tstype:"'card-discard' | 'choice' | 'optional'"`
+	Source              string             `json:"source"`
+	SourceCardID        string             `json:"sourceCardId"`
+	SourceBehaviorIndex int                `json:"sourceBehaviorIndex"`
+	TriggeringCardID    string             `json:"triggeringCardId,omitempty"`
+	TriggeringCardName  string             `json:"triggeringCardName,omitempty"`
+	MinCards            int                `json:"minCards"`
+	MaxCards            int                `json:"maxCards"`
+	Outputs             []any              `json:"outputs,omitempty" tstype:"ResourceCondition[]"`
+	Choices             []ChoiceDto        `json:"choices,omitempty"`
 }
 
 // PendingResourceRemovalSelectionDto represents a pending optional resource removal
@@ -1027,7 +1038,13 @@ type CardReceiptDto struct {
 	Cards        []CardDto `json:"cards"`
 }
 
+type ModeProductionDto struct {
+	Connected    ProductionDto `json:"connected"`
+	Disconnected ProductionDto `json:"disconnected"`
+}
+
 type PlayerDto struct {
+	ModeProduction         *ModeProductionDto            `json:"modeProduction,omitempty"`
 	PermanentProduction    ProductionDto                 `json:"permanentProduction"`
 	CardReceipts           []CardReceiptDto              `json:"cardReceipts"`
 	ResourceRemovalTargets []ResourceRemovalTargetDto    `json:"resourceRemovalTargets"`
@@ -1543,8 +1560,8 @@ type GenerationalEventRequirementDto struct {
 	Target *TargetType       `json:"target,omitempty"`
 }
 
-// CityStyleRequestDto contains optional visual requests, independent of placement rules.
-type CityStyleRequestDto struct {
+// StructureStyleRequestDto contains optional visual requests, independent of placement rules.
+type StructureStyleRequestDto struct {
 	Plan          string   `json:"plan,omitempty" tstype:"'clustered' | 'radial' | 'grid' | 'courtyard'"`
 	Density       string   `json:"density,omitempty" tstype:"'sparse' | 'balanced' | 'dense'"`
 	Heights       string   `json:"heights,omitempty" tstype:"'low' | 'mixed' | 'tall'"`
@@ -1552,7 +1569,7 @@ type CityStyleRequestDto struct {
 	Exposure      string   `json:"exposure,omitempty" tstype:"'surface' | 'mostly-buried'"`
 	Perimeter     string   `json:"perimeter,omitempty" tstype:"'open' | 'low-wall' | 'high-wall'"`
 	Cover         string   `json:"cover,omitempty" tstype:"'none' | 'dome' | 'flat-glass'"`
-	Landmark      string   `json:"landmark,omitempty" tstype:"'none' | 'hall' | 'observatory'"`
+	Landmark      string   `json:"landmark,omitempty" tstype:"'none' | 'hall' | 'observatory' | 'factory' | 'globe' | 'headquarters'"`
 	Connections   string   `json:"connections,omitempty" tstype:"'paths' | 'skybridges' | 'enclosed'"`
 	Landscaping   string   `json:"landscaping,omitempty" tstype:"'sparse' | 'parks' | 'lush'"`
 	Lighting      string   `json:"lighting,omitempty" tstype:"'normal' | 'bright'"`
@@ -1564,13 +1581,13 @@ type CityStyleRequestDto struct {
 
 // CardStyleDto contains card tile appearance requests.
 type CardStyleDto struct {
-	Tile *CityStyleRequestDto `json:"tile,omitempty"`
+	Tile *StructureStyleRequestDto `json:"tile,omitempty"`
 }
 
 // TileVisualDto is the stable visual input shared by every viewer.
 type TileVisualDto struct {
-	Seed uint32               `json:"seed"`
-	City *CityStyleRequestDto `json:"city,omitempty"`
+	Seed      uint32                    `json:"seed"`
+	Structure *StructureStyleRequestDto `json:"structure,omitempty"`
 }
 
 // CopyConditionDto describes the source and scope of a copy operation.

@@ -6,8 +6,30 @@ import (
 	"testing"
 
 	"openmars/internal/delivery/dto"
+	"openmars/internal/game/cards"
 	"openmars/test/testutil"
 )
+
+func TestCardDto_PreservesCustomStoredResourcePresentation(t *testing.T) {
+	var card cards.Card
+	testutil.AssertNoError(t, json.Unmarshal([]byte(`{
+		"id": "custom-storage", "name": "Supply storage", "type": "active",
+		"resourceStorage": {
+			"type": "card-resource", "starting": 0, "capacity": 6,
+			"icon": "reserve", "label": "Reserves", "description": "Reserve crates"
+		}
+	}`), &card), "decode authored storage metadata")
+	storage := dto.ToCardDto(card).ResourceStorage
+	if storage == nil {
+		t.Fatal("storage metadata missing from card API")
+	}
+	testutil.AssertEqual(t, "card-resource", string(storage.Type), "visual metadata must not change the engine resource type")
+	testutil.AssertEqual(t, "reserve", storage.Icon, "authored icon reaches card views")
+	testutil.AssertEqual(t, "Reserves", storage.Label, "authored label reaches card views")
+	if storage.Capacity == nil || *storage.Capacity != 6 {
+		t.Fatal("custom presentation must retain storage capacity")
+	}
+}
 
 func TestCardDto_PreservesCombinedTagCount(t *testing.T) {
 	card := testutil.GetCardByName("Gyropolis")

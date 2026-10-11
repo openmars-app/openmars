@@ -68,7 +68,7 @@
     "id": "hoverlord",
     "name": "Hoverlord",
     "description": "Have at least 7 floater resources on your cards",
-    "gameModes": [],
+    "gameModes": ["classic"],
     "requiresSystems": ["venus"],
     "claimCost": 8,
     "reward": [{ "type": "vp", "amount": 5 }],

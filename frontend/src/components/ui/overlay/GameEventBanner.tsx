@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { GameEvent } from "../../../hooks/useGameEvent.ts";
 import { Z_INDEX } from "@/constants/zIndex.ts";
+import { audioService } from "@/services/audioService.ts";
+import ModeEventEffects from "./ModeEventEffects.tsx";
 
 function renderColoredTitle(title: string, playerName: string, playerColor: string) {
   const idx = title.indexOf(playerName);
@@ -33,6 +35,25 @@ export default function GameEventBanner({ event, onDismiss }: GameEventBannerPro
     return () => clearTimeout(timer);
   }, [event, onDismiss]);
 
+  const lastSoundEvent = useRef<number | null>(null);
+  const eventId = event?.id;
+  const soundId = event?.soundId;
+  useEffect(() => {
+    if (eventId === undefined || !soundId || lastSoundEvent.current === eventId) {
+      return;
+    }
+    let playback: HTMLAudioElement | null = null;
+    // Defer playback so a cancelled render or Strict Mode effect replay stays silent.
+    const timer = setTimeout(() => {
+      lastSoundEvent.current = eventId;
+      playback = audioService.playSoundWithHandle(soundId);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      audioService.stopSound(playback);
+    };
+  }, [eventId, soundId]);
+
   if (!event) {
     return null;
   }
@@ -61,31 +82,7 @@ export default function GameEventBanner({ event, onDismiss }: GameEventBannerPro
         role="status"
         aria-live="polite"
       >
-        {event.presentation?.kind === "connection" &&
-          event.presentation.from &&
-          event.presentation.to && (
-            <div
-              className="flex items-center gap-4 mb-3 text-sm uppercase tracking-widest text-sky-100"
-              aria-hidden="true"
-            >
-              <span>{event.presentation.from}</span>
-              <svg width="100" height="24" viewBox="0 0 100 24">
-                <circle cx="6" cy="12" r="4" fill="currentColor" />
-                <path
-                  d="M14 12 H86"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeDasharray={event.presentation.connected ? undefined : "4 6"}
-                  opacity={event.presentation.connected ? 1 : 0.4}
-                />
-                {!event.presentation.connected && (
-                  <path d="M45 7 L55 17 M55 7 L45 17" stroke="#fbbf24" strokeWidth="2" />
-                )}
-                <circle cx="94" cy="12" r="4" fill="currentColor" />
-              </svg>
-              <span>{event.presentation.to}</span>
-            </div>
-          )}
+        <ModeEventEffects effects={event.effects} />
         <div
           className={`font-orbitron font-black text-white tracking-[0.2em] compact:!text-xl ${isLarge ? "text-6xl [text-shadow:0_2px_4px_rgba(0,0,0,0.9)]" : "text-4xl [text-shadow:0_0_40px_rgba(100,200,255,0.8),0_0_80px_rgba(100,200,255,0.4),0_2px_4px_rgba(0,0,0,0.9)]"}`}
         >

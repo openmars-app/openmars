@@ -91,3 +91,20 @@ func SetupModeBehaviors(ctx context.Context, g *game.Game, registry cards.CardRe
 		}
 	}
 }
+
+// BeginModeGeneration grants the shared income to every active player together.
+func BeginModeGeneration(ctx context.Context, g *game.Game) {
+	rule, amount := g.BeginModeGeneration()
+	if rule == nil || amount == 0 {
+		return
+	}
+	for _, p := range g.GetAllPlayers() {
+		if p.HasExited() {
+			continue
+		}
+		applier := cards.NewBehaviorApplier(p, g, rule.Name, slog.Default()).WithSourceType(shared.SourceTypePassiveEffect)
+		if err := applier.ApplyOutputs(ctx, []shared.BehaviorCondition{shared.NewBasicResourceCondition(rule.Resource, amount, "self-player")}); err != nil {
+			slog.Warn("Generation income failed", slog.Any("error", err))
+		}
+	}
+}

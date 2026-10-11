@@ -18,9 +18,9 @@ import { usePreviousTiles } from "../../../hooks/usePreviousTiles";
 import { useSoundEffects } from "../../../hooks/useSoundEffects";
 import { useHoverSound } from "../../../hooks/useHoverSound";
 import GreeneryRenderer from "./GreeneryRenderer";
-import CityRenderer from "./CityRenderer";
-import CityBatchRenderer from "./CityBatchRenderer";
-import { createCityShowcase, generateCityLayout, type CityPlot } from "./cityLayout";
+import StructureRenderer from "./StructureRenderer";
+import StructureBatchRenderer from "./StructureBatchRenderer";
+import { generateStructureLayout, type StructurePlot } from "./structureLayout";
 import { EMPTY_LANDSCAPE, type LandscapeSource, type LandscapeState } from "./landscapeTypes";
 import { hashSeed } from "./landscapeGeometry";
 import LandscapeRenderer from "./LandscapeRenderer";
@@ -41,9 +41,6 @@ import { useVPCounting } from "../../../contexts/VPCountingContext";
 import { usePlanetFocus } from "../../../contexts/PlanetFocusContext";
 import { coldStartTrace } from "../../../services/performanceStore";
 
-const SHOWCASE =
-  import.meta.env.DEV &&
-  new URLSearchParams(window.location.search).get("landscape") === "showcase";
 const noop = () => {};
 const EMPTY_BONUSES = {};
 const VP_COLOR_SECONDARY: [number, number, number] = [0.4, 0.9, 0.4];
@@ -60,7 +57,7 @@ interface TileGridProps {
   startHidden?: boolean;
   sphereCenter?: THREE.Vector3;
   groupInverseMatrix?: THREE.Matrix4;
-  onCityReady?: () => void;
+  onStructureReady?: () => void;
 }
 
 // Local type for tiles with projected positions
@@ -83,6 +80,7 @@ type TileType =
   | "special"
   | "volcano"
   | "nuclear-zone"
+  | "industrial-center"
   | "mining"
   | "restricted"
   | "ecological-zone"
@@ -113,7 +111,7 @@ export default function TileGrid({
   startHidden = false,
   sphereCenter = ORIGIN,
   groupInverseMatrix,
-  onCityReady,
+  onStructureReady,
 }: TileGridProps) {
   const highlightBoard = useTileHighlightBoard(highlightRoot, SPHERE_RADIUS, -1, gameState?.id);
   const { newlyPlaced: newlyPlacedTiles, replacedTiles } = usePreviousTiles(
@@ -183,8 +181,6 @@ export default function TileGrid({
     return map;
   }, [gameState]);
 
-  const showcaseOwnerId = gameState?.playerOrder[0] ?? null;
-
   const playerNameMap = useMemo(() => {
     const map = new Map<string, string>();
     if (gameState) {
@@ -231,8 +227,8 @@ export default function TileGrid({
 
   const tileSignature = JSON.stringify(gameState?.board?.tiles);
   const boardTiles = useMemo(() => gameState?.board?.tiles, [tileSignature]);
-  const stablePlots = useRef(new Map<string, CityPlot>());
-  const stableCityList = useRef<CityPlot[]>([]);
+  const stablePlots = useRef(new Map<string, StructurePlot>());
+  const stableStructureList = useRef<StructurePlot[]>([]);
   // Use backend board tiles or fallback to hardcoded generation
   const plantShade = useMemo(() => new PlantShadeMap(), []);
   useEffect(() => () => plantShade.dispose(), [plantShade]);
@@ -301,84 +297,58 @@ export default function TileGrid({
     [projectedHexGrid, nuclearTransitions],
   );
 
-  const cityPlots = useMemo(() => {
-    if (!SHOWCASE) {
-      let tracedPlacement = false;
-      const plots = visualHexGrid
-        .filter((tile) => tile.backendTile?.occupiedBy?.type === "city-tile")
-        .map((tile) => {
-          const key = HexGrid2D.coordinateToKey(tile.coordinate);
-          if (!tracedPlacement && newlyPlacedTiles.has(key) && !stablePlots.current.has(key)) {
-            coldStartTrace.begin("city-placement", { key });
-            tracedPlacement = true;
-          }
-          const endLayout = coldStartTrace.span("city:layout", { key });
-          const layout = generateCityLayout(
-            tile.backendTile!.occupiedBy!.visual?.seed ?? hashSeed(`${gameState?.id}:${key}`),
-            tile.backendTile!.occupiedBy!.visual?.city,
-            tile.backendTile?.displayName ?? "City",
-          );
-          endLayout();
-          const cached = stablePlots.current.get(key);
-          if (cached?.layout === layout) {
-            return cached;
-          }
-          const plot = {
-            coordinate: tile.coordinate,
-            worldPosition: tile.spherePosition,
-            normal: tile.normal,
-            layout,
-          };
-          stablePlots.current.set(key, plot);
-          return plot;
-        });
-      const active = new Set(plots.map((p) => HexGrid2D.coordinateToKey(p.coordinate)));
-      for (const key of stablePlots.current.keys()) {
-        if (!active.has(key)) {
-          stablePlots.current.delete(key);
+  const structurePlots = useMemo(() => {
+    let tracedPlacement = false;
+    const plots = visualHexGrid
+      .filter(
+        (tile) =>
+          tile.backendTile?.occupiedBy?.type === "city-tile" ||
+          tile.backendTile?.occupiedBy?.visual?.structure != null,
+      )
+      .map((tile) => {
+        const key = HexGrid2D.coordinateToKey(tile.coordinate);
+        if (!tracedPlacement && newlyPlacedTiles.has(key) && !stablePlots.current.has(key)) {
+          coldStartTrace.begin("structure-placement", { key });
+          tracedPlacement = true;
         }
-      }
-      if (
-        plots.length === stableCityList.current.length &&
-        plots.every((p, i) => p === stableCityList.current[i])
-      ) {
-        return stableCityList.current;
-      }
-      stableCityList.current = plots;
-      return plots;
-    }
-    const available = visualHexGrid.filter(
-      (tile) =>
-        !tile.backendTile?.occupiedBy &&
-        !tile.backendTile?.reservedBy &&
-        !tile.isOceanSpace &&
-        !tile.backendTile?.displayName,
-    );
-    const plots: CityPlot[] = [];
-    for (const [index, layout] of createCityShowcase().entries()) {
-      const targetQ = (index % 4) - 2;
-      const targetR = index < 4 ? -1 : 1;
-      available.sort(
-        (a, b) =>
-          Math.abs(a.coordinate.q - targetQ) +
-          Math.abs(a.coordinate.r - targetR) * 3 -
-          (Math.abs(b.coordinate.q - targetQ) + Math.abs(b.coordinate.r - targetR) * 3),
-      );
-      const tile = available.shift();
-      if (tile) {
-        plots.push({
+        const endLayout = coldStartTrace.span("structure:layout", { key });
+        const layout = generateStructureLayout(
+          tile.backendTile!.occupiedBy!.visual?.seed ?? hashSeed(`${gameState?.id}:${key}`),
+          tile.backendTile!.occupiedBy!.visual?.structure,
+          tile.backendTile?.occupiedBy?.displayName ?? tile.backendTile?.displayName ?? "Structure",
+        );
+        endLayout();
+        const cached = stablePlots.current.get(key);
+        if (cached?.layout === layout) {
+          return cached;
+        }
+        const plot = {
           coordinate: tile.coordinate,
           worldPosition: tile.spherePosition,
           normal: tile.normal,
           layout,
-        });
+        };
+        stablePlots.current.set(key, plot);
+        return plot;
+      });
+    const active = new Set(plots.map((p) => HexGrid2D.coordinateToKey(p.coordinate)));
+    for (const key of stablePlots.current.keys()) {
+      if (!active.has(key)) {
+        stablePlots.current.delete(key);
       }
     }
+    if (
+      plots.length === stableStructureList.current.length &&
+      plots.every((p, i) => p === stableStructureList.current[i])
+    ) {
+      return stableStructureList.current;
+    }
+    stableStructureList.current = plots;
     return plots;
   }, [visualHexGrid, gameState?.id]);
-  const cityKeys = useMemo(
-    () => new Set(cityPlots.map((plot) => HexGrid2D.coordinateToKey(plot.coordinate))),
-    [cityPlots],
+  const structureKeys = useMemo(
+    () => new Set(structurePlots.map((plot) => HexGrid2D.coordinateToKey(plot.coordinate))),
+    [structurePlots],
   );
 
   // Get tile type and occupancy data
@@ -428,6 +398,12 @@ export default function TileGrid({
           case "natural-preserve-tile":
             return {
               type: "natural-preserve",
+              ownerId: backendTile.ownerId || null,
+              specialLabel: null,
+            };
+          case "industrial-center-tile":
+            return {
+              type: "industrial-center",
               ownerId: backendTile.ownerId || null,
               specialLabel: null,
             };
@@ -507,42 +483,15 @@ export default function TileGrid({
       }));
   }, [landscapeHexGrid]);
 
-  const showcaseGreenery = useMemo(() => {
-    if (!SHOWCASE) {
-      return [];
-    }
-    const available = landscapeHexGrid.filter(
-      (t) =>
-        !t.backendTile?.occupiedBy &&
-        !t.isOceanSpace &&
-        !cityKeys.has(HexGrid2D.coordinateToKey(t.coordinate)),
-    );
-    return available
-      .filter((t) =>
-        cityPlots.some((city) =>
-          HexGrid2D.getNeighbors(city.coordinate).some(
-            (n) => HexGrid2D.coordinateToKey(n) === HexGrid2D.coordinateToKey(t.coordinate),
-          ),
-        ),
-      )
-      .map((t) => ({
-        coordinate: t.coordinate,
-        worldPosition: t.spherePosition,
-        normal: t.normal,
-      }));
-  }, [landscapeHexGrid, cityPlots, cityKeys]);
-  const renderedGreenery = useMemo(
-    () => [...greeneryTiles, ...showcaseGreenery],
-    [greeneryTiles, showcaseGreenery],
-  );
+  const renderedGreenery = greeneryTiles;
   const landscapeInputs = useMemo(() => {
-    const tiles: LandscapeSource[] = cityPlots
+    const tiles: LandscapeSource[] = structurePlots
       .filter(
         (plot) => !nuclearTransitions.get(HexGrid2D.coordinateToKey(plot.coordinate))?.impacted,
       )
       .map((plot) => ({
         coordinate: plot.coordinate,
-        kind: "city",
+        kind: "structure",
         seed: plot.layout.seed,
         layout: plot.layout,
       }));
@@ -550,9 +499,7 @@ export default function TileGrid({
       const original = landscapeHexGrid.find(
         (p) => HexGrid2D.coordinateToKey(p.coordinate) === HexGrid2D.coordinateToKey(t.coordinate),
       );
-      const special =
-        original?.backendTile?.occupiedBy?.type !== "greenery-tile" &&
-        !showcaseGreenery.includes(t);
+      const special = original?.backendTile?.occupiedBy?.type !== "greenery-tile";
       tiles.push({
         coordinate: t.coordinate,
         kind: special ? "special-greenery" : "greenery",
@@ -582,10 +529,9 @@ export default function TileGrid({
     return { sources: tiles, seed: hashSeed(gameState?.id ?? "showcase"), relief };
   }, [
     relief,
-    cityPlots,
+    structurePlots,
     renderedGreenery,
     landscapeHexGrid,
-    showcaseGreenery,
     gameState?.id,
     nuclearTransitions,
   ]);
@@ -640,22 +586,24 @@ export default function TileGrid({
         return null;
       }
       const tileData = getTileData(tile);
-      const cityPlot = cityPlots.find((plot) => HexGrid2D.coordinateToKey(plot.coordinate) === key);
-      const ownerId = cityPlot && SHOWCASE ? showcaseOwnerId : tileData.ownerId;
+      const structurePlot = structurePlots.find(
+        (plot) => HexGrid2D.coordinateToKey(plot.coordinate) === key,
+      );
+      const ownerId = tileData.ownerId;
       const reservedById = tile.backendTile?.reservedBy || null;
       return {
-        tileType: cityPlot ? "city" : tileData.type,
+        tileType: tileData.type,
         displayName: tileData.specialLabel || tile.backendTile?.displayName,
-        placedName: SHOWCASE ? cityPlot?.layout.name : tile.backendTile?.occupiedBy?.displayName,
+        placedName: tile.backendTile?.occupiedBy?.displayName,
         ownerName: ownerId ? playerNameMap.get(ownerId) : undefined,
         ownerColor: ownerId ? playerColorMap.get(ownerId) : undefined,
         reservedByName: reservedById ? playerNameMap.get(reservedById) : undefined,
         isOceanSpace: tile.isOceanSpace,
         isVolcanic: tile.backendTile?.tags?.includes("volcanic") ?? false,
-        bonuses: cityPlot ? {} : tile.bonuses,
+        bonuses: structurePlot ? {} : tile.bonuses,
       };
     },
-    [projectedHexGrid, cityPlots, showcaseOwnerId, playerNameMap, playerColorMap],
+    [projectedHexGrid, structurePlots, playerNameMap, playerColorMap],
   );
 
   const { isCompact } = useLayoutMode();
@@ -845,9 +793,11 @@ export default function TileGrid({
       )}
 
       {/* Tile hover tooltip — Html bridges R3F→DOM, TileTooltip portals to body */}
-      <Html>
-        <TileTooltip data={tooltipData} positionRef={tooltipPositionRef} />
-      </Html>
+      {tooltipData && (
+        <Html>
+          <TileTooltip data={tooltipData} positionRef={tooltipPositionRef} />
+        </Html>
+      )}
       <GreeneryRenderer
         shade={plantShade}
         landscape={landscapeView.current}
@@ -856,13 +806,13 @@ export default function TileGrid({
         nuclearTiles={nuclearTiles}
         transitionStart={landscapeView.transitionStart}
       />
-      <CityBatchRenderer
+      <StructureBatchRenderer
         key={gameState?.id}
-        plots={cityPlots}
+        plots={structurePlots}
         newlyPlaced={newlyPlacedTiles}
         nuclearTransitions={nuclearTransitions}
         visible={!startHidden || animateHexEntrance}
-        onReady={onCityReady}
+        onReady={onStructureReady}
       />
       <group visible={!startHidden || animateHexEntrance}>
         <LandscapeRenderer
@@ -871,7 +821,7 @@ export default function TileGrid({
           groupInverseMatrix={groupInverseMatrix}
           plantShade={plantShade}
         />
-        {cityPlots.map((plot) => (
+        {structurePlots.map((plot) => (
           <NuclearCollapse
             key={HexGrid2D.coordinateToKey(plot.coordinate)}
             transition={nuclearTransitions.get(HexGrid2D.coordinateToKey(plot.coordinate))}
@@ -879,9 +829,9 @@ export default function TileGrid({
             origin={plot.worldPosition}
             normal={plot.normal}
           >
-            <CityRenderer
+            <StructureRenderer
               renderBuildings={false}
-              showLabel={SHOWCASE}
+              showLabel={false}
               isNewlyPlaced={
                 !nuclearTransitions.has(HexGrid2D.coordinateToKey(plot.coordinate)) &&
                 newlyPlacedTiles.has(HexGrid2D.coordinateToKey(plot.coordinate))
@@ -909,19 +859,10 @@ export default function TileGrid({
       {projectedHexGrid.map((tile, index) => {
         const hexKey = HexGrid2D.coordinateToKey(tile.coordinate);
         const transition = nuclearTransitions.get(hexKey);
-        const isCityRenderer = cityKeys.has(hexKey) && !transition;
-        const isShowcaseGreen = showcaseGreenery.some(
-          (t) => HexGrid2D.coordinateToKey(t.coordinate) === hexKey,
-        );
+        const isStructureRenderer = structureKeys.has(hexKey) && !transition;
         const tileData = getTileData(tile);
-        let renderedType = tileData.type;
-        if (isCityRenderer) {
-          renderedType = "city";
-        }
-        if (isShowcaseGreen) {
-          renderedType = "greenery";
-        }
-        const ownerId = isCityRenderer && SHOWCASE ? showcaseOwnerId : tileData.ownerId;
+
+        const ownerId = tileData.ownerId;
         const isAvailable = availableHexes.includes(hexKey);
 
         const isHovered = !isDraggingCard && hoveredHexKey === hexKey;
@@ -936,7 +877,8 @@ export default function TileGrid({
           <Tile
             key={hexKey}
             tileData={tile}
-            tileType={renderedType}
+            tileType={tileData.type}
+            hasStructure={isStructureRenderer}
             nuclearSite={nuclearSites.get(hexKey)}
             nuclearTransition={transition}
             outgoingType={
@@ -964,7 +906,7 @@ export default function TileGrid({
             }
             isVolcanic={tile.backendTile?.tags?.includes("volcanic") ?? false}
             isOceanSpace={tile.isOceanSpace}
-            bonuses={isCityRenderer || isShowcaseGreen ? EMPTY_BONUSES : tile.bonuses}
+            bonuses={isStructureRenderer ? EMPTY_BONUSES : tile.bonuses}
             onClick={noop}
             isHovered={isHovered}
             isInspected={isCompact && inspectedHex === hexKey}

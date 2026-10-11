@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { performanceStore } from "../services/performanceStore";
 import {
   climateFromParameters,
@@ -59,6 +59,7 @@ export function ClimateProvider({
   parameters: ClimateParameters;
   children: ReactNode;
 }) {
+  const clock = useThree((s) => s.clock);
   const { temperature, oxygen, oceans, maxOceans } = parameters;
   const target = useMemo(
     () => climateFromParameters({ temperature, oxygen, oceans, maxOceans }),
@@ -75,18 +76,18 @@ export function ClimateProvider({
     const next = { temperature, oxygen, oceans, maxOceans };
     // The first value snaps so loading or reconnecting mid-game never replays milestones.
     if (previous.current) {
-      const now = performance.now() / 1000;
+      const now = clock.elapsedTime;
       for (const milestone of climateMilestones(previous.current, next)) {
         milestones.current.set(milestone, now);
       }
     }
     previous.current = next;
-  }, [temperature, oxygen, oceans, maxOceans]);
+  }, [temperature, oxygen, oceans, maxOceans, clock]);
 
   useFrame((_, delta) => {
     const state = runtime.current;
     easeClimate(state.current, target, Math.min(delta, 0.1));
-    const now = performance.now() / 1000;
+    const now = clock.elapsedTime;
     const pulse = (milestone: ClimateMilestone) => {
       const start = milestones.current.get(milestone);
       return start === undefined ? 0 : envelope(now - start, PULSE_SECONDS[milestone]);

@@ -141,11 +141,61 @@ func TestHistoryDerivesIrreversibleRetirementDuringReconnection(t *testing.T) {
 		Players:     map[string]*datastore.PlayerState{"p": {ID: "p", PlayedCardIDs: []string{"ES016"}}},
 	}}
 	mapped := dto.ToGameHistoryEntryDtos([]*datastore.GameStateHistoryEntry{entry}, registry)[0]
-	status := mapped.Players["p"].DependencyStatuses["ES016:earth-support"]
+	status := mapped.Players["p"].DependencyStatuses["ES016:lease-payments"]
 	if !status.Retired || status.Active || status.Imported {
 		t.Fatalf("historical expired lease shown as reusable: %+v", status)
 	}
 	if mapped.ModeRuntime.EffectiveValues["earth-contact"] != 1 {
 		t.Fatal("test must represent restored contact")
+	}
+}
+
+func TestModeVisualMetadataAndEffectsMapping(t *testing.T) {
+	registry := testutil.CreateTestModeCatalog()
+	definitions := cards.ModeDefinitions(registry)
+	modes := dto.MapGameModes(definitions)
+	var scenario *dto.GameModeDto
+	for i := range modes {
+		if modes[i].ID == "earth-withdrawal" {
+			scenario = &modes[i]
+		}
+	}
+	if scenario == nil {
+		t.Fatal("missing scenario")
+	}
+	if scenario.StateVisuals["withdrawal-occurred"].Values["1"].Icon != "transition-complete" {
+		t.Fatal("historical state missing graphical descriptor")
+	}
+	for _, status := range scenario.Statuses {
+		if status.State == "withdrawal-occurred" {
+			t.Fatal("graphical descriptor created a visible status row")
+		}
+	}
+	definition := definitions[1]
+	visual := scenario.StateVisuals["earth-contact"]
+	visual.Values["1"] = dto.StateValueVisualDto{Icon: "modified", Label: "Modified"}
+	if definition.StateVisuals["earth-contact"].Values["1"].Icon == "modified" {
+		t.Fatal("mapped visual aliases catalog")
+	}
+
+	runtime := shared.ModeRuntimeState{Values: map[string]int{"contact": 0}, Events: []shared.ModePresentationEvent{{ID: "event-1", Title: "Contact closed", Effects: []shared.ModePresentationEffect{{Kind: "link-transition", Link: &shared.LinkTransition{From: "earth", To: "mars", Connected: false}}, {Kind: "unsupported-effect"}}}}}
+	mapped := dto.ModeRuntimeStateToDto(runtime)
+	if len(mapped.Events) != 1 || len(mapped.Events[0].Effects) != 2 || mapped.Events[0].Title != "Contact closed" {
+		t.Fatalf("presentation mapping lost fallback or effects: %+v", mapped.Events)
+	}
+	if link := mapped.Events[0].Effects[0].Link; link == nil || link.From != "earth" || link.To != "mars" || link.Connected {
+		t.Fatalf("invalid link mapping: %+v", link)
+	}
+	mapped.Events[0].Effects[0].Link.From = "modified"
+	if runtime.Events[0].Effects[0].Link.From != "earth" {
+		t.Fatal("DTO aliases runtime effect")
+	}
+
+	card := cards.Card{ID: "dependent", DependencyGroups: []shared.DependencyGroup{{ID: "supply", State: "contact", Equals: 1}}, Behaviors: []shared.CardBehavior{{ID: "income", Dependency: "supply"}}}
+	cardDTO := dto.ToCardDto(card)
+	dto.AnnotateCardDependencyPreview(&cardDTO, card, map[string]int{"contact": 0})
+	dependency := cardDTO.Behaviors[0].DependencyStatus
+	if dependency == nil || dependency.State != "contact" || dependency.Equals != 1 || dependency.Active {
+		t.Fatalf("dependency presentation lost condition or actual state: %+v", dependency)
 	}
 }

@@ -2,6 +2,7 @@ package game_lifecycle_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	gameAction "openmars/internal/action/game"
@@ -207,4 +208,20 @@ func TestUpdateGameSettings_BotSpendCap(t *testing.T) {
 	zero := 0.0
 	err = rig.action.Execute(context.Background(), rig.gameID, rig.host(), &gameAction.SettingsPatch{BotSpendCapUSD: &zero})
 	testutil.AssertErrorContains(t, err, "bot spend cap must be positive", "cap must be positive")
+}
+
+func TestUpdateGameSettings_ClassicExpansionsResetForEarthWithdrawal(t *testing.T) {
+	rig := newUpdateSettingsRig(t, 1)
+	err := rig.action.Execute(context.Background(), rig.gameID, rig.host(), &gameAction.SettingsPatch{Features: featuresPtr([]string{"prelude", "venus", "colonies"})})
+	testutil.AssertNoError(t, err, "enable both Classic expansions in lobby")
+	g := rig.game(t)
+	testutil.AssertTrue(t, g.Settings().HasVenus() && g.Settings().HasColonies(), "both systems enabled")
+	testutil.AssertTrue(t, slices.Contains(g.Deck().ProjectCards(), "213"), "Venus cards enter deck")
+	testutil.AssertTrue(t, slices.Contains(g.Deck().ProjectCards(), "C01"), "Colonies cards enter deck")
+	err = rig.action.Execute(context.Background(), rig.gameID, rig.host(), &gameAction.SettingsPatch{GameModeID: strPtr("earth-withdrawal"), Features: featuresPtr([]string{"prelude"})})
+	testutil.AssertNoError(t, err, "switch to Earth Withdrawal")
+	testutil.AssertFalse(t, g.Settings().HasVenus() || g.Settings().HasColonies(), "expansion systems removed")
+	testutil.AssertFalse(t, slices.Contains(g.Deck().ProjectCards(), "213"), "Venus card removed")
+	testutil.AssertFalse(t, slices.Contains(g.Deck().ProjectCards(), "C01"), "Colonies card removed")
+	testutil.AssertTrue(t, slices.Contains(g.Deck().ProjectCards(), "C14"), "curated Earth card remains")
 }

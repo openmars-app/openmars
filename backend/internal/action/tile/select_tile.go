@@ -412,6 +412,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 				for _, cardID := range cardIDs {
 					p.Hand().AddCard(cardID)
 				}
+				p.Selection().AddCardReceipt("Tile bonus", pendingTileSelection.SourceCardID, cardIDs)
 
 				g.AddTriggeredEffect(shared.TriggeredEffect{
 					CardName:   "Tile Bonus",
@@ -645,20 +646,31 @@ func (a *SelectTileAction) createTileOccupant(g *game.Game, tileType, sourceCard
 		Type: mapTileTypeToResourceType(tileType),
 		Tags: []string{},
 	}
+	if sourceCardID != "" {
+		occupant.Tags = append(occupant.Tags, "source:"+sourceCardID)
+	}
+	registry := a.CardRegistryForGame(g)
+	if registry == nil {
+		return occupant
+	}
 	if sourceCardID == "" {
+		if occupant.Type != shared.ResourceCityTile {
+			if card := cards.UniqueStructureCard(registry, tileType); card != nil {
+				occupant.DisplayName = card.Name
+				occupant.Visual = &shared.TileVisual{Structure: card.Style.Tile.Clone()}
+			}
+		}
 		return occupant
 	}
-	occupant.Tags = append(occupant.Tags, "source:"+sourceCardID)
-	if occupant.Type != shared.ResourceCityTile || a.CardRegistryForGame(g) == nil {
-		return occupant
-	}
-	card, err := a.CardRegistryForGame(g).GetByID(sourceCardID)
+	card, err := registry.GetByID(sourceCardID)
 	if err != nil {
 		return occupant
 	}
-	occupant.DisplayName = card.Name
-	if card.Style != nil {
-		occupant.Visual = &shared.TileVisual{City: card.Style.Tile.Clone()}
+	if occupant.Type == shared.ResourceCityTile || (card.Style != nil && card.Style.Tile != nil) {
+		occupant.DisplayName = card.Name
+	}
+	if card.Style != nil && card.Style.Tile != nil {
+		occupant.Visual = &shared.TileVisual{Structure: card.Style.Tile.Clone()}
 	}
 	return occupant
 }

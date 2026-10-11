@@ -112,7 +112,7 @@
     "id": "air-scrapping",
     "name": "Air Scrapping",
     "description": "Spend 15 M€ to raise Venus 1 step and gain 1 TR.",
-    "gameModes": [],
+    "gameModes": ["classic"],
     "requiresSystems": ["venus"],
     "behaviors": [
       {

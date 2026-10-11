@@ -392,10 +392,17 @@ func (a *BehaviorApplier) ApplyOutputsAndGetCalculated(
 			continue
 		}
 
+		var operation *shared.StateCondition
+		if state, ok := output.(*shared.StateCondition); ok {
+			operation = shared.CloneCondition(state).(*shared.StateCondition)
+			operation.Amount = actualAmount
+		}
+
 		// Track for state diff log (existing behavior)
 		if isScaled || actualAmount != 0 {
 			calculatedOutputs = append(calculatedOutputs, shared.CalculatedOutput{
 				ResourceType: string(rt),
+				Operation:    operation,
 				Amount:       actualAmount,
 				IsScaled:     isScaled,
 			})
@@ -411,6 +418,7 @@ func (a *BehaviorApplier) ApplyOutputsAndGetCalculated(
 			}
 			notificationOutputs = append(notificationOutputs, shared.CalculatedOutput{
 				ResourceType: resourceType,
+				Operation:    operation,
 				Amount:       actualAmount,
 				IsScaled:     isScaled,
 			})

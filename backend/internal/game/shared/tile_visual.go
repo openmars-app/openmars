@@ -1,7 +1,7 @@
 package shared
 
-// CityStyleRequest contains optional visual requests, independent of placement rules.
-type CityStyleRequest struct {
+// StructureStyleRequest contains optional visual requests, independent of placement rules.
+type StructureStyleRequest struct {
 	Plan          string   `json:"plan,omitempty"`
 	Density       string   `json:"density,omitempty"`
 	Heights       string   `json:"heights,omitempty"`
@@ -21,17 +21,17 @@ type CityStyleRequest struct {
 
 // CardStyle contains best-effort requests for the placed tile.
 type CardStyle struct {
-	Tile *CityStyleRequest `json:"tile,omitempty"`
+	Tile *StructureStyleRequest `json:"tile,omitempty"`
 }
 
 // TileVisual freezes placement-time visual inputs; meshes are generated on clients.
 type TileVisual struct {
-	Seed uint32            `json:"seed"`
-	City *CityStyleRequest `json:"city,omitempty"`
+	Seed      uint32                 `json:"seed"`
+	Structure *StructureStyleRequest `json:"structure,omitempty"`
 }
 
 // Clone copies a visual request, including mutable detail lists.
-func (s *CityStyleRequest) Clone() *CityStyleRequest {
+func (s *StructureStyleRequest) Clone() *StructureStyleRequest {
 	if s == nil {
 		return nil
 	}
@@ -53,5 +53,5 @@ func (v *TileVisual) Clone() *TileVisual {
 	if v == nil {
 		return nil
 	}
-	return &TileVisual{Seed: v.Seed, City: v.City.Clone()}
+	return &TileVisual{Seed: v.Seed, Structure: v.Structure.Clone()}
 }

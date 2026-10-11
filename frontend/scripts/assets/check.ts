@@ -18,6 +18,26 @@ for (const card of cards) {
     throw new Error(`Missing card artwork: ${id}`);
   }
 }
+const modes = JSON.parse(
+  await fs.readFile(path.join(repoRoot, "backend/assets/gamemodes.json"), "utf8"),
+) as Array<{
+  id: string;
+  runtime?: {
+    deadlines?: Array<{ warningSoundId?: string }>;
+    presentationRules?: Array<{ soundId?: string }>;
+  };
+}>;
+for (const mode of modes) {
+  const sounds = [
+    ...(mode.runtime?.deadlines ?? []).map((deadline) => deadline.warningSoundId),
+    ...(mode.runtime?.presentationRules ?? []).map((rule) => rule.soundId),
+  ];
+  for (const soundId of sounds) {
+    if (soundId && !ids.has(`audio/effects/${soundId}`)) {
+      throw new Error(`Unknown announcement sound ${soundId} in mode ${mode.id}`);
+    }
+  }
+}
 const originalDir = path.join(repoRoot, "assets/original");
 const sources = new Set(entries.map((entry) => entry.source));
 for (const relative of await fs.readdir(originalDir, { recursive: true })) {

@@ -412,7 +412,7 @@ func (c Catalog) cardID(id string, s *datastore.GameState) error {
 	if id == "" {
 		return nil
 	}
-	card, err := c.rawCard(id)
+	card, err := c.cardForState(id, s)
 	if err != nil {
 		return err
 	}
@@ -624,6 +624,9 @@ func (c Catalog) validateModeRuntime(s *datastore.GameState, definition mode.Def
 		if occurred != 0 && occurred != 1 || occurred == 0 && r.Values[deadline.ActiveState] != deadline.ActiveValue || occurred == 1 && r.Values[deadline.ActiveState] != deadline.InactiveValue {
 			return fmt.Errorf("modeRuntime: inconsistent deadline state")
 		}
+	}
+	if r.LastStartedGeneration < 0 || r.LastStartedGeneration > s.Generation || r.IncomeStreak < 0 || r.IncomeStreak > r.LastStartedGeneration {
+		return fmt.Errorf("modeRuntime: invalid generation income progress")
 	}
 	if r.Sequence < 0 {
 		return fmt.Errorf("modeRuntime.sequence: negative value")

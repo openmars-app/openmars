@@ -7,11 +7,14 @@ import (
 	"openmars/internal/game/shared"
 	"os"
 	"slices"
+	"strconv"
 )
 
 type Rule struct {
-	Title string `json:"title"`
-	Text  string `json:"text"`
+	Icon     string `json:"icon,omitempty"`
+	Advanced bool   `json:"advanced,omitempty"`
+	Title    string `json:"title"`
+	Text     string `json:"text"`
 }
 type Parameter struct {
 	ID          string `json:"id"`
@@ -21,11 +24,12 @@ type Parameter struct {
 	Values      []int  `json:"values"`
 }
 type Feature struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	Experimental bool   `json:"experimental"`
-	Default      bool   `json:"default"`
+	Systems      []string `json:"systems,omitempty"`
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	Description  string   `json:"description"`
+	Experimental bool     `json:"experimental"`
+	Default      bool     `json:"default"`
 }
 type StatusDefinition struct {
 	State  string            `json:"state"`
@@ -35,19 +39,34 @@ type StatusDefinition struct {
 	From   string            `json:"from,omitempty"`
 	To     string            `json:"to,omitempty"`
 }
+
+// StateVisual selects reusable symbols without adding a visible status row.
+type StateVisual struct {
+	Icon   string                      `json:"icon"`
+	Label  string                      `json:"label"`
+	Values map[string]StateValueVisual `json:"values,omitempty"`
+}
+
+// StateValueVisual describes a particular value of a mode state.
+type StateValueVisual struct {
+	Icon  string `json:"icon"`
+	Label string `json:"label"`
+}
+
 type Definition struct {
-	ID         string                       `json:"id"`
-	Name       string                       `json:"name"`
-	Summary    string                       `json:"summary"`
-	Scenario   string                       `json:"scenario"`
-	Rules      []Rule                       `json:"rules"`
-	Statuses   []StatusDefinition           `json:"statuses"`
-	MinPlayers int                          `json:"minPlayers"`
-	MaxPlayers int                          `json:"maxPlayers"`
-	Parameters []Parameter                  `json:"parameters"`
-	Features   []Feature                    `json:"features"`
-	Systems    []string                     `json:"systems"`
-	Runtime    shared.ModeRuntimeDefinition `json:"runtime"`
+	ID           string                       `json:"id"`
+	Name         string                       `json:"name"`
+	Summary      string                       `json:"summary"`
+	Scenario     string                       `json:"scenario"`
+	Rules        []Rule                       `json:"rules"`
+	Statuses     []StatusDefinition           `json:"statuses"`
+	StateVisuals map[string]StateVisual       `json:"stateVisuals"`
+	MinPlayers   int                          `json:"minPlayers"`
+	MaxPlayers   int                          `json:"maxPlayers"`
+	Parameters   []Parameter                  `json:"parameters"`
+	Features     []Feature                    `json:"features"`
+	Systems      []string                     `json:"systems"`
+	Runtime      shared.ModeRuntimeDefinition `json:"runtime"`
 }
 
 func LoadFromJSON(path string) ([]Definition, error) {
@@ -96,14 +115,34 @@ func LoadFromJSON(path string) ([]Definition, error) {
 			}
 			states[deadline.State] = true
 		}
+		if income := d.Runtime.GenerationIncome; income != nil {
+			if !states[income.State] || income.InitialAmount < 1 || income.Increment < 0 || income.Name == "" || !slices.Contains([]shared.ResourceType{shared.ResourceCredit, shared.ResourceSteel, shared.ResourceTitanium, shared.ResourcePlant, shared.ResourceEnergy, shared.ResourceHeat}, income.Resource) {
+				return nil, fmt.Errorf("invalid generation income in mode %s", d.ID)
+			}
+		}
 		for _, status := range d.Statuses {
 			if !states[status.State] || (status.Kind != "connection" && status.Kind != "counter") {
 				return nil, fmt.Errorf("invalid status %q in mode %s", status.State, d.ID)
 			}
 		}
+		for state, visual := range d.StateVisuals {
+			if !states[state] || visual.Icon == "" || visual.Label == "" {
+				return nil, fmt.Errorf("invalid state visual %q in mode %s", state, d.ID)
+			}
+			for value, symbol := range visual.Values {
+				if _, err := strconv.Atoi(value); err != nil || symbol.Icon == "" || symbol.Label == "" {
+					return nil, fmt.Errorf("invalid state visual value %q for %s in mode %s", value, state, d.ID)
+				}
+			}
+		}
 		for _, rule := range d.Runtime.PresentationRules {
 			if !states[rule.State] {
 				return nil, fmt.Errorf("presentation rule references unknown state %s in mode %s", rule.State, d.ID)
+			}
+			for _, effect := range rule.Effects {
+				if effect.Kind == "" || (effect.Kind == "link-transition" && (effect.Link == nil || effect.Link.From == "" || effect.Link.To == "")) {
+					return nil, fmt.Errorf("invalid presentation effect for state %s in mode %s", rule.State, d.ID)
+				}
 			}
 		}
 		behaviorIDs := map[string]bool{}
@@ -203,5 +242,27 @@ func Normalize(definitions []Definition, settings shared.GameSettings) (shared.G
 		}
 	}
 	settings.Systems = slices.Clone(d.Systems)
+	for _, feature := range d.Features {
+		if slices.Contains(settings.Features, feature.ID) {
+			for _, system := range feature.Systems {
+				if !slices.Contains(settings.Systems, system) {
+					settings.Systems = append(settings.Systems, system)
+				}
+			}
+		}
+	}
 	return settings, d, nil
+}
+
+// SupportsSystem reports whether a mode can enable a system, including through an option.
+func (d Definition) SupportsSystem(system string) bool {
+	if slices.Contains(d.Systems, system) {
+		return true
+	}
+	for _, feature := range d.Features {
+		if slices.Contains(feature.Systems, system) {
+			return true
+		}
+	}
+	return false
 }

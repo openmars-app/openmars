@@ -18,6 +18,8 @@ type StateRequirementDto struct {
 // DependencyStatusDto describes the current state of an ongoing operation.
 type DependencyStatusDto struct {
 	ID       string `json:"id"`
+	State    string `json:"state"`
+	Equals   int    `json:"equals"`
 	Label    string `json:"label,omitempty"`
 	Active   bool   `json:"active"`
 	Imported bool   `json:"imported"`
@@ -86,10 +88,13 @@ func ModeRuntimeStateToDto(r shared.ModeRuntimeState) *ModeRuntimeDto {
 		out.Windows = append(out.Windows, StateWindowDto{ID: w.ID, Source: w.Source, State: w.State, Value: w.Value, StartGeneration: w.StartGeneration, StartBoundary: w.StartBoundary, EndGeneration: w.EndGeneration, EndBoundary: w.EndBoundary, Status: w.Status})
 	}
 	for _, event := range r.Events {
-		e := ModePresentationEventDto{ID: event.ID, Kind: event.Kind, State: event.State, OldValue: event.OldValue, NewValue: event.NewValue, Title: event.Title, Description: event.Description}
-		if event.Presentation != nil {
-			h := event.Presentation
-			e.Presentation = &ModePresentationHintDto{Kind: h.Kind, From: h.From, To: h.To, Connected: h.Connected}
+		e := ModePresentationEventDto{ID: event.ID, Kind: event.Kind, State: event.State, OldValue: event.OldValue, NewValue: event.NewValue, Title: event.Title, SoundID: event.SoundID, Description: event.Description}
+		for _, effect := range event.Effects {
+			mapped := ModePresentationEffectDto{Kind: effect.Kind}
+			if effect.Link != nil {
+				mapped.Link = &LinkTransitionDto{From: effect.Link.From, To: effect.Link.To, Connected: effect.Link.Connected}
+			}
+			e.Effects = append(e.Effects, mapped)
 		}
 		out.Events = append(out.Events, e)
 	}
@@ -106,7 +111,7 @@ func AnnotateCardDependencies(out *CardDto, card cards.Card, p *player.Player) {
 			if d.ID != b.Dependency {
 				continue
 			}
-			status := DependencyStatusDto{ID: d.ID, Label: d.Label, Active: true}
+			status := DependencyStatusDto{ID: d.ID, State: d.State, Equals: d.Equals, Label: d.Label, Active: true}
 			if p != nil {
 				s := p.Resources().EffectiveDependencyStatus(card.ID, d)
 				status.Active = p.Resources().DependencyActive(card.ID, d)
@@ -121,24 +126,30 @@ func toStateRequirementDto(s shared.StateRequirement) StateRequirementDto {
 	return StateRequirementDto{State: s.State, Equals: s.Equals}
 }
 
-// ModePresentationHintDto supplies an optional visual hint.
-type ModePresentationHintDto struct {
-	Kind      string `json:"kind"`
-	From      string `json:"from,omitempty"`
-	To        string `json:"to,omitempty"`
-	Connected *bool  `json:"connected,omitempty"`
+// ModePresentationEffectDto requests an optional presentation capability.
+type ModePresentationEffectDto struct {
+	Kind string             `json:"kind"`
+	Link *LinkTransitionDto `json:"link,omitempty"`
+}
+
+// LinkTransitionDto describes the endpoints and outcome of a link transition.
+type LinkTransitionDto struct {
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Connected bool   `json:"connected"`
 }
 
 // ModePresentationEventDto is an ordered state transition with an accessible fallback.
 type ModePresentationEventDto struct {
-	ID           string                   `json:"id"`
-	Kind         string                   `json:"kind"`
-	State        string                   `json:"state"`
-	OldValue     int                      `json:"oldValue"`
-	NewValue     int                      `json:"newValue"`
-	Title        string                   `json:"title"`
-	Description  string                   `json:"description,omitempty"`
-	Presentation *ModePresentationHintDto `json:"presentation,omitempty"`
+	ID          string                      `json:"id"`
+	Kind        string                      `json:"kind"`
+	State       string                      `json:"state"`
+	OldValue    int                         `json:"oldValue"`
+	NewValue    int                         `json:"newValue"`
+	Title       string                      `json:"title"`
+	SoundID     string                      `json:"soundId,omitempty"`
+	Description string                      `json:"description,omitempty"`
+	Effects     []ModePresentationEffectDto `json:"effects,omitempty"`
 }
 
 // AnnotateCardDependencyPreview evaluates a catalog card against preview state.
@@ -176,23 +187,31 @@ func stateOperationDescription(c *shared.StateCondition) string {
 	}
 	switch c.ResourceType {
 	case shared.ResourceStateChange:
-		direction := "Delay"
+		direction := "later"
 		amount := c.Amount
 		if amount < 0 {
-			direction = "Advance"
+			direction = "earlier"
 			amount = -amount
 		}
 		unit := "generation"
 		if amount != 1 {
 			unit = "generations"
 		}
-		return fmt.Sprintf("%s the scenario deadline by %d %s", direction, amount, unit)
+		return fmt.Sprintf("Move the scenario deadline %d %s %s", amount, unit, direction)
 	case shared.ResourceRemoveDependency:
-		return "Import one eligible project's ongoing operation"
+		return "Make the Earth-dependent effects of one of your projects permanent"
 	case shared.ResourceRetireDependency:
-		return "Retire one eligible project's ongoing operation"
+		return "Shut down support on one of your projects"
 	case shared.ResourceScheduleStateWindow:
 		if c.Start != nil && c.End != nil {
+			if c.Start.GenerationOffset == c.End.GenerationOffset && c.End.Boundary == "production-end" {
+				if c.Start.GenerationOffset == 1 && c.Start.Boundary == "research-start" {
+					return "Restore support for the next generation"
+				}
+				if c.Start.GenerationOffset == 0 && c.Start.Boundary == "production-start" {
+					return "Restore support for this generation's production"
+				}
+			}
 			return fmt.Sprintf("Restore support from generation +%d %s through generation +%d %s", c.Start.GenerationOffset, strings.ReplaceAll(c.Start.Boundary, "-", " "), c.End.GenerationOffset, strings.ReplaceAll(c.End.Boundary, "-", " "))
 		}
 		return "Schedule temporary restored support"

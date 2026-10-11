@@ -38,7 +38,7 @@ interface MarsSphereProps {
   onHexClick?: (hex: string) => void;
   animateHexEntrance?: boolean;
   startHidden?: boolean;
-  onCityReady?: () => void;
+  onStructureReady?: () => void;
 }
 
 export default function MarsSphere({
@@ -46,7 +46,7 @@ export default function MarsSphere({
   onHexClick,
   animateHexEntrance = false,
   startHidden = false,
-  onCityReady,
+  onStructureReady,
 }: MarsSphereProps) {
   const { marsGroupRef } = useMarsRotation();
   const { mars } = useTextures();
@@ -94,7 +94,7 @@ export default function MarsSphere({
             startHidden={startHidden}
             sphereCenter={worldCenterRef.current}
             groupInverseMatrix={groupInverseMatrixRef.current}
-            onCityReady={onCityReady}
+            onStructureReady={onStructureReady}
           />
         </group>
       </ClimateProvider>

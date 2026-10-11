@@ -605,6 +605,7 @@ func ToTriggeredEffectDto(effect shared.TriggeredEffect) TriggeredEffectDto {
 				ResourceType: co.ResourceType,
 				Amount:       co.Amount,
 				IsScaled:     co.IsScaled,
+				Operation:    calculatedOperationDto(co.Operation),
 			}
 		}
 	}

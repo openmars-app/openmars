@@ -14,29 +14,168 @@
       "publicName": "android-chrome-512x512.png"
     },
     {
-      "id": "app/maskable-512x512",
-      "source": "app/maskable-512x512.png",
-      "profile": "copy",
-      "publicName": "maskable-512x512.png"
-    },
-    {
       "id": "app/apple-touch-icon",
       "source": "app/apple-touch-icon.png",
       "profile": "copy",
       "publicName": "apple-touch-icon.png"
     },
     {
-      "id": "fonts/prototype",
-      "source": "fonts/prototype.ttf",
+      "id": "app/favicon",
+      "source": "app/favicon.ico",
       "profile": "copy",
-      "font": {
-        "family": "Prototype",
-        "weight": 400
-      }
+      "publicName": "favicon.ico"
     },
     {
-      "id": "textures/skyboxes/starmap",
-      "source": "textures/skyboxes/starmap.exr",
+      "id": "app/favicon-16x16",
+      "source": "app/favicon-16x16.png",
+      "profile": "copy",
+      "publicName": "favicon-16x16.png"
+    },
+    {
+      "id": "app/favicon-32x32",
+      "source": "app/favicon-32x32.png",
+      "profile": "copy",
+      "publicName": "favicon-32x32.png"
+    },
+    {
+      "id": "app/maskable-512x512",
+      "source": "app/maskable-512x512.png",
+      "profile": "copy",
+      "publicName": "maskable-512x512.png"
+    },
+    {
+      "id": "audio/effects/award-funded",
+      "source": "audio/effects/award-funded.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/button-click",
+      "source": "audio/effects/button-click.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/button-hover",
+      "source": "audio/effects/button-hover.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/card-hover",
+      "source": "audio/effects/card-hover.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/card-played",
+      "source": "audio/effects/card-played.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/construction-1",
+      "source": "audio/effects/construction-1.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/construction-2",
+      "source": "audio/effects/construction-2.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/earth-contact-lost",
+      "source": "audio/effects/earth-contact-lost.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/earth-withdrawal-warning",
+      "source": "audio/effects/earth-withdrawal-warning.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/game-start",
+      "source": "audio/effects/game-start.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/nuclear-blast",
+      "source": "audio/effects/nuclear-blast.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/oxygen-increase",
+      "source": "audio/effects/oxygen-increase.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/player-joined",
+      "source": "audio/effects/player-joined.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/production",
+      "source": "audio/effects/production.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/production-score",
+      "source": "audio/effects/production-score.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/temperature-increase",
+      "source": "audio/effects/temperature-increase.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/travel",
+      "source": "audio/effects/travel.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/venus-increase",
+      "source": "audio/effects/venus-increase.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/water-placement",
+      "source": "audio/effects/water-placement.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/effects/your-turn",
+      "source": "audio/effects/your-turn.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/music/dreams",
+      "source": "audio/music/dreams.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/music/ethereum",
+      "source": "audio/music/ethereum.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/music/sands",
+      "source": "audio/music/sands.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/music/settlers",
+      "source": "audio/music/settlers.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "audio/music/stars",
+      "source": "audio/music/stars.mp3",
+      "profile": "copy"
+    },
+    {
+      "id": "branding/red-frontier",
+      "source": "branding/red-frontier.png",
+      "profile": "branding"
+    },
+    {
+      "id": "branding/red-frontier-wordmark",
+      "source": "branding/red-frontier-wordmark.svg",
       "profile": "copy"
     },
     {
@@ -1590,6 +1729,282 @@
       "profile": "card"
     },
     {
+      "id": "cards/EP01",
+      "source": "cards/EP01.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/EP02",
+      "source": "cards/EP02.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/EP03",
+      "source": "cards/EP03.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/EP04",
+      "source": "cards/EP04.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES001",
+      "source": "cards/ES001.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES002",
+      "source": "cards/ES002.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES003",
+      "source": "cards/ES003.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES004",
+      "source": "cards/ES004.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES005",
+      "source": "cards/ES005.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES006",
+      "source": "cards/ES006.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES007",
+      "source": "cards/ES007.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES008",
+      "source": "cards/ES008.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES009",
+      "source": "cards/ES009.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES010",
+      "source": "cards/ES010.png",
+      "profile": "card",
+      "prepare": {
+        "crop": [
+          0,
+          0.42,
+          1,
+          0.58
+        ],
+        "charcoalMatte": false
+      }
+    },
+    {
+      "id": "cards/ES011",
+      "source": "cards/ES011.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES012",
+      "source": "cards/ES012.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES013",
+      "source": "cards/ES013.png",
+      "profile": "card",
+      "prepare": {
+        "crop": [
+          0,
+          0.2,
+          1,
+          0.8
+        ],
+        "charcoalMatte": false
+      }
+    },
+    {
+      "id": "cards/ES014",
+      "source": "cards/ES014.png",
+      "profile": "card",
+      "prepare": {
+        "crop": [
+          0,
+          0.3,
+          1,
+          0.7
+        ],
+        "charcoalMatte": false
+      }
+    },
+    {
+      "id": "cards/ES015",
+      "source": "cards/ES015.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES016",
+      "source": "cards/ES016.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES017",
+      "source": "cards/ES017.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES018",
+      "source": "cards/ES018.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES019",
+      "source": "cards/ES019.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES020",
+      "source": "cards/ES020.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES021",
+      "source": "cards/ES021.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES022",
+      "source": "cards/ES022.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES023",
+      "source": "cards/ES023.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES024",
+      "source": "cards/ES024.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES025",
+      "source": "cards/ES025.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES026",
+      "source": "cards/ES026.png",
+      "profile": "card",
+      "prepare": {
+        "crop": [
+          0,
+          0.2,
+          1,
+          0.8
+        ],
+        "charcoalMatte": false
+      }
+    },
+    {
+      "id": "cards/ES027",
+      "source": "cards/ES027.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES028",
+      "source": "cards/ES028.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES029",
+      "source": "cards/ES029.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES030",
+      "source": "cards/ES030.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES031",
+      "source": "cards/ES031.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES032",
+      "source": "cards/ES032.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES033",
+      "source": "cards/ES033.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES034",
+      "source": "cards/ES034.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES035",
+      "source": "cards/ES035.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES036",
+      "source": "cards/ES036.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES037",
+      "source": "cards/ES037.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES038",
+      "source": "cards/ES038.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES039",
+      "source": "cards/ES039.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES040",
+      "source": "cards/ES040.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES041",
+      "source": "cards/ES041.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES042",
+      "source": "cards/ES042.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES043",
+      "source": "cards/ES043.png",
+      "profile": "card"
+    },
+    {
+      "id": "cards/ES044",
+      "source": "cards/ES044.png",
+      "profile": "card"
+    },
+    {
       "id": "cards/EXP001",
       "source": "cards/EXP001.webp",
       "profile": "card"
@@ -2410,6 +2825,16 @@
       }
     },
     {
+      "id": "corporations/martian-independence-cooperative",
+      "source": "corporations/martian-independence-cooperative.png",
+      "profile": "corporation",
+      "corporation": {
+        "key": "martian-independence-cooperative",
+        "name": "Martian Independence Cooperative",
+        "color": "#B9704F"
+      }
+    },
+    {
       "id": "corporations/mining-guild",
       "source": "corporations/mining-guild.png",
       "profile": "corporation",
@@ -2752,6 +3177,16 @@
       }
     },
     {
+      "id": "corporations/terran-supply-authority",
+      "source": "corporations/terran-supply-authority.png",
+      "profile": "corporation",
+      "corporation": {
+        "key": "terran-supply-authority",
+        "name": "Terran Supply Authority",
+        "color": "#258ED0"
+      }
+    },
+    {
       "id": "corporations/tharsis-republic",
       "source": "corporations/tharsis-republic.png",
       "profile": "corporation",
@@ -2885,9 +3320,81 @@
       }
     },
     {
-      "id": "textures/effects/smoke",
-      "source": "textures/effects/smoke.png",
-      "profile": "copy"
+      "id": "fonts/open-mars/frontier",
+      "source": "fonts/open-mars/frontier.ttf",
+      "profile": "copy",
+      "font": {
+        "family": "Open Mars Frontier",
+        "weight": 400
+      }
+    },
+    {
+      "id": "fonts/orbitron/black",
+      "source": "fonts/orbitron/black.ttf",
+      "profile": "copy",
+      "font": {
+        "family": "Orbitron",
+        "weight": 900
+      }
+    },
+    {
+      "id": "fonts/orbitron/bold",
+      "source": "fonts/orbitron/bold.ttf",
+      "profile": "copy",
+      "font": {
+        "family": "Orbitron",
+        "weight": 700
+      }
+    },
+    {
+      "id": "fonts/orbitron/extrabold",
+      "source": "fonts/orbitron/extrabold.ttf",
+      "profile": "copy",
+      "font": {
+        "family": "Orbitron",
+        "weight": 800
+      }
+    },
+    {
+      "id": "fonts/orbitron/medium",
+      "source": "fonts/orbitron/medium.ttf",
+      "profile": "copy",
+      "font": {
+        "family": "Orbitron",
+        "weight": 500
+      }
+    },
+    {
+      "id": "fonts/orbitron/regular",
+      "source": "fonts/orbitron/regular.ttf",
+      "profile": "copy",
+      "font": {
+        "family": "Orbitron",
+        "weight": 400
+      }
+    },
+    {
+      "id": "fonts/orbitron/semibold",
+      "source": "fonts/orbitron/semibold.ttf",
+      "profile": "copy",
+      "font": {
+        "family": "Orbitron",
+        "weight": 600
+      }
+    },
+    {
+      "id": "fonts/prototype",
+      "source": "fonts/prototype.ttf",
+      "profile": "copy",
+      "font": {
+        "family": "Prototype",
+        "weight": 400
+      }
+    },
+    {
+      "id": "icons/earth-connected",
+      "source": "icons/earth-connected.png",
+      "profile": "icon"
     },
     {
       "id": "icons/parameters/oxygen",
@@ -2905,94 +3412,39 @@
       "profile": "icon"
     },
     {
-      "id": "icons/ui/mars",
-      "source": "icons/ui/mars.png",
+      "id": "icons/placements/city",
+      "source": "icons/placements/city.png",
       "profile": "icon"
     },
     {
-      "id": "icons/ui/arrow",
-      "source": "icons/ui/arrow.png",
+      "id": "icons/placements/colony",
+      "source": "icons/placements/colony.png",
       "profile": "icon"
     },
     {
-      "id": "icons/ui/asterisc",
-      "source": "icons/ui/asterisc.png",
+      "id": "icons/placements/greenery-no-oxygen",
+      "source": "icons/placements/greenery-no-oxygen.png",
       "profile": "icon"
     },
     {
-      "id": "icons/ui/checkmark",
-      "source": "icons/ui/checkmark.png",
+      "id": "icons/placements/ocean",
+      "source": "icons/placements/ocean.png",
       "profile": "icon"
     },
     {
-      "id": "icons/ui/first-player",
-      "source": "icons/ui/first-player.png",
+      "id": "icons/placements/special",
+      "source": "icons/placements/special.png",
       "profile": "icon"
     },
     {
-      "id": "icons/ui/influence",
-      "source": "icons/ui/influence.png",
+      "id": "icons/placements/trade",
+      "source": "icons/placements/trade.png",
       "profile": "icon"
     },
     {
-      "id": "icons/ui/production",
-      "source": "icons/ui/production.png",
+      "id": "icons/placements/volcano",
+      "source": "icons/placements/volcano.png",
       "profile": "icon"
-    },
-    {
-      "id": "models/asteroid",
-      "source": "models/asteroid.glb",
-      "profile": "model"
-    },
-    {
-      "id": "models/bird",
-      "source": "models/bird.glb",
-      "profile": "model"
-    },
-    {
-      "id": "models/fence",
-      "source": "models/fence.glb",
-      "profile": "model"
-    },
-    {
-      "id": "models/flowers",
-      "source": "models/flowers.glb",
-      "profile": "model"
-    },
-    {
-      "id": "models/phobos",
-      "source": "models/phobos.glb",
-      "profile": "model-detail"
-    },
-    {
-      "id": "models/rock",
-      "source": "models/rock.glb",
-      "profile": "model"
-    },
-    {
-      "id": "models/satellite",
-      "source": "models/satellite.glb",
-      "profile": "model"
-    },
-    {
-      "id": "models/spaceship",
-      "source": "models/spaceship.glb",
-      "profile": "model"
-    },
-    {
-      "id": "models/trees",
-      "source": "models/trees.glb",
-      "profile": "model"
-    },
-    {
-      "id": "models/pines",
-      "source": "models/pines.glb",
-      "profile": "model",
-      "provenance": {
-        "url": "https://www.cgtrader.com/free-3d-models/plant/conifer/free-pine-trees-sample-model-6ce9f61e2ff2bc4b922aeda874e96d5b",
-        "license": "CGTrader Royalty Free License",
-        "maps": "Pine4m LOD2 (262 tris) converted from Collada; diffuse resized to 512, leaf/branch brightened 1.3x with a cool green tint"
-      }
     },
     {
       "id": "icons/resources/animal",
@@ -3185,13 +3637,103 @@
       "profile": "icon"
     },
     {
-      "id": "textures/planets/venus/surface",
-      "source": "textures/planets/venus/surface.jpg",
-      "profile": "planet"
+      "id": "icons/ui/arrow",
+      "source": "icons/ui/arrow.png",
+      "profile": "icon"
     },
     {
-      "id": "textures/planets/venus/overview",
-      "source": "textures/planets/venus/overview.jpg",
+      "id": "icons/ui/asterisc",
+      "source": "icons/ui/asterisc.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/ui/checkmark",
+      "source": "icons/ui/checkmark.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/ui/first-player",
+      "source": "icons/ui/first-player.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/ui/influence",
+      "source": "icons/ui/influence.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/ui/mars",
+      "source": "icons/ui/mars.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/ui/production",
+      "source": "icons/ui/production.png",
+      "profile": "icon"
+    },
+    {
+      "id": "models/asteroid",
+      "source": "models/asteroid.glb",
+      "profile": "model"
+    },
+    {
+      "id": "models/bird",
+      "source": "models/bird.glb",
+      "profile": "model"
+    },
+    {
+      "id": "models/fence",
+      "source": "models/fence.glb",
+      "profile": "model"
+    },
+    {
+      "id": "models/flowers",
+      "source": "models/flowers.glb",
+      "profile": "model"
+    },
+    {
+      "id": "models/phobos",
+      "source": "models/phobos.glb",
+      "profile": "model-detail"
+    },
+    {
+      "id": "models/pines",
+      "source": "models/pines.glb",
+      "profile": "model",
+      "provenance": {
+        "url": "https://www.cgtrader.com/free-3d-models/plant/conifer/free-pine-trees-sample-model-6ce9f61e2ff2bc4b922aeda874e96d5b",
+        "license": "CGTrader Royalty Free License",
+        "maps": "Pine4m LOD2 (262 tris) converted from Collada; diffuse resized to 512, leaf/branch brightened 1.3x with a cool green tint"
+      }
+    },
+    {
+      "id": "models/rock",
+      "source": "models/rock.glb",
+      "profile": "model"
+    },
+    {
+      "id": "models/satellite",
+      "source": "models/satellite.glb",
+      "profile": "model"
+    },
+    {
+      "id": "models/spaceship",
+      "source": "models/spaceship.glb",
+      "profile": "model"
+    },
+    {
+      "id": "models/trees",
+      "source": "models/trees.glb",
+      "profile": "model"
+    },
+    {
+      "id": "textures/effects/smoke",
+      "source": "textures/effects/smoke.png",
+      "profile": "copy"
+    },
+    {
+      "id": "textures/planets/ceres/overview",
+      "source": "textures/planets/ceres/overview.jpg",
       "profile": "copy"
     },
     {
@@ -3200,23 +3742,8 @@
       "profile": "planet"
     },
     {
-      "id": "textures/planets/ceres/overview",
-      "source": "textures/planets/ceres/overview.jpg",
-      "profile": "copy"
-    },
-    {
-      "id": "textures/terrain/concrete",
-      "source": "textures/terrain/concrete.jpg",
-      "profile": "copy"
-    },
-    {
-      "id": "textures/planets/earth/surface",
-      "source": "textures/planets/earth/surface.jpg",
-      "profile": "planet"
-    },
-    {
-      "id": "textures/planets/earth/overview",
-      "source": "textures/planets/earth/overview.jpg",
+      "id": "textures/planets/earth-clouds/overview",
+      "source": "textures/planets/earth-clouds/overview.jpg",
       "profile": "copy"
     },
     {
@@ -3225,13 +3752,13 @@
       "profile": "planet"
     },
     {
-      "id": "textures/planets/earth-clouds/overview",
-      "source": "textures/planets/earth-clouds/overview.jpg",
+      "id": "textures/planets/earth/overview",
+      "source": "textures/planets/earth/overview.jpg",
       "profile": "copy"
     },
     {
-      "id": "textures/planets/ganymede/surface",
-      "source": "textures/planets/ganymede/surface.png",
+      "id": "textures/planets/earth/surface",
+      "source": "textures/planets/earth/surface.jpg",
       "profile": "planet"
     },
     {
@@ -3240,13 +3767,8 @@
       "profile": "copy"
     },
     {
-      "id": "textures/terrain/grass",
-      "source": "textures/terrain/grass.jpg",
-      "profile": "copy"
-    },
-    {
-      "id": "textures/planets/jupiter/surface",
-      "source": "textures/planets/jupiter/surface.jpg",
+      "id": "textures/planets/ganymede/surface",
+      "source": "textures/planets/ganymede/surface.png",
       "profile": "planet"
     },
     {
@@ -3255,8 +3777,8 @@
       "profile": "copy"
     },
     {
-      "id": "textures/planets/mars/surface",
-      "source": "textures/planets/mars/surface.jpg",
+      "id": "textures/planets/jupiter/surface",
+      "source": "textures/planets/jupiter/surface.jpg",
       "profile": "planet"
     },
     {
@@ -3265,8 +3787,8 @@
       "profile": "copy"
     },
     {
-      "id": "textures/planets/mercury/surface",
-      "source": "textures/planets/mercury/surface.jpg",
+      "id": "textures/planets/mars/surface",
+      "source": "textures/planets/mars/surface.jpg",
       "profile": "planet"
     },
     {
@@ -3275,8 +3797,8 @@
       "profile": "copy"
     },
     {
-      "id": "textures/planets/moon/surface",
-      "source": "textures/planets/moon/surface.jpg",
+      "id": "textures/planets/mercury/surface",
+      "source": "textures/planets/mercury/surface.jpg",
       "profile": "planet"
     },
     {
@@ -3285,8 +3807,8 @@
       "profile": "copy"
     },
     {
-      "id": "textures/planets/neptune/surface",
-      "source": "textures/planets/neptune/surface.jpg",
+      "id": "textures/planets/moon/surface",
+      "source": "textures/planets/moon/surface.jpg",
       "profile": "planet"
     },
     {
@@ -3295,28 +3817,8 @@
       "profile": "copy"
     },
     {
-      "id": "textures/terrain/noise-high",
-      "source": "textures/terrain/noise-high.png",
-      "profile": "copy"
-    },
-    {
-      "id": "textures/terrain/noise-mid",
-      "source": "textures/terrain/noise-mid.png",
-      "profile": "copy"
-    },
-    {
-      "id": "textures/terrain/rock",
-      "source": "textures/terrain/rock.jpg",
-      "profile": "copy"
-    },
-    {
-      "id": "textures/terrain/sand",
-      "source": "textures/terrain/sand.jpg",
-      "profile": "copy"
-    },
-    {
-      "id": "textures/planets/saturn/surface",
-      "source": "textures/planets/saturn/surface.jpg",
+      "id": "textures/planets/neptune/surface",
+      "source": "textures/planets/neptune/surface.jpg",
       "profile": "planet"
     },
     {
@@ -3325,8 +3827,8 @@
       "profile": "copy"
     },
     {
-      "id": "textures/planets/sun/surface",
-      "source": "textures/planets/sun/surface.jpg",
+      "id": "textures/planets/saturn/surface",
+      "source": "textures/planets/saturn/surface.jpg",
       "profile": "planet"
     },
     {
@@ -3335,8 +3837,8 @@
       "profile": "copy"
     },
     {
-      "id": "textures/planets/uranus/surface",
-      "source": "textures/planets/uranus/surface.jpg",
+      "id": "textures/planets/sun/surface",
+      "source": "textures/planets/sun/surface.jpg",
       "profile": "planet"
     },
     {
@@ -3345,251 +3847,24 @@
       "profile": "copy"
     },
     {
-      "id": "textures/terrain/waternormals",
-      "source": "textures/terrain/waternormals.jpg",
+      "id": "textures/planets/uranus/surface",
+      "source": "textures/planets/uranus/surface.jpg",
+      "profile": "planet"
+    },
+    {
+      "id": "textures/planets/venus/overview",
+      "source": "textures/planets/venus/overview.jpg",
       "profile": "copy"
     },
     {
-      "id": "icons/placements/city",
-      "source": "icons/placements/city.png",
-      "profile": "icon"
+      "id": "textures/planets/venus/surface",
+      "source": "textures/planets/venus/surface.jpg",
+      "profile": "planet"
     },
     {
-      "id": "icons/placements/colony",
-      "source": "icons/placements/colony.png",
-      "profile": "icon"
-    },
-    {
-      "id": "icons/placements/greenery-no-oxygen",
-      "source": "icons/placements/greenery-no-oxygen.png",
-      "profile": "icon"
-    },
-    {
-      "id": "icons/placements/volcano",
-      "source": "icons/placements/volcano.png",
-      "profile": "icon"
-    },
-    {
-      "id": "icons/placements/ocean",
-      "source": "icons/placements/ocean.png",
-      "profile": "icon"
-    },
-    {
-      "id": "icons/placements/special",
-      "source": "icons/placements/special.png",
-      "profile": "icon"
-    },
-    {
-      "id": "icons/placements/trade",
-      "source": "icons/placements/trade.png",
-      "profile": "icon"
-    },
-    {
-      "id": "app/favicon-16x16",
-      "source": "app/favicon-16x16.png",
-      "profile": "copy",
-      "publicName": "favicon-16x16.png"
-    },
-    {
-      "id": "app/favicon-32x32",
-      "source": "app/favicon-32x32.png",
-      "profile": "copy",
-      "publicName": "favicon-32x32.png"
-    },
-    {
-      "id": "app/favicon",
-      "source": "app/favicon.ico",
-      "profile": "copy",
-      "publicName": "favicon.ico"
-    },
-    {
-      "id": "fonts/orbitron/black",
-      "source": "fonts/orbitron/black.ttf",
-      "profile": "copy",
-      "font": {
-        "family": "Orbitron",
-        "weight": 900
-      }
-    },
-    {
-      "id": "fonts/orbitron/bold",
-      "source": "fonts/orbitron/bold.ttf",
-      "profile": "copy",
-      "font": {
-        "family": "Orbitron",
-        "weight": 700
-      }
-    },
-    {
-      "id": "fonts/orbitron/extrabold",
-      "source": "fonts/orbitron/extrabold.ttf",
-      "profile": "copy",
-      "font": {
-        "family": "Orbitron",
-        "weight": 800
-      }
-    },
-    {
-      "id": "fonts/orbitron/medium",
-      "source": "fonts/orbitron/medium.ttf",
-      "profile": "copy",
-      "font": {
-        "family": "Orbitron",
-        "weight": 500
-      }
-    },
-    {
-      "id": "fonts/orbitron/regular",
-      "source": "fonts/orbitron/regular.ttf",
-      "profile": "copy",
-      "font": {
-        "family": "Orbitron",
-        "weight": 400
-      }
-    },
-    {
-      "id": "fonts/orbitron/semibold",
-      "source": "fonts/orbitron/semibold.ttf",
-      "profile": "copy",
-      "font": {
-        "family": "Orbitron",
-        "weight": 600
-      }
-    },
-    {
-      "id": "audio/effects/award-funded",
-      "source": "audio/effects/award-funded.mp3",
+      "id": "textures/skyboxes/starmap",
+      "source": "textures/skyboxes/starmap.exr",
       "profile": "copy"
-    },
-    {
-      "id": "audio/effects/button-click",
-      "source": "audio/effects/button-click.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/button-hover",
-      "source": "audio/effects/button-hover.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/card-hover",
-      "source": "audio/effects/card-hover.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/card-played",
-      "source": "audio/effects/card-played.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/construction-1",
-      "source": "audio/effects/construction-1.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/construction-2",
-      "source": "audio/effects/construction-2.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/nuclear-blast",
-      "source": "audio/effects/nuclear-blast.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/player-joined",
-      "source": "audio/effects/player-joined.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/music/dreams",
-      "source": "audio/music/dreams.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/music/ethereum",
-      "source": "audio/music/ethereum.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/game-start",
-      "source": "audio/effects/game-start.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/oxygen-increase",
-      "source": "audio/effects/oxygen-increase.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/production-score",
-      "source": "audio/effects/production-score.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/production",
-      "source": "audio/effects/production.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/music/sands",
-      "source": "audio/music/sands.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/music/settlers",
-      "source": "audio/music/settlers.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/music/stars",
-      "source": "audio/music/stars.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/temperature-increase",
-      "source": "audio/effects/temperature-increase.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/travel",
-      "source": "audio/effects/travel.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/venus-increase",
-      "source": "audio/effects/venus-increase.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/water-placement",
-      "source": "audio/effects/water-placement.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "audio/effects/your-turn",
-      "source": "audio/effects/your-turn.mp3",
-      "profile": "copy"
-    },
-    {
-      "id": "textures/terrain/leafy-grass-color",
-      "source": "textures/terrain/leafy-grass-color.webp",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://polyhaven.com/a/leafy_grass",
-        "license": "CC0-1.0",
-        "maps": "Diffuse (sRGB), 1K"
-      }
-    },
-    {
-      "id": "textures/terrain/leafy-grass-detail",
-      "source": "textures/terrain/leafy-grass-detail.png",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://polyhaven.com/a/leafy_grass",
-        "license": "CC0-1.0",
-        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
-      }
     },
     {
       "id": "textures/terrain/brown-mud-leaves-01-color",
@@ -3612,24 +3887,9 @@
       }
     },
     {
-      "id": "textures/terrain/leaves-forest-ground-color",
-      "source": "textures/terrain/leaves-forest-ground-color.webp",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://polyhaven.com/a/leaves_forest_ground",
-        "license": "CC0-1.0",
-        "maps": "Diffuse (sRGB), 1K"
-      }
-    },
-    {
-      "id": "textures/terrain/leaves-forest-ground-detail",
-      "source": "textures/terrain/leaves-forest-ground-detail.png",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://polyhaven.com/a/leaves_forest_ground",
-        "license": "CC0-1.0",
-        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
-      }
+      "id": "textures/terrain/concrete",
+      "source": "textures/terrain/concrete.jpg",
+      "profile": "copy"
     },
     {
       "id": "textures/terrain/concrete-tile-facade-color",
@@ -3660,6 +3920,141 @@
         "license": "CC0-1.0",
         "maps": "Roughness; linear 8-bit from EXR, 1K"
       }
+    },
+    {
+      "id": "textures/terrain/frost-color",
+      "source": "textures/terrain/frost-color.webp",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://polyhaven.com/a/snow_02",
+        "license": "CC0-1.0",
+        "maps": "Diffuse (sRGB), 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/frost-detail",
+      "source": "textures/terrain/frost-detail.png",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://polyhaven.com/a/snow_02",
+        "license": "CC0-1.0",
+        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/frost-patchy-color",
+      "source": "textures/terrain/frost-patchy-color.webp",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://polyhaven.com/a/snow_field_aerial",
+        "license": "CC0-1.0",
+        "maps": "Diffuse (sRGB), 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/frost-patchy-detail",
+      "source": "textures/terrain/frost-patchy-detail.png",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://polyhaven.com/a/snow_field_aerial",
+        "license": "CC0-1.0",
+        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/grass",
+      "source": "textures/terrain/grass.jpg",
+      "profile": "copy"
+    },
+    {
+      "id": "textures/terrain/ice-solid-color",
+      "source": "textures/terrain/ice-solid-color.webp",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://ambientcg.com/view?id=Ice001",
+        "license": "CC0-1.0",
+        "maps": "Diffuse (sRGB), 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/ice-solid-detail",
+      "source": "textures/terrain/ice-solid-detail.png",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://ambientcg.com/view?id=Ice001",
+        "license": "CC0-1.0",
+        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/ice-thin-color",
+      "source": "textures/terrain/ice-thin-color.webp",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://ambientcg.com/view?id=Ice003",
+        "license": "CC0-1.0",
+        "maps": "Diffuse (sRGB), 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/ice-thin-detail",
+      "source": "textures/terrain/ice-thin-detail.png",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://ambientcg.com/view?id=Ice003",
+        "license": "CC0-1.0",
+        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/leafy-grass-color",
+      "source": "textures/terrain/leafy-grass-color.webp",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://polyhaven.com/a/leafy_grass",
+        "license": "CC0-1.0",
+        "maps": "Diffuse (sRGB), 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/leafy-grass-detail",
+      "source": "textures/terrain/leafy-grass-detail.png",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://polyhaven.com/a/leafy_grass",
+        "license": "CC0-1.0",
+        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/leaves-forest-ground-color",
+      "source": "textures/terrain/leaves-forest-ground-color.webp",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://polyhaven.com/a/leaves_forest_ground",
+        "license": "CC0-1.0",
+        "maps": "Diffuse (sRGB), 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/leaves-forest-ground-detail",
+      "source": "textures/terrain/leaves-forest-ground-detail.png",
+      "profile": "copy",
+      "provenance": {
+        "url": "https://polyhaven.com/a/leaves_forest_ground",
+        "license": "CC0-1.0",
+        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
+      }
+    },
+    {
+      "id": "textures/terrain/noise-high",
+      "source": "textures/terrain/noise-high.png",
+      "profile": "copy"
+    },
+    {
+      "id": "textures/terrain/noise-mid",
+      "source": "textures/terrain/noise-mid.png",
+      "profile": "copy"
     },
     {
       "id": "textures/terrain/rectangular-facade-tiles-color",
@@ -3722,363 +4117,19 @@
       }
     },
     {
-      "id": "textures/terrain/frost-color",
-      "source": "textures/terrain/frost-color.webp",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://polyhaven.com/a/snow_02",
-        "license": "CC0-1.0",
-        "maps": "Diffuse (sRGB), 1K"
-      }
-    },
-    {
-      "id": "textures/terrain/frost-detail",
-      "source": "textures/terrain/frost-detail.png",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://polyhaven.com/a/snow_02",
-        "license": "CC0-1.0",
-        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
-      }
-    },
-    {
-      "id": "textures/terrain/frost-patchy-color",
-      "source": "textures/terrain/frost-patchy-color.webp",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://polyhaven.com/a/snow_field_aerial",
-        "license": "CC0-1.0",
-        "maps": "Diffuse (sRGB), 1K"
-      }
-    },
-    {
-      "id": "textures/terrain/frost-patchy-detail",
-      "source": "textures/terrain/frost-patchy-detail.png",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://polyhaven.com/a/snow_field_aerial",
-        "license": "CC0-1.0",
-        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
-      }
-    },
-    {
-      "id": "textures/terrain/ice-solid-color",
-      "source": "textures/terrain/ice-solid-color.webp",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://ambientcg.com/view?id=Ice001",
-        "license": "CC0-1.0",
-        "maps": "Diffuse (sRGB), 1K"
-      }
-    },
-    {
-      "id": "textures/terrain/ice-solid-detail",
-      "source": "textures/terrain/ice-solid-detail.png",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://ambientcg.com/view?id=Ice001",
-        "license": "CC0-1.0",
-        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
-      }
-    },
-    {
-      "id": "textures/terrain/ice-thin-color",
-      "source": "textures/terrain/ice-thin-color.webp",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://ambientcg.com/view?id=Ice003",
-        "license": "CC0-1.0",
-        "maps": "Diffuse (sRGB), 1K"
-      }
-    },
-    {
-      "id": "textures/terrain/ice-thin-detail",
-      "source": "textures/terrain/ice-thin-detail.png",
-      "profile": "copy",
-      "provenance": {
-        "url": "https://ambientcg.com/view?id=Ice003",
-        "license": "CC0-1.0",
-        "maps": "R/G: OpenGL normal X/Y, B: roughness, A: displacement; linear 8-bit, 1K"
-      }
-    },
-    {
-      "id": "branding/red-frontier-wordmark",
-      "source": "branding/red-frontier-wordmark.svg",
+      "id": "textures/terrain/rock",
+      "source": "textures/terrain/rock.jpg",
       "profile": "copy"
     },
     {
-      "id": "branding/red-frontier",
-      "source": "branding/red-frontier.png",
-      "profile": "branding"
+      "id": "textures/terrain/sand",
+      "source": "textures/terrain/sand.jpg",
+      "profile": "copy"
     },
     {
-      "id": "fonts/open-mars/frontier",
-      "source": "fonts/open-mars/frontier.ttf",
-      "profile": "copy",
-      "font": {
-        "family": "Open Mars Frontier",
-        "weight": 400
-      }
-    },
-    {
-      "id": "cards/ES001",
-      "source": "cards/ES001.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES002",
-      "source": "cards/ES002.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES003",
-      "source": "cards/ES003.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES004",
-      "source": "cards/ES004.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES005",
-      "source": "cards/ES005.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES006",
-      "source": "cards/ES006.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES007",
-      "source": "cards/ES007.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES008",
-      "source": "cards/ES008.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES009",
-      "source": "cards/ES009.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES010",
-      "source": "cards/ES010.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES011",
-      "source": "cards/ES011.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES012",
-      "source": "cards/ES012.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES013",
-      "source": "cards/ES013.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES014",
-      "source": "cards/ES014.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES015",
-      "source": "cards/ES015.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES016",
-      "source": "cards/ES016.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES017",
-      "source": "cards/ES017.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES018",
-      "source": "cards/ES018.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES019",
-      "source": "cards/ES019.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES020",
-      "source": "cards/ES020.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES021",
-      "source": "cards/ES021.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES022",
-      "source": "cards/ES022.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES023",
-      "source": "cards/ES023.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES024",
-      "source": "cards/ES024.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES025",
-      "source": "cards/ES025.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES026",
-      "source": "cards/ES026.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES027",
-      "source": "cards/ES027.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES028",
-      "source": "cards/ES028.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES029",
-      "source": "cards/ES029.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES030",
-      "source": "cards/ES030.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES031",
-      "source": "cards/ES031.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES032",
-      "source": "cards/ES032.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES033",
-      "source": "cards/ES033.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES034",
-      "source": "cards/ES034.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES035",
-      "source": "cards/ES035.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES036",
-      "source": "cards/ES036.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES037",
-      "source": "cards/ES037.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES038",
-      "source": "cards/ES038.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES039",
-      "source": "cards/ES039.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES040",
-      "source": "cards/ES040.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES041",
-      "source": "cards/ES041.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES042",
-      "source": "cards/ES042.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES043",
-      "source": "cards/ES043.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/ES044",
-      "source": "cards/ES044.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/EP01",
-      "source": "cards/EP01.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/EP02",
-      "source": "cards/EP02.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/EP03",
-      "source": "cards/EP03.png",
-      "profile": "card"
-    },
-    {
-      "id": "cards/EP04",
-      "source": "cards/EP04.png",
-      "profile": "card"
-    },
-    {
-      "id": "corporations/terran-supply-authority",
-      "source": "corporations/terran-supply-authority.png",
-      "profile": "corporation",
-      "corporation": {
-        "key": "terran-supply-authority",
-        "name": "Terran Supply Authority",
-        "color": "#258ED0"
-      }
-    },
-    {
-      "id": "corporations/martian-independence-cooperative",
-      "source": "corporations/martian-independence-cooperative.png",
-      "profile": "corporation",
-      "corporation": {
-        "key": "martian-independence-cooperative",
-        "name": "Martian Independence Cooperative",
-        "color": "#B9704F"
-      }
+      "id": "textures/terrain/waternormals",
+      "source": "textures/terrain/waternormals.jpg",
+      "profile": "copy"
     }
   ]
 }

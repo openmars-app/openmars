@@ -267,6 +267,7 @@ type TriggeredEffect struct {
 
 // CalculatedOutput represents an actual output value that was applied
 type CalculatedOutput struct {
+	Operation    *StateCondition
 	ResourceType string
 	Amount       int
 	IsScaled     bool

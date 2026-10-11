@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { HexGrid2D } from "../../../utils/hex-grid-2d";
-import { cityWarmupLayouts, type CityPlot } from "./cityLayout";
+import { structureWarmupLayouts, type StructurePlot } from "./structureLayout";
 import type { NuclearTransitions } from "./nuclearTransitions";
 import { NUCLEAR_FLIGHT_SECONDS, NUCLEAR_PLAYBACK_RATE } from "./nuclearGeometry";
-import { createGeometry } from "./cityGeometry";
+import { createGeometry, structureEmergenceDepth } from "./structureGeometry";
 import { projectBoardPoint } from "./landscapeGeometry";
 import { coldStartTrace } from "../../../services/performanceStore";
 
@@ -11,17 +11,17 @@ const NOOP = () => {};
 const PREPARATION_FRAMES = 3;
 
 type Entry = {
-  plot: CityPlot;
+  plot: StructurePlot;
   birth: number;
   collapseStart?: number;
   parts: { key: string; geometry: number }[];
 };
-/** Keep unchanged cities in GPU buffers; editing one tile must not rebuild the board. */
-export class CityBatchStore {
-  readonly group = Object.assign(new THREE.Group(), { userData: { perfGroup: "cities" } });
+/** Keep unchanged structures in GPU buffers; editing one tile must not rebuild the board. */
+export class StructureBatchStore {
+  readonly group = Object.assign(new THREE.Group(), { userData: { perfGroup: "structures" } });
   readonly meshes = new Map<string, THREE.BatchedMesh>();
   private entries = new Map<string, Entry>();
-  private preparation: ReturnType<typeof cityWarmupLayouts> | null = null;
+  private preparation: ReturnType<typeof structureWarmupLayouts> | null = null;
   private capacities = new Map<number, number>();
   private warmupParts: { mesh: THREE.BatchedMesh; geometry: number; frames: number }[] = [];
   ready = false;
@@ -29,7 +29,7 @@ export class CityBatchStore {
   constructor(private materials: Map<string, THREE.MeshStandardMaterial>) {}
   beginPreparation() {
     this.dispose();
-    this.preparation = cityWarmupLayouts();
+    this.preparation = structureWarmupLayouts();
     this.group.visible = true;
   }
   prepareNext() {
@@ -37,7 +37,7 @@ export class CityBatchStore {
       return true;
     }
     if (this.preparation) {
-      const end = coldStartTrace.span("city:prepare-fixture");
+      const end = coldStartTrace.span("structure:prepare-fixture");
       const next = this.preparation.next();
       if (!next.done) {
         const worldPosition = projectBoardPoint(0, 0);
@@ -60,7 +60,7 @@ export class CityBatchStore {
         return false;
       }
       this.preparation = null;
-      const geometry = createCityWarmupGeometry();
+      const geometry = createStructureWarmupGeometry();
       const matrix = new THREE.Matrix4().makeScale(0.00001, 0.00001, 0.00001);
       for (const key of this.materials.keys()) {
         const index = Number(key.split(":")[1]);
@@ -98,7 +98,7 @@ export class CityBatchStore {
     this.warmupParts.length = 0;
     this.capacities.clear();
     this.ready = true;
-    coldStartTrace.mark("city:prepared", { batches: this.meshes.size });
+    coldStartTrace.mark("structure:prepared", { batches: this.meshes.size });
     return true;
   }
   private createMesh(key: string, capacity: number) {
@@ -110,7 +110,7 @@ export class CityBatchStore {
     this.group.add(mesh);
     return mesh;
   }
-  update(plots: CityPlot[], births: Map<string, number>) {
+  update(plots: StructurePlot[], births: Map<string, number>) {
     const keys = new Set(plots.map((p) => HexGrid2D.coordinateToKey(p.coordinate)));
     for (const [key, entry] of this.entries) {
       if (!keys.has(key)) {
@@ -134,10 +134,11 @@ export class CityBatchStore {
         new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), plot.normal),
         new THREE.Vector3(1, 1, 1),
       );
-      const endGeometry = coldStartTrace.span("city:geometry", { key });
+      const endGeometry = coldStartTrace.span("structure:geometry", { key });
       const geometries = createGeometry(plot.layout, plot);
+      const emergenceDepth = structureEmergenceDepth(geometries);
       endGeometry();
-      const endBatch = coldStartTrace.span("city:batch-update", { key });
+      const endBatch = coldStartTrace.span("structure:batch-update", { key });
       this.builds++;
       for (const [index, geometry] of geometries.entries()) {
         if (!geometry) {
@@ -147,11 +148,15 @@ export class CityBatchStore {
           materialKey = `${mode}:${index}`;
         const count = geometry.getAttribute("position").count;
         geometry.setAttribute(
-          "cityBirth",
+          "structureEmergenceDepth",
+          new THREE.Float32BufferAttribute(new Float32Array(count).fill(emergenceDepth), 1),
+        );
+        geometry.setAttribute(
+          "structureBirth",
           new THREE.Float32BufferAttribute(new Float32Array(count).fill(birth), 1),
         );
         geometry.setAttribute(
-          "cityCollapseStart",
+          "structureCollapseStart",
           new THREE.Float32BufferAttribute(new Float32Array(count).fill(1e9), 1),
         );
         let mesh = this.meshes.get(materialKey);
@@ -188,7 +193,9 @@ export class CityBatchStore {
       for (const part of entry.parts) {
         const mesh = this.meshes.get(part.key)!;
         const range = mesh.getGeometryRangeAt(part.geometry)!;
-        const attribute = mesh.geometry.getAttribute("cityCollapseStart") as THREE.BufferAttribute;
+        const attribute = mesh.geometry.getAttribute(
+          "structureCollapseStart",
+        ) as THREE.BufferAttribute;
         (attribute.array as Float32Array).fill(
           start,
           range.vertexStart,
@@ -219,18 +226,22 @@ export class CityBatchStore {
   }
 }
 
-export function createCityWarmupGeometry() {
+export function createStructureWarmupGeometry() {
   const box = new THREE.BoxGeometry(1, 1, 1);
   const geometry = box.toNonIndexed();
   box.dispose();
   geometry.clearGroups();
   const count = geometry.getAttribute("position").count;
   geometry.setAttribute(
-    "cityFrostExposure",
+    "structureFrostExposure",
     new THREE.Float32BufferAttribute(new Float32Array(count).fill(1), 1),
   );
   geometry.setAttribute(
-    "cityBirth",
+    "structureEmergenceDepth",
+    new THREE.Float32BufferAttribute(new Float32Array(count).fill(0.08), 1),
+  );
+  geometry.setAttribute(
+    "structureBirth",
     new THREE.Float32BufferAttribute(new Float32Array(count).fill(-1000), 1),
   );
   geometry.setAttribute(
@@ -238,15 +249,15 @@ export function createCityWarmupGeometry() {
     new THREE.Float32BufferAttribute(new Float32Array(count * 3).fill(1), 3),
   );
   geometry.setAttribute(
-    "cityCollapseStart",
+    "structureCollapseStart",
     new THREE.Float32BufferAttribute(new Float32Array(count).fill(1e9), 1),
   );
   geometry.setAttribute(
-    "cityCollapsePivot",
+    "structureCollapsePivot",
     new THREE.Float32BufferAttribute(new Float32Array(count * 3), 3),
   );
   geometry.setAttribute(
-    "cityCollapseMotion",
+    "structureCollapseMotion",
     new THREE.Float32BufferAttribute(new Float32Array(count * 4), 4),
   );
   return geometry;

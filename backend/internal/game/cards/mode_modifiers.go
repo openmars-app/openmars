@@ -17,6 +17,7 @@ type ModifierWhen struct {
 	GameModes []string `json:"gameModes"`
 }
 type CardChange struct {
+	Systems          []string                 `json:"systems,omitempty"`
 	Type             string                   `json:"type"`
 	Amount           *int                     `json:"amount,omitempty"`
 	Description      CardDescription          `json:"description,omitempty"`
@@ -74,6 +75,8 @@ func ApplyModeModifiers(original Card, modeID string) (Card, error) {
 				c.Description = append(c.Description, change.Description.DeepCopy()...)
 			case "set-requirements":
 				c.Requirements = cloneJSON(change.Requirements)
+			case "set-required-systems":
+				c.RequiresSystems = slices.Clone(change.Systems)
 			case "set-dependency-groups":
 				c.DependencyGroups = cloneJSON(change.DependencyGroups)
 			case "add-behavior":
@@ -141,7 +144,7 @@ func Resolve(registry CardRegistry, settings shared.GameSettings) (CardRegistry,
 func resolveUncached(registry CardRegistry, settings shared.GameSettings) (CardRegistry, error) {
 	result := make([]Card, 0)
 	for _, card := range registry.GetAll() {
-		if !settings.AllowsContent(card.GameModes, card.RequiresSystems, card.RequiresFeatures) {
+		if !slices.Contains(card.GameModes, settings.GameModeID) {
 			continue
 		}
 		if card.Type == CardTypePrelude && !settings.HasPrelude() {
@@ -151,7 +154,9 @@ func resolveUncached(registry CardRegistry, settings shared.GameSettings) (CardR
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, effective)
+		if settings.AllowsContent(effective.GameModes, effective.RequiresSystems, effective.RequiresFeatures) {
+			result = append(result, effective)
+		}
 	}
 	resolved := NewInMemoryCardRegistry(result, ModeDefinitions(registry)...)
 	resolved.effective = true

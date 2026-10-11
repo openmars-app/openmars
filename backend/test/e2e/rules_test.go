@@ -102,3 +102,27 @@ func TestRules_ProjectFundingNeverChargesMoreThanTheSeatCosts(t *testing.T) {
 		t.Fatalf("a seat costing %d took %d credits", project.NextSeatCost, paid)
 	}
 }
+
+func TestRules_ClassicVenusAndColoniesRunTogether(t *testing.T) {
+	t.Parallel()
+	srv := harness.Start(t)
+	game := srv.Play(t, func(s *dto.GameSetupDto) {
+		s.GameModeID = "classic"
+		s.Features = []string{"venus", "colonies"}
+		s.DevelopmentMode = true
+	}, "alice", "bob")
+	player := game.Ready(t)
+	state := player.State(t)
+	if !slices.Contains(state.Settings.Systems, "venus") || !slices.Contains(state.Settings.Systems, "colonies") {
+		t.Fatal("selected expansions did not activate their systems")
+	}
+	if len(state.Colonies) == 0 || state.TradeFleets[player.PlayerID()].Total == 0 {
+		t.Fatal("colonies or trading fleets missing")
+	}
+	player.Admin(t, dto.AdminCommandTypeSetResources, map[string]any{"playerId": player.PlayerID(), "resources": map[string]any{"credits": 100}})
+	player.AwaitState(t, "credits set", func(g dto.GameDto) bool { return g.CurrentPlayer.Resources.Credits == 100 })
+	before := player.State(t).GlobalParameters.Venus
+	player.StandardProject(t, "air-scrapping")
+	player.AwaitState(t, "Venus terraforming", func(g dto.GameDto) bool { return g.GlobalParameters.Venus > before })
+	game.ExpectConverged(t)
+}

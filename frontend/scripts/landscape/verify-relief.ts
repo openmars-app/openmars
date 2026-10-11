@@ -33,7 +33,7 @@ import {
   FIELD_STEP,
 } from "../../src/components/game/board/landscapeFields";
 import { projectBoardPoint } from "../../src/components/game/board/landscapeGeometry";
-import { generateCityLayout } from "../../src/components/game/board/cityLayout";
+import { generateStructureLayout } from "../../src/components/game/board/structureLayout";
 import type { LandscapeInput } from "../../src/components/game/board/landscapeTypes";
 import { createNuclearSites } from "../../src/components/game/board/nuclearDebris";
 
@@ -139,7 +139,7 @@ assert.equal(
 );
 const city = createLandscapeSampler({
   ...input,
-  sources: [{ coordinate, kind: "city", seed: 42, layout: generateCityLayout(42) }],
+  sources: [{ coordinate, kind: "structure", seed: 42, layout: generateStructureLayout(42) }],
 });
 assert.equal(city(0, 0).height, 0.0003, "City foundations remain level and grounded");
 const builder = new LandscapeBuilder();

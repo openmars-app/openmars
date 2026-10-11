@@ -18,14 +18,29 @@ type DependencyGroup struct {
 
 // ModeRuntimeDefinition contains executable, declarative mode rules.
 type ModeRuntimeDefinition struct {
-	PresentationRules []StatePresentationRule `json:"presentationRules,omitempty"`
-	State             map[string]int          `json:"state,omitempty"`
-	Deadlines         []StateDeadline         `json:"deadlines,omitempty"`
-	Behaviors         []CardBehavior          `json:"behaviors,omitempty"`
+	GenerationIncome    *GenerationIncomeRule     `json:"generationIncome,omitempty"`
+	RequirementMessages map[string]map[int]string `json:"requirementMessages,omitempty"`
+	PresentationRules   []StatePresentationRule   `json:"presentationRules,omitempty"`
+	State               map[string]int            `json:"state,omitempty"`
+	Deadlines           []StateDeadline           `json:"deadlines,omitempty"`
+	Behaviors           []CardBehavior            `json:"behaviors,omitempty"`
+}
+
+// GenerationIncomeRule pays all active players at the start of consecutive eligible generations.
+type GenerationIncomeRule struct {
+	State         string       `json:"state"`
+	Equals        int          `json:"equals"`
+	InitialAmount int          `json:"initialAmount"`
+	Increment     int          `json:"increment"`
+	Resource      ResourceType `json:"resource"`
+	Name          string       `json:"name"`
 }
 
 // StateDeadline changes a baseline state after the selected generation's production.
 type StateDeadline struct {
+	WarningTitle             string `json:"warningTitle,omitempty"`
+	WarningDescription       string `json:"warningDescription,omitempty"`
+	WarningSoundID           string `json:"warningSoundId,omitempty"`
 	State                    string `json:"state"`
 	Parameter                string `json:"parameter"`
 	ActiveState              string `json:"activeState"`
@@ -58,13 +73,15 @@ type StateWindow struct {
 
 // ModeRuntimeState is serializable authoritative mode state.
 type ModeRuntimeState struct {
-	Events        []ModePresentationEvent `json:"events"`
-	Definition    ModeRuntimeDefinition   `json:"definition"`
-	Values        map[string]int          `json:"values"`
-	InitialValues map[string]int          `json:"initialValues"`
-	Windows       []StateWindow           `json:"windows"`
-	Changes       map[string]int          `json:"changes"`
-	Sequence      int                     `json:"sequence"`
+	LastStartedGeneration int                     `json:"lastStartedGeneration"`
+	IncomeStreak          int                     `json:"incomeStreak"`
+	Events                []ModePresentationEvent `json:"events"`
+	Definition            ModeRuntimeDefinition   `json:"definition"`
+	Values                map[string]int          `json:"values"`
+	InitialValues         map[string]int          `json:"initialValues"`
+	Windows               []StateWindow           `json:"windows"`
+	Changes               map[string]int          `json:"changes"`
+	Sequence              int                     `json:"sequence"`
 }
 
 // DependencyStatus applies to one owned card instance.
@@ -152,31 +169,47 @@ func DependencyKey(cardID, dependencyID string) string { return cardID + ":" + d
 
 // StatePresentationRule supplies presentation without coupling the engine to a scenario.
 type StatePresentationRule struct {
-	State        string                `json:"state"`
-	To           *int                  `json:"to,omitempty"`
-	Title        string                `json:"title"`
-	Description  string                `json:"description,omitempty"`
-	Presentation *ModePresentationHint `json:"presentation,omitempty"`
+	State       string                   `json:"state"`
+	To          *int                     `json:"to,omitempty"`
+	Title       string                   `json:"title"`
+	SoundID     string                   `json:"soundId,omitempty"`
+	Description string                   `json:"description,omitempty"`
+	Effects     []ModePresentationEffect `json:"effects,omitempty"`
 }
 
-// ModePresentationHint is an optional scene hint; title remains the accessible fallback.
-type ModePresentationHint struct {
-	Kind      string `json:"kind"`
-	From      string `json:"from,omitempty"`
-	To        string `json:"to,omitempty"`
-	Connected *bool  `json:"connected,omitempty"`
+// ModePresentationEffect requests an optional renderer capability.
+type ModePresentationEffect struct {
+	Kind string          `json:"kind"`
+	Link *LinkTransition `json:"link,omitempty"`
+}
+
+// LinkTransition describes a connection between named scene entities.
+type LinkTransition struct {
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Connected bool   `json:"connected"`
+}
+
+// ClonePresentationEffects keeps presentation snapshots independent.
+func ClonePresentationEffects(effects []ModePresentationEffect) []ModePresentationEffect {
+	result := append([]ModePresentationEffect(nil), effects...)
+	for i := range result {
+		result[i].Link = clonePointer(result[i].Link)
+	}
+	return result
 }
 
 // ModePresentationEvent is an authoritative ordered state transition.
 type ModePresentationEvent struct {
-	ID           string                `json:"id"`
-	Kind         string                `json:"kind"`
-	State        string                `json:"state"`
-	OldValue     int                   `json:"oldValue"`
-	NewValue     int                   `json:"newValue"`
-	Title        string                `json:"title"`
-	Description  string                `json:"description,omitempty"`
-	Presentation *ModePresentationHint `json:"presentation,omitempty"`
+	ID          string                   `json:"id"`
+	Kind        string                   `json:"kind"`
+	State       string                   `json:"state"`
+	OldValue    int                      `json:"oldValue"`
+	NewValue    int                      `json:"newValue"`
+	Title       string                   `json:"title"`
+	SoundID     string                   `json:"soundId,omitempty"`
+	Description string                   `json:"description,omitempty"`
+	Effects     []ModePresentationEffect `json:"effects,omitempty"`
 }
 
 // BehaviorResourceRequirement gates an operation without spending the resource.
@@ -230,6 +263,14 @@ func EffectiveProduction(permanent Production, contributions []ProductionContrib
 // Clone returns an independent runtime definition.
 func (d ModeRuntimeDefinition) Clone() ModeRuntimeDefinition {
 	copy := d
+	copy.GenerationIncome = clonePointer(d.GenerationIncome)
+	copy.RequirementMessages = make(map[string]map[int]string, len(d.RequirementMessages))
+	for state, messages := range d.RequirementMessages {
+		copy.RequirementMessages[state] = make(map[int]string, len(messages))
+		for value, message := range messages {
+			copy.RequirementMessages[state][value] = message
+		}
+	}
 	copy.State = make(map[string]int, len(d.State))
 	for k, v := range d.State {
 		copy.State[k] = v
@@ -243,11 +284,7 @@ func (d ModeRuntimeDefinition) Clone() ModeRuntimeDefinition {
 	for i := range copy.PresentationRules {
 		r := &copy.PresentationRules[i]
 		r.To = clonePointer(r.To)
-		if r.Presentation != nil {
-			h := *r.Presentation
-			h.Connected = clonePointer(h.Connected)
-			r.Presentation = &h
-		}
+		r.Effects = ClonePresentationEffects(r.Effects)
 	}
 	return copy
 }

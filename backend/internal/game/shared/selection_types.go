@@ -89,6 +89,7 @@ type PendingCardDrawSelection struct {
 type PendingBehaviorResolution struct {
 	ID                  string
 	Kind                string
+	OptionalBehavior    *CardBehavior
 	Source              string
 	SourceCardID        string
 	SourceBehaviorIndex int
