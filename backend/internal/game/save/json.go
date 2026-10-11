@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -157,7 +158,19 @@ func checkTypedFields(raw any, value reflect.Value, path string) error {
 			}
 		case reflect.Map:
 			for name, child := range node {
-				key := reflect.ValueOf(name).Convert(value.Type().Key())
+				key := reflect.New(value.Type().Key()).Elem()
+				switch key.Kind() {
+				case reflect.String:
+					key.SetString(name)
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					number, err := strconv.ParseInt(name, 10, key.Type().Bits())
+					if err != nil {
+						return fmt.Errorf("%s.%s: invalid integer key: %w", path, name, err)
+					}
+					key.SetInt(number)
+				default:
+					return fmt.Errorf("%s: unsupported map key type %s", path, key.Type())
+				}
 				if err := checkTypedFields(child, value.MapIndex(key), path+"."+name); err != nil {
 					return err
 				}
