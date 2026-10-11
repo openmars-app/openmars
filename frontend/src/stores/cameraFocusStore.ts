@@ -3,6 +3,7 @@ import { create } from "zustand";
 export interface CameraFocusRequest {
   direction: [number, number, number];
   distance: number;
+  instant?: boolean;
 }
 
 interface CameraFocusState {
