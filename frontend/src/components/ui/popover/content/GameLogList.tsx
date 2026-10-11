@@ -1,3 +1,4 @@
+import StateOperationVisual from "../../cards/BehaviorSection/components/StateOperationVisual.tsx";
 import React, { useEffect, useMemo } from "react";
 import type {
   CalculatedOutputDto,
@@ -119,6 +120,13 @@ const CalculatedOutputsDisplay: React.FC<{
         Gained:
       </span>
       {outputsToShow.map((output, index) => {
+        if (output.operation) {
+          return (
+            <span key={index} className="inline-flex [--behavior-icon-size:24px]">
+              <StateOperationVisual operation={output.operation} />
+            </span>
+          );
+        }
         const badgeType = cardResourceTypes[output.resourceType];
         if (badgeType !== undefined) {
           return (

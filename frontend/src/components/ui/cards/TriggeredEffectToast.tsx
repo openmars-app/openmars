@@ -1,3 +1,4 @@
+import StateOperationVisual from "./BehaviorSection/components/StateOperationVisual.tsx";
 import React from "react";
 import type {
   CalculatedOutputDto,
@@ -113,6 +114,13 @@ const GainedDisplay: React.FC<{
         Gained:
       </span>
       {nonZero.map((output, index) => {
+        if (output.operation) {
+          return (
+            <span key={index} className="inline-flex [--behavior-icon-size:24px]">
+              <StateOperationVisual operation={output.operation} />
+            </span>
+          );
+        }
         const badgeType = cardResourceTypes[output.resourceType];
         if (badgeType !== undefined) {
           return (
@@ -150,7 +158,7 @@ function ToastDetail({ item }: { item: TriggeredEffectItem }) {
         <span className="text-[9px] text-gray-400 uppercase tracking-wider font-orbitron">
           {label}
         </span>
-        <BehaviorSection behaviors={item.behaviors} />
+        <BehaviorSection behaviors={item.behaviors} cardName={item.cardName} />
       </div>
     );
   }

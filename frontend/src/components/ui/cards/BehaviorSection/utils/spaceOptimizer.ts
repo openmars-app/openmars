@@ -19,6 +19,13 @@ export const analyzeCardLayout = (
 
     // Estimate rows needed for this behavior
     let estimatedRows = layoutPlan.totalRows;
+    if (classifiedBehavior.members) {
+      const memberLayout = analyzeCardLayout(classifiedBehavior.members, Infinity);
+      estimatedRows = memberLayout.totalEstimatedRows;
+      if (classifiedBehavior.presentationGroup === "dependency") {
+        estimatedRows += 0.5;
+      }
+    }
 
     // Add extra row for behavior container if it's not auto-no-background
     if (type !== "auto-no-background") {

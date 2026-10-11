@@ -1,10 +1,13 @@
+import { useCardResourceStorage } from "../../CardStateVisuals.tsx";
+import StateOperationVisual from "./StateOperationVisual.tsx";
+import { hasSemanticIcon } from "../../../display/SemanticIcon.tsx";
 import PerConditionIcons from "./PerConditionIcons";
 import React from "react";
 import GameIcon from "../../../display/GameIcon.tsx";
 import { getIconPath, getTagIconPath } from "@/utils/iconStore.ts";
 import BehaviorIcon, { BehaviorSign } from "./BehaviorIcon.tsx";
 import CardIcon from "./CardIcon.tsx";
-import { useBehaviorLayout } from "./BehaviorContainer";
+import { useBehaviorLayout, BehaviorBorderLabel } from "./BehaviorContainer";
 import Slash from "./Slash.tsx";
 import { CalculatedOutputDto } from "@/types/generated/api-types.ts";
 import {
@@ -41,13 +44,19 @@ interface ResourceDisplayProps {
   tileScaleInfo: TileScaleInfo;
   computedAmount?: number;
   computedOutputs?: CalculatedOutputDto[];
+  productionLabel?: React.ReactNode;
 }
 
 export function hasResourceVisual(resource: ResourceCondition): boolean {
   return (
-    ("description" in resource && Boolean(resource.description)) ||
     !!getIconPath(resource.type) ||
+    hasSemanticIcon(resource.type) ||
     [
+      "state-change",
+      "remove-dependency",
+      "retire-dependency",
+      "schedule-state-window",
+      "bonus-tags",
       "copy",
       "card-reveal",
       "discount",
@@ -103,9 +112,15 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   tileScaleInfo,
   computedAmount,
   computedOutputs,
+  productionLabel,
 }) => {
   const { compact, cardId } = useBehaviorLayout();
+  const storage = useCardResourceStorage();
   const { resourceType, amount } = displayInfo;
+  const storageIcon =
+    storage?.icon && resource?.target === "self-card" && resource.type === storage.type
+      ? storage.icon
+      : undefined;
   const displayMode = compact && Math.abs(amount) > 1 ? "number" : displayInfo.displayMode;
   const isVariableAmount = !!displayInfo.variableAmount;
 
@@ -231,15 +246,18 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   }
   if (
     resource &&
-    "description" in resource &&
-    resource.description &&
-    !getIconPath(resource.type)
+    (resource.type === "state-change" ||
+      resource.type === "remove-dependency" ||
+      resource.type === "retire-dependency" ||
+      resource.type === "schedule-state-window")
   ) {
-    return (
-      <span className="text-[11px] leading-tight font-sans text-white text-left max-w-[240px]">
-        {resource.description}
-      </span>
-    );
+    return <StateOperationVisual operation={resource} />;
+  }
+  if (resourceType === "bonus-tags") {
+    return <GameIcon iconType="wild-tag" amount={amount} size="behavior" />;
+  }
+  if (hasSemanticIcon(resourceType)) {
+    return <GameIcon iconType={resourceType} amount={amount} size="behavior" />;
   }
   if (resource && !hasResourceVisual(resource)) {
     return null;
@@ -269,7 +287,10 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
 
         return (
           <div className="flex items-center gap-[3px]">
-            <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+            <div
+              className={`relative ${productionLabel ? "mt-2.5 pt-3" : ""} flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]`}
+            >
+              {productionLabel && <BehaviorBorderLabel>{productionLabel}</BehaviorBorderLabel>}
               <div className={itemClasses}>
                 <GameIcon iconType="credit" amount={Math.abs(amount)} size="behavior" />
               </div>
@@ -299,7 +320,10 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
         if (productionIcon) {
           return (
             <div className="flex items-center gap-[3px]">
-              <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+              <div
+                className={`relative ${productionLabel ? "mt-2.5 pt-3" : ""} flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]`}
+              >
+                {productionLabel && <BehaviorBorderLabel>{productionLabel}</BehaviorBorderLabel>}
                 <div className="flex items-center gap-[3px] relative shrink-0">
                   {amount > 1 && (
                     <span className="text-[20px] font-black font-orbitron text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] flex items-center ml-0.5 leading-none translate-y-[2px]">
@@ -336,7 +360,10 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
       : "flex items-center gap-[3px] relative shrink-0";
 
     return (
-      <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.7)_0%,rgba(139,89,42,0.65)_100%)] border border-[rgba(160,110,60,0.7)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+      <div
+        className={`relative ${productionLabel ? "mt-2.5 pt-3" : ""} flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.7)_0%,rgba(139,89,42,0.65)_100%)] border border-[rgba(160,110,60,0.7)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]`}
+      >
+        {productionLabel && <BehaviorBorderLabel>{productionLabel}</BehaviorBorderLabel>}
         <div className={itemClasses}>
           {baseIsCredits ? (
             <GameIcon iconType="credit" amount={Math.abs(amount)} size="behavior" />
@@ -395,7 +422,9 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
         );
       } else {
         // For other resources, use BehaviorIcon with amount overlay
-        const iconElement = (
+        const iconElement = storageIcon ? (
+          <GameIcon iconType={storageIcon} size="behavior" />
+        ) : (
           <BehaviorIcon
             resourceType={resourceType}
             isProduction={false}
@@ -410,9 +439,10 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
           return (
             <div className="flex items-center gap-[3px]">
               <div className="flex items-center gap-[3px] relative shrink-0">
-                {amount > 1 && (
+                {amount < 0 && <BehaviorSign />}
+                {Math.abs(amount) > 1 && (
                   <span className="text-[20px] font-black font-orbitron text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] flex items-center ml-0.5 leading-none translate-y-[2px]">
-                    {amount}
+                    {Math.abs(amount)}
                   </span>
                 )}
                 {iconElement}
@@ -616,7 +646,9 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   const specialRestriction = isWorldTree || (cardId === "149" && resourceType === "card-resource");
   const iconType = isWorldTree ? "greenery-placement" : resourceType;
   const iconTileScale = isWorldTree ? { ...tileScaleInfo, tileType: iconType } : tileScaleInfo;
-  const baseIconElement = (
+  const baseIconElement = storageIcon ? (
+    <GameIcon iconType={storageIcon} size="behavior" />
+  ) : (
     <BehaviorIcon
       resourceType={iconType}
       isProduction={false}

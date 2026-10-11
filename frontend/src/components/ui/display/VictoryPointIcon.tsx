@@ -1,3 +1,6 @@
+import { StatePredicates } from "../cards/CardStateVisuals.tsx";
+import PerConditionIcons from "../cards/BehaviorSection/components/PerConditionIcons.tsx";
+import GameIcon from "./GameIcon.tsx";
 import React from "react";
 import type { VPConditionDto } from "@/types/generated/api-types.ts";
 import { getIconPath } from "@/utils/iconStore.ts";
@@ -24,23 +27,22 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
   bare = false,
 }) => {
   const renderBox = (content: React.ReactNode) => {
+    const conditional =
+      vpConditions?.filter((condition) => condition.stateRequirements?.length) ?? [];
+    const annotated = (
+      <span className="inline-flex flex-wrap items-center gap-0.5 [--behavior-icon-size:14px]">
+        {conditional.map((condition, index) => (
+          <StatePredicates key={index} requirements={condition.stateRequirements} />
+        ))}
+        {content}
+      </span>
+    );
     if (bare) {
-      return renderContent(content);
+      return renderContent(annotated);
     }
     return (
       <DecorBox corner={corner}>
-        <span
-          title={vpConditions
-            ?.map((condition) => condition.description)
-            .filter(Boolean)
-            .join(" ")}
-          className="inline-flex items-center gap-0.5"
-        >
-          {content}
-          {vpConditions?.some((condition) => condition.stateRequirements?.length) && (
-            <span aria-label="Conditional scoring">*</span>
-          )}
-        </span>
+        {annotated}
         <span className="text-[9px] text-white/50 font-semibold tracking-wider">VP</span>
       </DecorBox>
     );
@@ -67,8 +69,12 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             <span className="text-[9px] text-white/40">/</span>
             {perAmount > 1 && <span className="text-[11px] font-bold">{perAmount}</span>}
             {!resourceIcon && (
-              <span className="text-[9px]" title={condition.description}>
-                type
+              <span className="inline-flex [--behavior-icon-size:14px]">
+                {perCondition.type === "permanent-production-types" ? (
+                  <PerConditionIcons per={perCondition} />
+                ) : (
+                  <GameIcon iconType="effect" size="behavior" />
+                )}
               </span>
             )}
             {resourceIcon && (
@@ -104,8 +110,12 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             <span className="text-[9px] text-white/40">/</span>
             {perAmount > 1 && <span className="text-[11px] font-bold">{perAmount}</span>}
             {!resourceIcon && (
-              <span className="text-[9px]" title={firstPerCondition.description}>
-                type
+              <span className="inline-flex [--behavior-icon-size:14px]">
+                {perCondition.type === "permanent-production-types" ? (
+                  <PerConditionIcons per={perCondition} />
+                ) : (
+                  <GameIcon iconType="effect" size="behavior" />
+                )}
               </span>
             )}
             {resourceIcon && (

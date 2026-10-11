@@ -17,6 +17,7 @@ interface BehaviorContainerProps {
   description?: string;
   showTooltip?: boolean;
   noContainer?: boolean;
+  borderLabel?: React.ReactNode;
   cardId?: string;
   children: React.ReactNode;
 }
@@ -96,6 +97,7 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
   description,
   showTooltip = false,
   noContainer = false,
+  borderLabel,
   cardId,
   children,
 }) => {
@@ -156,7 +158,7 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
       <div
         {...triggerProps}
         key={index}
-        className="behavior-fitting relative flex items-center justify-center my-px p-[3px] min-h-8 max-w-full min-w-0 font-orbitron"
+        className={`behavior-fitting relative flex items-center justify-center p-0 max-w-full min-w-0 font-orbitron`}
         data-compact={compact}
       >
         {content}
@@ -193,9 +195,10 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
       <div
         {...triggerProps}
         key={index}
-        className={`behavior-fitting relative px-2 py-1 min-h-8 my-px border border-white/10 backdrop-blur-[2px] flex items-center max-w-full min-w-0 font-orbitron ${widthClass} ${typeStyles[type] || ""}`}
+        className={`behavior-fitting relative px-2 py-1 min-h-8 my-px border border-white/10 backdrop-blur-[2px] flex items-center max-w-full min-w-0 font-orbitron ${widthClass} ${typeStyles[type] || ""} ${borderLabel ? "mt-2.5 pt-3" : ""}`}
         data-compact={compact}
       >
+        {borderLabel && <BehaviorBorderLabel>{borderLabel}</BehaviorBorderLabel>}
         <div className="flex items-center gap-1.5 min-w-0 w-full justify-center">{content}</div>
         {isRevealed && description && (
           <DescriptionPortal description={description} anchorRef={containerRef} />
@@ -204,5 +207,17 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
     );
   }
 };
+
+export function BehaviorBorderLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      data-behavior-border-label
+      style={{ zIndex: Z_INDEX.UI_BASE }}
+      className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 [&_.behavior-fitting]:min-h-0 [&_.behavior-fitting]:p-0 [&_.behavior-fitting]:m-0"
+    >
+      {children}
+    </div>
+  );
+}
 
 export default BehaviorContainer;

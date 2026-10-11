@@ -1937,7 +1937,8 @@ code {
 
   .game-card[data-presentation="inspection"] .game-card-cost > div,
   .game-card[data-presentation="inspection"] .game-card-tags > *,
-  .game-card[data-presentation="inspection"] .game-card-requirements > * {
+  .game-card[data-presentation="inspection"] .game-card-requirements > *,
+  .game-card[data-presentation="inspection"] .game-card-labels > * {
     zoom: var(--card-badge-scale);
   }
 

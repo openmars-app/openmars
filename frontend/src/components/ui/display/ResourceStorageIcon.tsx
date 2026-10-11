@@ -1,6 +1,6 @@
 import React from "react";
-import { getIconPath } from "@/utils/iconStore.ts";
 import { ResourceStorageDto } from "@/types/generated/api-types.ts";
+import GameIcon from "./GameIcon.tsx";
 import DecorBox from "./DecorBox.tsx";
 import RevealTrigger from "./RevealTrigger.tsx";
 
@@ -19,15 +19,22 @@ const ResourceStorageIcon: React.FC<ResourceStorageIconProps> = ({
     return null;
   }
 
-  const resourceIcon = getIconPath(resourceStorage.type);
+  const resourceIcon = resourceStorage.icon ?? resourceStorage.type;
+  const displayLabel = resourceStorage.label ?? resourceStorage.type;
   const label = (
     <>
-      {resourceIcon && (
-        <img src={resourceIcon} alt={resourceStorage.type} className="w-3.5 h-3.5 object-contain" />
-      )}
+      <GameIcon iconType={resourceIcon} size="behavior" className="[--behavior-icon-size:14px]" />
       <span className="text-[9px] text-white/50 font-semibold tracking-wider uppercase">
-        {resourceStorage.type}
+        {displayLabel}
       </span>
+      {resourceStorage.capacity !== undefined && (
+        <span
+          className="font-orbitron text-[9px] text-white/70"
+          aria-label={`Capacity ${resourceStorage.capacity}`}
+        >
+          ≤{resourceStorage.capacity}
+        </span>
+      )}
     </>
   );
 

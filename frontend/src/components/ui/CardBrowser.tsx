@@ -1,3 +1,4 @@
+import { CardCatalogPresentation } from "./cards/CardStateVisuals.tsx";
 import type { GameModeDto } from "@/types/generated/api-types.ts";
 import { apiService } from "@/services/apiService.ts";
 import type { ReactNode } from "react";
@@ -239,101 +240,103 @@ export default function CardBrowser({
   const exitShared = useCallback(() => updateView({ ids: [] }), [updateView]);
 
   return (
-    <div
-      className="relative flex h-dvh min-h-0 w-full overflow-hidden bg-black text-white"
-      style={{ zIndex: Z_INDEX.UI_BASE }}
-      onKeyDown={(event) => {
-        if (event.key !== "Escape") {
-          event.stopPropagation();
-        }
-      }}
-    >
-      <CardBrowserSidebar
-        family={family}
-        query={view.query}
-        sort={view.sort}
-        cardSize={view.size}
-        onCardSize={changeCardSize}
-        filters={filters}
-        tags={tags}
-        modes={modes}
-        gameModeId={view.gameModeId}
-        preview={view.preview}
-        onMode={(gameModeId) => updateView({ gameModeId, preview: "connected" })}
-        onPreview={(preview) => updateView({ preview })}
-        counts={counts}
-        selectedCounts={selectedCounts}
-        selectedCount={selected.size}
-        shareUrl={shareUrl}
-        shared={view.ids.length > 0}
-        open={drawerOpen && !isCompact}
-        persistent={isCompact}
-        headerStart={headerStart}
-        backLabel={backLabel}
-        onBack={onBack}
-        onClose={closeDrawer}
-        onFamily={changeFamily}
-        onQuery={changeQuery}
-        onSort={changeSort}
-        onToggle={toggleFilter}
-        onClearFilters={clearFilters}
-        onClearSelection={clearSelection}
-        onExitShared={exitShared}
-      />
-      <main
-        className={
-          isCompact
-            ? "relative min-h-0 min-w-0 flex-1 pt-[var(--safe-top)] pr-[var(--safe-right)] pb-[var(--safe-bottom)]"
-            : "relative min-h-0 min-w-0 flex-1 pt-[calc(4rem+var(--safe-top))] pr-[var(--safe-right)] pb-[var(--safe-bottom)] max-lg:pl-[var(--safe-left)] lg:pt-[var(--safe-top)]"
-        }
-        inert={drawerOpen && !isCompact}
+    <CardCatalogPresentation modes={modes} modeId={view.gameModeId}>
+      <div
+        className="relative flex h-dvh min-h-0 w-full overflow-hidden bg-black text-white"
+        style={{ zIndex: Z_INDEX.UI_BASE }}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") {
+            event.stopPropagation();
+          }
+        }}
       >
-        {!isCompact && (
-          <div className="absolute left-[calc(1rem+var(--safe-left))] top-[calc(0.75rem+var(--safe-top))] lg:hidden">
-            <GameButton size="sm" emphasis="secondary" onClick={() => setDrawerOpen(true)}>
-              Browse cards
-            </GameButton>
-          </div>
-        )}
-        {modeError && (
-          <p role="alert" className="p-4 text-amber-200">
-            {modeError}
-          </p>
-        )}
-        {(status === "idle" || status === "loading") && (
-          <div role="status" className="p-8 text-left text-white/60">
-            Loading cards…
-          </div>
-        )}
-        {status === "error" && (
-          <div role="alert" className="space-y-4 p-8 text-left">
-            <p>{error}</p>
-            <GameButton
-              emphasis="secondary"
-              onClick={() => void loadCardCatalog(view.gameModeId, view.preview)}
-            >
-              Retry
-            </GameButton>
-          </div>
-        )}
-        {status === "ready" && groups[shownFamily].length === 0 && (
-          <div className="space-y-4 p-8 text-left">
-            <h2 className="font-orbitron text-lg">No matching cards</h2>
-            <p className="text-white/60">Try another family or clear your search and filters.</p>
-            <GameButton emphasis="secondary" onClick={clearFilters}>
-              Clear filters
-            </GameButton>
-            {view.ids.length > 0 && (
-              <GameButton emphasis="quiet" onClick={() => updateView({ ids: [] })}>
-                Exit shared selection
+        <CardBrowserSidebar
+          family={family}
+          query={view.query}
+          sort={view.sort}
+          cardSize={view.size}
+          onCardSize={changeCardSize}
+          filters={filters}
+          tags={tags}
+          modes={modes}
+          gameModeId={view.gameModeId}
+          preview={view.preview}
+          onMode={(gameModeId) => updateView({ gameModeId, preview: "connected" })}
+          onPreview={(preview) => updateView({ preview })}
+          counts={counts}
+          selectedCounts={selectedCounts}
+          selectedCount={selected.size}
+          shareUrl={shareUrl}
+          shared={view.ids.length > 0}
+          open={drawerOpen && !isCompact}
+          persistent={isCompact}
+          headerStart={headerStart}
+          backLabel={backLabel}
+          onBack={onBack}
+          onClose={closeDrawer}
+          onFamily={changeFamily}
+          onQuery={changeQuery}
+          onSort={changeSort}
+          onToggle={toggleFilter}
+          onClearFilters={clearFilters}
+          onClearSelection={clearSelection}
+          onExitShared={exitShared}
+        />
+        <main
+          className={
+            isCompact
+              ? "relative min-h-0 min-w-0 flex-1 pt-[var(--safe-top)] pr-[var(--safe-right)] pb-[var(--safe-bottom)]"
+              : "relative min-h-0 min-w-0 flex-1 pt-[calc(4rem+var(--safe-top))] pr-[var(--safe-right)] pb-[var(--safe-bottom)] max-lg:pl-[var(--safe-left)] lg:pt-[var(--safe-top)]"
+          }
+          inert={drawerOpen && !isCompact}
+        >
+          {!isCompact && (
+            <div className="absolute left-[calc(1rem+var(--safe-left))] top-[calc(0.75rem+var(--safe-top))] lg:hidden">
+              <GameButton size="sm" emphasis="secondary" onClick={() => setDrawerOpen(true)}>
+                Browse cards
               </GameButton>
-            )}
-          </div>
-        )}
-        {status === "ready" && (
-          <div className="relative h-full min-h-0" hidden={groups[shownFamily].length === 0}>
-            {CARD_FAMILIES.filter((item) => item === shownFamily || visitedFamilies.has(item)).map(
-              (item) => (
+            </div>
+          )}
+          {modeError && (
+            <p role="alert" className="p-4 text-amber-200">
+              {modeError}
+            </p>
+          )}
+          {(status === "idle" || status === "loading") && (
+            <div role="status" className="p-8 text-left text-white/60">
+              Loading cards…
+            </div>
+          )}
+          {status === "error" && (
+            <div role="alert" className="space-y-4 p-8 text-left">
+              <p>{error}</p>
+              <GameButton
+                emphasis="secondary"
+                onClick={() => void loadCardCatalog(view.gameModeId, view.preview)}
+              >
+                Retry
+              </GameButton>
+            </div>
+          )}
+          {status === "ready" && groups[shownFamily].length === 0 && (
+            <div className="space-y-4 p-8 text-left">
+              <h2 className="font-orbitron text-lg">No matching cards</h2>
+              <p className="text-white/60">Try another family or clear your search and filters.</p>
+              <GameButton emphasis="secondary" onClick={clearFilters}>
+                Clear filters
+              </GameButton>
+              {view.ids.length > 0 && (
+                <GameButton emphasis="quiet" onClick={() => updateView({ ids: [] })}>
+                  Exit shared selection
+                </GameButton>
+              )}
+            </div>
+          )}
+          {status === "ready" && (
+            <div className="relative h-full min-h-0" hidden={groups[shownFamily].length === 0}>
+              {CARD_FAMILIES.filter(
+                (item) => item === shownFamily || visitedFamilies.has(item),
+              ).map((item) => (
                 <CachedCardFamily
                   key={item}
                   active={item === shownFamily}
@@ -343,11 +346,11 @@ export default function CardBrowser({
                   selected={selected}
                   onSelect={toggleSelection}
                 />
-              ),
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </CardCatalogPresentation>
   );
 }

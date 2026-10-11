@@ -8,12 +8,15 @@ export type BehaviorPresentation = "compact" | "inspection";
 
 export interface BehaviorSectionProps {
   presentation?: BehaviorPresentation;
+  layout?: "project" | "corporation";
   showTooltips?: boolean;
   behaviors?: CardBehaviorDto[];
   computedValues?: ComputedBehaviorValueDto[];
   playerResources?: ResourcesDto;
   resourceStorage?: { [cardId: string]: number };
   cardId?: string;
+  cardName?: string;
+  sourceBehaviorIndex?: number;
   greyOutAll?: boolean;
   hideActionChip?: boolean;
   noContainer?: boolean;
@@ -33,8 +36,11 @@ export interface ClassifiedBehavior {
     | "defense";
   description?: string;
   mergedBehaviors?: CardBehaviorDto[];
+  presentationGroup?: "dependency" | "shared-action" | "shared-effect";
+  members?: ClassifiedBehavior[];
   originalIndex?: number;
   originalIndices?: number[];
+  alternativeOriginalIndices?: number[];
 }
 
 export interface LayoutRequirement {

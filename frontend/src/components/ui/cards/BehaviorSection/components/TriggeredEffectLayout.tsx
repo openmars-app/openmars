@@ -1,3 +1,5 @@
+import { StateSymbol, useCardResourceStorage } from "../../CardStateVisuals.tsx";
+import { OperationRequirements } from "./BehaviorQualifiers.tsx";
 import { BehaviorArrow } from "./BehaviorIcon";
 import React from "react";
 import { useBehaviorLayout } from "./BehaviorContainer";
@@ -14,7 +16,7 @@ import {
   TriggerDto,
   MinMaxValueDto,
 } from "@/types/generated/api-types.ts";
-import { type ResourceCondition, getTileRestrictions } from "@/types/resourceConditions.ts";
+import { type ResourceCondition, getTileRestrictions, getPer } from "@/types/resourceConditions.ts";
 import { getZIndex } from "@/constants/zIndex.ts";
 
 interface IconDisplayInfo {
@@ -83,6 +85,21 @@ const getRequiredOriginalCost = (
   return conditionLevelCost;
 };
 
+function DependentProjectIcon() {
+  return (
+    <span
+      className={"relative inline-flex items-center shrink-0 pr-2"}
+      aria-label="A project with an Earth-connected effect"
+      data-dependent-project
+    >
+      <GameIcon iconType="card" size="behavior" />
+      <span className={"absolute right-0 bottom-0 inline-flex [--behavior-icon-size:14px]"}>
+        <GameIcon iconType="connection" size="behavior" />
+      </span>
+    </span>
+  );
+}
+
 // Render a single selector (AND logic: tags together, then card type)
 const renderSelector = (
   selector: SelectorDto,
@@ -92,6 +109,9 @@ const renderSelector = (
 ): React.ReactNode => {
   const elements: React.ReactNode[] = [];
 
+  if (selector.dependency) {
+    elements.push(<DependentProjectIcon key={`dependency-${selectorIndex}`} />);
+  }
   if (selector.tags && selector.tags.length > 0) {
     selector.tags.forEach((tag: string, tagIndex: number) => {
       elements.push(
@@ -154,8 +174,31 @@ const renderSelector = (
   );
 };
 
+function StateTriggerSymbol({ state }: { state: string; value?: number }) {
+  return <StateSymbol state={state} />;
+}
+
 // Render a single trigger icon based on its condition type
 const renderTriggerIcon = (trigger: TriggerDto, triggerIndex: number): React.ReactNode => {
+  if (trigger.condition?.type === "state-changed") {
+    return (
+      <span
+        key={triggerIndex}
+        className="inline-flex items-center gap-1"
+        data-behavior-atom="state-trigger"
+      >
+        <StateTriggerSymbol state={trigger.condition.state ?? ""} value={trigger.condition.to} />
+        {trigger.condition.direction && (
+          <span className="font-orbitron font-bold">
+            {trigger.condition.direction === "increase" ? "+" : "−"}
+          </span>
+        )}
+      </span>
+    );
+  }
+  if (trigger.condition?.type === "production") {
+    return <GameIcon key={triggerIndex} iconType="production" size="behavior" />;
+  }
   // Check if trigger has selectors (new system)
   const hasSelectors = trigger.condition?.selectors && trigger.condition.selectors.length > 0;
 
@@ -411,14 +454,17 @@ const renderTriggerIcon = (trigger: TriggerDto, triggerIndex: number): React.Rea
     );
   }
 
-  // Fallback to text display for other trigger types
+  const triggerIcons: Record<string, string> = {
+    "card-played": "card",
+    "card-hand-updated": "card",
+    "tile-placed": "tile-placement",
+  };
   return (
-    <span
+    <GameIcon
       key={triggerIndex}
-      className="text-xs font-semibold text-[#e0e0e0] capitalize [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]"
-    >
-      {trigger.type || "trigger"}
-    </span>
+      iconType={triggerIcons[trigger.condition?.type ?? ""] ?? "effect"}
+      size="behavior"
+    />
   );
 };
 
@@ -623,6 +669,7 @@ const renderBehaviorRow = (
                   {behavior.choices.map((choice, idx: number) => (
                     <React.Fragment key={`choice-${rowIndex}-${idx}`}>
                       {idx > 0 && <Slash />}
+                      <OperationRequirements stateRequirements={choice.stateRequirements} />
                       {choice.outputs?.map((output, outputIndex: number) => {
                         const displayInfo = analyzeResourceDisplayWithConstraints(output, 6, false);
                         return (
@@ -662,6 +709,7 @@ const renderBehaviorRow = (
               >
                 :
               </span>
+              <OperationRequirements stateRequirements={choice.stateRequirements} />
               {choice.inputs?.map((input, inputIndex: number) => {
                 const displayInfo = analyzeResourceDisplayWithConstraints(input, 6, false);
                 return (
@@ -736,6 +784,7 @@ const renderBehaviorRow = (
           {behavior.choices.map((choice, idx: number) => (
             <React.Fragment key={`choice-${rowIndex}-${idx}`}>
               {idx > 0 && <Slash />}
+              <OperationRequirements stateRequirements={choice.stateRequirements} />
               {choice.inputs?.map((input, inputIndex: number) => {
                 const displayInfo = analyzeResourceDisplayWithConstraints(input, 6, false);
                 return (
@@ -837,6 +886,44 @@ const TriggeredEffectLayout: React.FC<TriggeredEffectLayoutProps> = ({
   computedOutputs,
 }) => {
   const { compact } = useBehaviorLayout();
+  const storage = useCardResourceStorage();
+  const removal = behavior.outputs?.find(
+    (output) =>
+      output.target === "self-card" && output.type === storage?.type && output.amount === -1,
+  );
+  const gain = behavior.outputs?.find(
+    (output) => output.target === "self-player" && output.amount === 1,
+  );
+  const removalPer = removal && getPer(removal);
+  const gainPer = gain && getPer(gain);
+  if (
+    storage &&
+    removal &&
+    gain &&
+    behavior.outputs?.length === 2 &&
+    !mergedBehaviors?.length &&
+    !behavior.inputs?.length &&
+    !behavior.choices?.length &&
+    removalPer?.target === "self-card" &&
+    removalPer.type === storage.type &&
+    removalPer.amount === 1 &&
+    JSON.stringify(removalPer) === JSON.stringify(gainPer)
+  ) {
+    return (
+      <div
+        className="behavior-flow inline-flex items-center justify-center gap-1 max-w-full"
+        data-storage-exchange
+      >
+        {behavior.triggers?.map((trigger, index) => renderTriggerIcon(trigger, index))}
+        <span>:</span>
+        <span className="font-orbitron text-[11px]">X</span>
+        <GameIcon iconType={storage.icon ?? storage.type} size="behavior" />
+        <BehaviorArrow />
+        <span className="font-orbitron text-[11px]">X</span>
+        <GameIcon iconType={gain.type} size="behavior" />
+      </div>
+    );
+  }
   // Collect all behaviors to render (primary + merged)
   const allBehaviors = [behavior, ...(mergedBehaviors || [])];
 
