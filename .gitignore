@@ -109,3 +109,5 @@ tmp/
 
 # Local agent plans
 /plans/
+
+.cache/
