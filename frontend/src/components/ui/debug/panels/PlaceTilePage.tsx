@@ -46,45 +46,6 @@ const secondaryButtonStyle = {
   gap: "4px",
 };
 
-const TILE_GROUPS: {
-  label: string;
-  extraPadding?: boolean;
-  tiles: { type: string; label: string }[];
-}[] = [
-  {
-    label: "Base",
-    tiles: [
-      { type: "city", label: "City" },
-      { type: "greenery", label: "Greenery" },
-      { type: "ocean", label: "Ocean" },
-    ],
-  },
-  {
-    label: "Special",
-    tiles: [
-      { type: "volcano", label: "Volcano" },
-      { type: "nuclear-zone", label: "Nuclear Zone" },
-      { type: "mining", label: "Mining" },
-      { type: "natural-preserve", label: "Nat. Preserve" },
-      { type: "land-claim", label: "Land Claim" },
-    ],
-  },
-  {
-    label: "",
-    tiles: [
-      { type: "ecological-zone", label: "Eco Zone" },
-      { type: "mohole", label: "Mohole" },
-      { type: "restricted", label: "Restricted" },
-      { type: "colony", label: "Colony" },
-    ],
-  },
-  {
-    label: "",
-    extraPadding: true,
-    tiles: [{ type: "clear", label: "Clear Tile" }],
-  },
-];
-
 const PlaceTilePage: React.FC<PlaceTilePageProps> = ({
   gameState,
   selectedPlayerId,
@@ -92,6 +53,12 @@ const PlaceTilePage: React.FC<PlaceTilePageProps> = ({
 }) => {
   const allPlayers = [gameState.currentPlayer, ...gameState.otherPlayers];
   const playerId = selectedPlayerId;
+  const tileGroups = [...new Set(gameState.placeableTileTypes.map((tile) => tile.group))].map(
+    (label) => ({
+      label,
+      tiles: gameState.placeableTileTypes.filter((tile) => tile.group === label),
+    }),
+  );
 
   const sendCommand = async (commandType: string, payload: any) => {
     const req: AdminCommandRequest = { commandType: commandType as any, payload };
@@ -117,10 +84,10 @@ const PlaceTilePage: React.FC<PlaceTilePageProps> = ({
       <PlayerSelector players={players} selectedId={selectedPlayerId} onChange={onPlayerChange} />
 
       <div style={{ marginTop: "12px" }}>
-        {TILE_GROUPS.map((group, idx) => (
+        {tileGroups.map((group, idx) => (
           <div
             key={group.label || `group-${idx}`}
-            style={{ marginBottom: "6px", paddingTop: group.extraPadding ? "8px" : undefined }}
+            style={{ marginBottom: "6px", paddingTop: group.label === "Tools" ? "8px" : undefined }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ color: "#888", fontSize: "10px", minWidth: "45px" }}>
