@@ -16,8 +16,6 @@ import GameIcon from "../ui/display/GameIcon.tsx";
 import { useMobileGame } from "./MobileGameContext.tsx";
 import MobilePlayerPresence from "./feedback/MobilePlayerPresence.tsx";
 
-import GameModeStatus from "../ui/display/GameModeStatus.tsx";
-
 const MIN_TEMPERATURE = -30;
 const MAX_TEMPERATURE = 8;
 const MAX_OXYGEN = 14;
@@ -146,7 +144,6 @@ export default function MobileStatusRail({
         paddingRight: "var(--safe-right)",
       }}
     >
-      <GameModeStatus game={gameState} compact />
       {showParameters && parameters && (
         <div className="shrink-0 flex flex-col py-1 border-b border-white/15">
           <ParameterRow

@@ -25,6 +25,7 @@ export type PopoverPosition =
       type: "anchor";
       anchorRef: React.RefObject<HTMLElement | null>;
       placement: "above" | "below";
+      align?: "center";
     }
   | {
       type: "fixed";
