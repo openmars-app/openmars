@@ -1,5 +1,8 @@
 import type { CardDescriptionSectionDto } from "@/types/generated/api-types.ts";
-import { getCardDescriptionSectionLabel } from "@/utils/cardDescription.ts";
+import {
+  getCardDescriptionSectionLabel,
+  formatRequirementDescription,
+} from "@/utils/cardDescription.ts";
 import { FormattedDescription } from "./FormattedDescription.tsx";
 
 interface CardDescriptionSectionsProps {
@@ -13,7 +16,13 @@ export const CardDescriptionSections = ({ sections }: CardDescriptionSectionsPro
       return (
         <p key={i} className="m-0">
           {label && <strong>{label}: </strong>}
-          <FormattedDescription text={section.text} />
+          <FormattedDescription
+            text={
+              section.type === "requirement"
+                ? formatRequirementDescription(section.text)
+                : section.text
+            }
+          />
         </p>
       );
     })}

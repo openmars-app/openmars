@@ -16,6 +16,21 @@ export const cardDescriptionToPlainText = (sections: CardDescriptionSectionDto[]
   sections
     .map((section) => {
       const label = SECTION_LABELS[section.type];
-      return label ? `${label}: ${section.text}` : section.text;
+      const text =
+        section.type === "requirement" ? formatRequirementDescription(section.text) : section.text;
+      return label ? `${label}: ${text}` : text;
     })
     .join("\n");
+
+export function formatRequirementDescription(text: string): string {
+  const value = text
+    .trim()
+    .replace(/\.$/, "")
+    .replace(/^requires\s+/i, "");
+  if (/^(must be played )?before withdrawal$/i.test(value)) return "Before withdrawal.";
+  const conditions = value
+    .split(/;\s*/)
+    .filter((part) => !(/^after withdrawal$/i.test(part) && /Earth disconnected/i.test(value)));
+  const description = conditions.join(" and ");
+  return description ? `${description[0].toUpperCase()}${description.slice(1)}.` : "";
+}
