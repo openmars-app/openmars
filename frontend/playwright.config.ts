@@ -19,20 +19,23 @@ export default defineConfig({
   projects: [
     {
       name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
+      use: {
+        ...devices["Desktop Firefox"],
+        launchOptions: { firefoxUserPrefs: { "media.volume_scale": "0.0" } },
+      },
     },
     {
       name: "mobile-landscape-ios",
-      use: chromiumDevice("iPhone 14 landscape"),
+      use: { ...chromiumDevice("iPhone 14 landscape"), launchOptions: { args: ["--mute-audio"] } },
     },
     {
       name: "mobile-landscape-android",
-      use: chromiumDevice("Pixel 7 landscape"),
+      use: { ...chromiumDevice("Pixel 7 landscape"), launchOptions: { args: ["--mute-audio"] } },
     },
     {
       name: "mobile-portrait",
       testMatch: /mobile-menus\.spec\.ts/,
-      use: chromiumDevice("iPhone 14"),
+      use: { ...chromiumDevice("iPhone 14"), launchOptions: { args: ["--mute-audio"] } },
     },
   ],
 
