@@ -100,7 +100,9 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     if (!resourceType) {
       return null;
     }
-    return <GameIcon iconType={resourceType} amount={amount} size="large" />;
+    return (
+      <GameIcon amountPlacement="badge" iconType={resourceType} amount={amount} size="large" />
+    );
   };
 
   const renderProduction = (type: string, amount: number) => {
@@ -116,7 +118,14 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     if (!resourceType) {
       return null;
     }
-    return <GameIcon iconType={`${resourceType}-production`} amount={amount} size="medium" />;
+    return (
+      <GameIcon
+        amountPlacement="badge"
+        iconType={`${resourceType}-production`}
+        amount={amount}
+        size="medium"
+      />
+    );
   };
 
   const getAutoCorporationFirstAction = (behaviors: CardBehaviorDto[] | undefined) => {
@@ -195,8 +204,15 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     if (!behavior.outputs || behavior.outputs.length === 0) {
       return null;
     }
-    const output = behavior.outputs[0];
-    return <GameIcon iconType={output.type} amount={output.amount} size="large" />;
+    return (
+      <BehaviorSection
+        behaviors={[behavior]}
+        showTooltips
+        hideActionChip
+        noContainer
+        layout="corporation"
+      />
+    );
   };
 
   const startingResources =
