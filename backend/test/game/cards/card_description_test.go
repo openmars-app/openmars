@@ -173,3 +173,49 @@ func TestCardDatabaseRequirementTextMatchesInEveryMode(t *testing.T) {
 		}
 	}
 }
+
+func TestCardDatabaseBehaviorDescriptionsStayScoped(t *testing.T) {
+	allCards, err := cards.LoadCardsFromJSON("../../../assets/cards.json")
+	testutil.AssertNoError(t, err, "Load cards")
+	prefix := regexp.MustCompile(`(?i)^\**(effect|action)\b\**:`)
+	payment := regexp.MustCompile(`(?i)\b(lose|spend|pay|remove)\b`)
+	for _, card := range allCards {
+		for _, modeID := range append([]string{""}, card.GameModes...) {
+			effective, err := cards.ApplyModeModifiers(card, modeID)
+			testutil.AssertNoError(t, err, "Resolve card mode")
+			for _, section := range effective.Description {
+				if section.Type == cards.DescriptionSectionRequirement && payment.MatchString(section.Text) {
+					t.Errorf("%s/%s: payment instruction in requirement badge: %q", card.ID, modeID, section.Text)
+				}
+			}
+			for _, behavior := range effective.Behaviors {
+				if prefix.MatchString(behavior.Description) {
+					t.Errorf("%s/%s/%s: redundant action/effect prefix in behavior tooltip", card.ID, modeID, behavior.ID)
+				}
+				manual := false
+				for _, trigger := range behavior.Triggers {
+					manual = manual || trigger.Type == "manual"
+				}
+				if !manual {
+					continue
+				}
+				for _, section := range effective.Description {
+					if section.Type != cards.DescriptionSectionGeneric && section.Type != cards.DescriptionSectionEffect {
+						continue
+					}
+					text := strings.TrimSuffix(section.Text, ".")
+					if len(text) < 20 || !strings.Contains(behavior.Description, text) {
+						continue
+					}
+					alsoAction := false
+					for _, action := range effective.Description {
+						alsoAction = alsoAction || (action.Type == cards.DescriptionSectionAction && strings.Contains(action.Text, text))
+					}
+					if !alsoAction {
+						t.Errorf("%s/%s/%s: manual tooltip repeats non-action text: %q", card.ID, modeID, behavior.ID, text)
+					}
+				}
+			}
+		}
+	}
+}
