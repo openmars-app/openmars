@@ -51,7 +51,7 @@ const AmountSelectionPopover: React.FC<AmountSelectionPopoverProps> = ({
           <GameIcon iconType={resourceType} size="small" />
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-3 w-full">
           <GameButton
             emphasis="quiet"
             className="w-9 h-9 compact:size-11 rounded-none bg-space-blue-600/50 border border-space-blue-500/60 text-white text-lg font-bold cursor-pointer transition-all duration-200 hover:bg-space-blue-500/60 disabled:opacity-30 disabled:cursor-default"
@@ -61,7 +61,7 @@ const AmountSelectionPopover: React.FC<AmountSelectionPopoverProps> = ({
             -
           </GameButton>
 
-          <div className="min-w-[60px] text-center">
+          <div className="min-w-0 text-center whitespace-nowrap tabular-nums">
             <span className="text-white text-3xl font-orbitron font-bold text-shadow-glow">
               {amount}
             </span>
