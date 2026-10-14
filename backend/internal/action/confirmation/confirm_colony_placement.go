@@ -86,7 +86,7 @@ func (a *ConfirmColonyPlacementAction) Execute(ctx context.Context, gameID strin
 				p.Selection().SetPendingColonySelection(pending)
 			}
 		}
-		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 		return nil
 	}
 	tileState := g.Colonies().GetState(colonyID)
@@ -121,7 +121,7 @@ func (a *ConfirmColonyPlacementAction) Execute(ctx context.Context, gameID strin
 	}
 
 	p.Selection().SetPendingColonySelection(nil)
-	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 
 	log.Info("Colony placed from card effect",
 		slog.String("colony_id", colonyID))

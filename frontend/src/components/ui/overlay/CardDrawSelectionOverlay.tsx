@@ -9,7 +9,7 @@ import {
   CardReceiptDto,
   ResourceTypeCredit,
 } from "../../../types/generated/api-types.ts";
-import { Z_INDEX, getZIndex } from "@/constants/zIndex.ts";
+import { Z_INDEX } from "@/constants/zIndex.ts";
 import {
   OVERLAY_BACKDROP_BLUR_CLASS,
   OVERLAY_BACKDROP_TINT_CLASS,
@@ -247,6 +247,7 @@ const CardSelection: React.FC<CardSelectionProps> = ({
               <div key={card.id} className="relative">
                 <CardChoice
                   card={card}
+                  showPlayability={isCompact || showPlayability}
                   isSelected={isSelected}
                   onSelect={handleCardSelect}
                   animationDelay={index * 100}
@@ -255,21 +256,11 @@ const CardSelection: React.FC<CardSelectionProps> = ({
                     hasErrors ? <PlayabilityErrorList errors={card.errors} /> : undefined
                   }
                 />
-                {isCompact && hasErrors && <PlayabilityBadge errors={card.errors} />}
-                {showPlayability && hasErrors && !isCompact && (
-                  <div
-                    className="absolute top-full left-0 right-0 mt-1 flex flex-col gap-0.5 max-h-24 overflow-y-auto"
-                    style={{ zIndex: getZIndex("LOCAL", 10) }}
-                  >
-                    {card.errors.map((err, i) => (
-                      <div
-                        key={i}
-                        className="bg-[rgba(10,10,15,0.95)] border border-[rgba(231,76,60,0.6)] border-l-[3px] border-l-[#e74c3c] text-white/90 text-[10px] leading-tight px-1.5 py-1 rounded-sm"
-                      >
-                        {err.message}
-                      </div>
-                    ))}
-                  </div>
+                {(isCompact || showPlayability) && hasErrors && (
+                  <PlayabilityBadge errors={card.errors} />
+                )}
+                {(isCompact || showPlayability) && !!card.warnings?.length && !hasErrors && (
+                  <PlayabilityBadge errors={card.warnings} warning />
                 )}
               </div>
             );

@@ -147,53 +147,7 @@ func GenerateBoardFromMap(mapDef *MapDefinition, includeVenus bool) []Tile {
 		}
 	}
 
-	// Celestial body tiles (always added)
-	celestialTiles := []struct {
-		Pos         shared.HexPosition
-		Tags        []string
-		DisplayName string
-		Location    TileLocation
-	}{
-		{shared.HexPosition{Q: 500, R: 0, S: -500}, []string{BoardTagPhobosSpaceHaven}, "Phobos Space Haven", TileLocationPhobos},
-		{shared.HexPosition{Q: 400, R: 0, S: -400}, []string{BoardTagDawnCity}, "Dawn City", TileLocationMercury},
-		{shared.HexPosition{Q: 200, R: 0, S: -200}, []string{BoardTagGanymedeColony}, "Ganymede Colony", TileLocationGanymede},
-		{shared.HexPosition{Q: 300, R: 0, S: -300}, []string{BoardTagLunaMetropolis}, "Luna Metropolis", TileLocationLuna},
-	}
-	for _, ct := range celestialTiles {
-		displayName := ct.DisplayName
-		tiles = append(tiles, Tile{
-			Coordinates: ct.Pos,
-			Type:        shared.ResourceLandTile,
-			Location:    ct.Location,
-			Tags:        ct.Tags,
-			DisplayName: &displayName,
-		})
-	}
-
-	if !includeVenus {
-		return tiles
-	}
-
-	venusTiles := []struct {
-		Pos         shared.HexPosition
-		Tags        []string
-		DisplayName string
-	}{
-		{shared.HexPosition{Q: 100, R: 0, S: -100}, []string{BoardTagMaxwellBase}, "Maxwell Base"},
-		{shared.HexPosition{Q: 102, R: 0, S: -102}, []string{BoardTagStratopolis}, "Stratopolis"},
-	}
-	for _, vt := range venusTiles {
-		displayName := vt.DisplayName
-		tiles = append(tiles, Tile{
-			Coordinates: vt.Pos,
-			Type:        shared.ResourceLandTile,
-			Location:    TileLocationVenus,
-			Tags:        vt.Tags,
-			DisplayName: &displayName,
-		})
-	}
-
-	return tiles
+	return appendReservedCelestialTiles(tiles, includeVenus)
 }
 
 func mapTileType(t string) shared.ResourceType {

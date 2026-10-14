@@ -139,6 +139,7 @@ type PlayerState struct {
 	SelectPreludeCardsPhase         *shared.SelectPreludeCardsPhase         `json:"selectPreludeCardsPhase" save:"state"`
 	PendingCardSelection            *shared.PendingCardSelection            `json:"pendingCardSelection" save:"state"`
 	CardReceipts                    []shared.CardReceipt                    `json:"cardReceipts" save:"state"`
+	PendingCardPlaySelection        *shared.PendingCardPlaySelection        `json:"pendingCardPlaySelection" save:"state"`
 	PendingCardDrawSelection        *shared.PendingCardDrawSelection        `json:"pendingCardDrawSelection" save:"state"`
 	PendingBehaviorResolutions      []*shared.PendingBehaviorResolution     `json:"pendingBehaviorResolutions" save:"state"`
 	PendingResourceRemovalSelection *shared.PendingResourceRemovalSelection `json:"pendingResourceRemovalSelection" save:"state"`

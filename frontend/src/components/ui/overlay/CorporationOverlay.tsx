@@ -1,3 +1,4 @@
+import { useOverlayEventTarget } from "@/contexts/OverlayEnvironment";
 import { useEffect, useMemo, useState } from "react";
 import BlurredOverlay from "./BlurredOverlay.tsx";
 import { Z_INDEX } from "@/constants/zIndex.ts";
@@ -24,6 +25,7 @@ export default function CorporationOverlay({
   currentPlayer,
   otherPlayers,
 }: CorporationOverlayProps) {
+  const eventTarget = useOverlayEventTarget();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
@@ -42,9 +44,9 @@ export default function CorporationOverlay({
         onClose();
       }
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [visible, onClose]);
+    eventTarget.addEventListener("keydown", handleKeyDown);
+    return () => eventTarget.removeEventListener("keydown", handleKeyDown);
+  }, [visible, onClose, eventTarget]);
 
   const entries = useMemo(() => {
     const result: CorpEntry[] = [];

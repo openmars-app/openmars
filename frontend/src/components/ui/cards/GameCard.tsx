@@ -17,6 +17,7 @@ export interface GameCardProps {
   showCheckbox?: boolean;
   presentation?: "compact" | "inspection";
   dimUnavailable?: boolean;
+  showPlayability?: boolean;
   moduleState?: "idle" | "armed" | "releasing";
   description?: ReactNode;
 }
@@ -27,10 +28,11 @@ export default function GameCard({
   showCheckbox = false,
   presentation = "compact",
   dimUnavailable = presentation === "compact",
+  showPlayability = true,
   moduleState = showCheckbox && isSelected ? "armed" : "idle",
   description,
 }: GameCardProps) {
-  const hasState = "available" in card && "effectiveCost" in card;
+  const hasState = showPlayability && "available" in card && "effectiveCost" in card;
   const effectiveCost = hasState ? card.effectiveCost : card.cost;
   const discounted = effectiveCost < card.cost;
   const accent = CARD_TYPE_COLORS[card.type as keyof typeof CARD_TYPE_COLORS] ?? "#4a90e2";
@@ -114,6 +116,7 @@ export default function GameCard({
               <CardPanelCircuit />
               <BehaviorSection
                 cardId={card.id}
+                vpConditions={card.vpConditions}
                 behaviors={card.behaviors}
                 computedValues={hasState ? card.computedValues : undefined}
                 presentation={presentation}

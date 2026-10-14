@@ -1,7 +1,8 @@
+import { webSocketService } from "@/services/webSocketService.ts";
 import React from "react";
 import { GameDto } from "@/types/generated/api-types.ts";
 import { GamePopover } from "../GamePopover";
-import AwardList from "./content/AwardList.tsx";
+import { AwardListView } from "./content/AwardList.tsx";
 
 interface AwardPopoverProps {
   isVisible: boolean;
@@ -17,6 +18,22 @@ const AwardPopover: React.FC<AwardPopoverProps> = ({
   anchorRef,
 }) => {
   return (
+    <AwardPopoverView
+      isVisible={isVisible}
+      onClose={onClose}
+      gameState={gameState}
+      anchorRef={anchorRef}
+      onFundAward={(id) => {
+        void webSocketService.fundAward(id);
+      }}
+    />
+  );
+};
+
+export const AwardPopoverView: React.FC<
+  AwardPopoverProps & { onFundAward: (id: string) => void }
+> = ({ isVisible, onClose, gameState, anchorRef, onFundAward }) => {
+  return (
     <GamePopover
       isVisible={isVisible}
       onClose={onClose}
@@ -29,7 +46,7 @@ const AwardPopover: React.FC<AwardPopoverProps> = ({
       animation="slideDown"
       className="game-popover-list"
     >
-      <AwardList gameState={gameState} density="popover" />
+      <AwardListView gameState={gameState} density="popover" onFundAward={onFundAward} />
     </GamePopover>
   );
 };

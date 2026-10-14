@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useOverlayPortalRoot } from "@/contexts/OverlayEnvironment";
 import CardBrowser from "../CardBrowser.tsx";
 import { Z_INDEX } from "@/constants/zIndex.ts";
 
@@ -9,6 +10,19 @@ interface CardBrowserOverlayProps {
 }
 
 export default function CardBrowserOverlay({ isVisible, onClose }: CardBrowserOverlayProps) {
+  return (
+    <CardBrowserOverlayView isVisible={isVisible} onClose={onClose}>
+      <CardBrowser onBack={onClose} backLabel="Back to Game" />
+    </CardBrowserOverlayView>
+  );
+}
+
+export function CardBrowserOverlayView({
+  isVisible,
+  onClose,
+  children,
+}: CardBrowserOverlayProps & { children: ReactNode }) {
+  const portalRoot = useOverlayPortalRoot();
   const panel = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   useEffect(() => {
@@ -70,8 +84,8 @@ export default function CardBrowserOverlay({ isVisible, onClose }: CardBrowserOv
       className="fixed inset-0 overflow-hidden bg-black"
       style={{ zIndex: Z_INDEX.APP_OVERLAY }}
     >
-      <CardBrowser onBack={onClose} backLabel="Back to Game" />
+      {children}
     </div>,
-    document.body,
+    portalRoot,
   );
 }

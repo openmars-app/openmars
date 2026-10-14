@@ -1,7 +1,8 @@
+import { webSocketService } from "@/services/webSocketService.ts";
 import React from "react";
 import { GameDto } from "@/types/generated/api-types.ts";
 import { GamePopover } from "../GamePopover";
-import MilestoneList from "./content/MilestoneList.tsx";
+import { MilestoneListView } from "./content/MilestoneList.tsx";
 
 interface MilestonePopoverProps {
   isVisible: boolean;
@@ -17,6 +18,22 @@ const MilestonePopover: React.FC<MilestonePopoverProps> = ({
   anchorRef,
 }) => {
   return (
+    <MilestonePopoverView
+      isVisible={isVisible}
+      onClose={onClose}
+      gameState={gameState}
+      anchorRef={anchorRef}
+      onClaimMilestone={(id) => {
+        void webSocketService.claimMilestone(id);
+      }}
+    />
+  );
+};
+
+export const MilestonePopoverView: React.FC<
+  MilestonePopoverProps & { onClaimMilestone: (id: string) => void }
+> = ({ isVisible, onClose, gameState, anchorRef, onClaimMilestone }) => {
+  return (
     <GamePopover
       isVisible={isVisible}
       onClose={onClose}
@@ -29,7 +46,11 @@ const MilestonePopover: React.FC<MilestonePopoverProps> = ({
       animation="slideDown"
       className="game-popover-list"
     >
-      <MilestoneList gameState={gameState} density="popover" />
+      <MilestoneListView
+        gameState={gameState}
+        density="popover"
+        onClaimMilestone={onClaimMilestone}
+      />
     </GamePopover>
   );
 };

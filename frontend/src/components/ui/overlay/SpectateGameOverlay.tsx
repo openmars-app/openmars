@@ -28,9 +28,35 @@ const SpectateGameOverlay: React.FC<SpectateGameOverlayProps> = ({
     onConnected();
   };
 
+  return (
+    <SpectateGameOverlayView
+      spectatorName={spectatorName}
+      onNameChange={setSpectatorName}
+      isConnecting={isConnecting}
+      onSpectate={() => {
+        void handleSpectate();
+      }}
+      onCancel={onCancel}
+    />
+  );
+};
+
+export function SpectateGameOverlayView({
+  spectatorName,
+  onNameChange,
+  isConnecting,
+  onSpectate,
+  onCancel,
+}: {
+  spectatorName: string;
+  onNameChange: (name: string) => void;
+  isConnecting: boolean;
+  onSpectate: () => void;
+  onCancel: () => void;
+}) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      void handleSpectate();
+      onSpectate();
     }
   };
 
@@ -47,7 +73,7 @@ const SpectateGameOverlay: React.FC<SpectateGameOverlayProps> = ({
         <input
           type="text"
           value={spectatorName}
-          onChange={(e) => setSpectatorName(e.target.value)}
+          onChange={(e) => onNameChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Enter your name"
           disabled={isConnecting}
@@ -60,7 +86,7 @@ const SpectateGameOverlay: React.FC<SpectateGameOverlayProps> = ({
         />
         <GameButton
           emphasis="quiet"
-          onClick={() => void handleSpectate()}
+          onClick={onSpectate}
           disabled={isConnecting || !spectatorName.trim()}
           className="font-orbitron bg-white/10 border border-white/20 rounded-none py-3 px-6 text-white text-sm font-medium hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-default"
         >
@@ -69,6 +95,6 @@ const SpectateGameOverlay: React.FC<SpectateGameOverlayProps> = ({
       </div>
     </GameMenuModal>
   );
-};
+}
 
 export default SpectateGameOverlay;

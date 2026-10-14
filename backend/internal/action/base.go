@@ -129,6 +129,7 @@ func (b *BaseAction) GetPlayerFromGame(g *game.Game, playerID string, log *slog.
 // This properly handles unlimited actions by not consuming them
 // When the last action is consumed and no tile placement is pending, auto-advances to the next player
 func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *slog.Logger) bool {
+	ResolveForcedPassiveChoices(g, log, b.CardRegistryForGame(g))
 	currentTurn := g.CurrentTurn()
 	if currentTurn == nil {
 		log.Warn("No current turn set, cannot consume action")
@@ -142,7 +143,7 @@ func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *slog.Logger) bool {
 		log.Debug("Action consumed", slog.Int("remaining_actions", currentTurn.ActionsRemaining()))
 
 		if currentTurn.ActionsRemaining() == 0 {
-			AutoAdvanceTurnIfNeeded(g, playerID, log)
+			AutoAdvanceTurnIfNeeded(g, playerID, log, b.CardRegistryForGame(g))
 		}
 
 		if eventBus := g.EventBus(); eventBus != nil {
@@ -159,7 +160,8 @@ func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *slog.Logger) bool {
 // AutoAdvanceTurnIfNeeded advances the turn to the next non-passed player
 // if the current player has 0 actions remaining and no pending tile selection.
 // This is called after consuming an action or after completing a tile placement.
-func AutoAdvanceTurnIfNeeded(g *game.Game, playerID string, log *slog.Logger) {
+func AutoAdvanceTurnIfNeeded(g *game.Game, playerID string, log *slog.Logger, registry cards.CardRegistry) {
+	ResolveForcedPassiveChoices(g, log, registry)
 	g.CompleteFirstActionIfReady(playerID)
 	currentTurn := g.CurrentTurn()
 	if currentTurn == nil {

@@ -168,12 +168,25 @@ function CardOperation({ kind }: { kind: "import" | "shutdown" }) {
 }
 function WindowIcon({ production = false }) {
   return (
-    <Svg>
-      <path d="M31 9A16 16 0 1 0 35 25M31 2v8H23" stroke="#c8ebff" />
-      {production && (
-        <path d="M10 29V18l7 4v-8l7 5V12h5v17Z" fill="#805531" stroke="#f1c08d" strokeWidth="1.8" />
-      )}
-    </Svg>
+    <span
+      className="relative inline-flex h-full w-full"
+      data-contact-duration={production ? "production" : "generation"}
+    >
+      <Connected />
+      <span className="absolute bottom-0 right-0 h-[45%] w-[45%] rounded-full bg-[#111b24]">
+        {production ? (
+          <Svg>
+            <path d="M3 35V17l11 6V12l10 8V5h10v30Z" fill="#805531" stroke="#f1c08d" />
+          </Svg>
+        ) : (
+          <img
+            src={assetUrl("icons/behaviors/generation", 128)}
+            alt="generation"
+            className="h-full w-full object-contain"
+          />
+        )}
+      </span>
+    </span>
   );
 }
 const icons: Record<string, ReactNode> = {

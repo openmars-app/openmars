@@ -78,6 +78,6 @@ func (a *ConfirmEffectSelectionAction) Execute(ctx context.Context, gameID, play
 	}
 	p.Selection().SetPendingEffectSelection(nil)
 	a.WriteStateLog(ctx, g, pending.Source, shared.SourceTypeCardPlay, playerID, description)
-	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 	return nil
 }

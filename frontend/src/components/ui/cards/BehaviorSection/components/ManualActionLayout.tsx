@@ -260,9 +260,7 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
           ) : null}
           <BehaviorArrow />
           <div className="bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)] flex items-center">
-            <span className="bg-[rgba(255,255,255,0.9)] text-black text-[10px] font-bold px-1 py-[1px] leading-tight">
-              SR
-            </span>
+            <GameIcon iconType="resources" size="behavior" />
           </div>
           {behavior.choicePolicy && (
             <span className="text-white font-bold text-sm [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
@@ -417,20 +415,7 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
       <div className="behavior-flow flex items-center justify-center gap-1 w-full">
         {!hideActionChip && <GameIcon iconType="action" size="behavior" />}
         <div className="bg-white/[0.08] border border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)] px-2 py-1 flex items-center justify-center">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="opacity-80"
-          >
-            <polyline points="1 4 1 10 7 10" />
-            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-          </svg>
+          <GameIcon iconType="action-reuse" size="behavior" />
         </div>
       </div>
     );

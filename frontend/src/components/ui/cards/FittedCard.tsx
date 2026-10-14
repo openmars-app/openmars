@@ -50,7 +50,11 @@ export default function FittedCard({
       return;
     }
     let observedBounds: HTMLElement | null = null;
-    const observer = new ResizeObserver(() => update());
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    });
     const update = () => {
       // An ancestor's ref is attached after this effect first runs; the observer retries.
       const bounds = boundsRef?.current ?? null;
@@ -87,7 +91,10 @@ export default function FittedCard({
     };
     update();
     observer.observe(inner);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
   }, [boundsRef, height, maxScale, naturalWidth, reservedWidth]);
 
   return (

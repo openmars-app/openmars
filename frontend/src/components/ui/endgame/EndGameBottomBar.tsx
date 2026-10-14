@@ -1,3 +1,4 @@
+import { useOverlayEventTarget } from "@/contexts/OverlayEnvironment";
 import GameButton from "@/components/ui/buttons/GameButton.tsx";
 import { FC, useState, useMemo, useEffect, useRef } from "react";
 import type { GameDto, GameHistoryEntryDto } from "../../../types/generated/api-types";
@@ -145,6 +146,7 @@ const EndGameBottomBar: FC<EndGameBottomBarProps> = ({
   replaySpectatePlayerId,
   onReplaySpectatePlayerChange,
 }) => {
+  const eventTarget = useOverlayEventTarget();
   const { state: vpState, controls: vpControls } = useVPCounting();
   const { isCompact } = useLayoutMode();
   const topOffsetClass = isCompact ? COMPACT_TOP_OFFSET_CLASS : DESKTOP_TOP_OFFSET_CLASS;
@@ -158,9 +160,9 @@ const EndGameBottomBar: FC<EndGameBottomBarProps> = ({
         onPanelChange("score");
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activePanel, onPanelChange]);
+    eventTarget.addEventListener("keydown", handleKeyDown);
+    return () => eventTarget.removeEventListener("keydown", handleKeyDown);
+  }, [activePanel, onPanelChange, eventTarget]);
 
   const hasHistory = (historyEntries?.length ?? 0) > 0;
   const allScores = game.finalScores ?? [];

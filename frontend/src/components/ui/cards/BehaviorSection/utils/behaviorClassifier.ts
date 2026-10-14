@@ -69,6 +69,10 @@ export const classifyBehaviors = (behaviors: CardBehaviorDto[]): ClassifiedBehav
       return { behavior, type: "auto-no-background", description, originalIndex };
     }
 
+    if (triggerType === "auto" && !hasCondition && hasInputs) {
+      return { behavior, type: "immediate-effect", description, originalIndex };
+    }
+
     if (hasTrigger && hasInputs) {
       return { behavior, type: "triggered-effect", description, originalIndex };
     }

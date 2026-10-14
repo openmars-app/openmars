@@ -99,6 +99,21 @@ func (s *Selection) SetPendingCardSelection(selection *shared.PendingCardSelecti
 	})
 }
 
+func (s *Selection) GetPendingCardPlaySelection() *shared.PendingCardPlaySelection {
+	var result *shared.PendingCardPlaySelection
+	s.read(func(st *datastore.PlayerState) {
+		if st.PendingCardPlaySelection != nil {
+			cp := *st.PendingCardPlaySelection
+			cp.Selectors = shared.CloneSelectors(cp.Selectors)
+			result = &cp
+		}
+	})
+	return result
+}
+func (s *Selection) SetPendingCardPlaySelection(selection *shared.PendingCardPlaySelection) {
+	s.update(func(st *datastore.PlayerState) { st.PendingCardPlaySelection = selection })
+}
+
 func (s *Selection) GetPendingCardDrawSelection() *shared.PendingCardDrawSelection {
 	var sel *shared.PendingCardDrawSelection
 	s.read(func(st *datastore.PlayerState) {
@@ -263,7 +278,7 @@ func (s *Selection) SetPendingFreeTradeSelection(selection *shared.PendingFreeTr
 func (s *Selection) HasPendingSelection() bool {
 	var has bool
 	s.read(func(st *datastore.PlayerState) {
-		has = st.PendingCardSelection != nil ||
+		has = st.PendingCardPlaySelection != nil || st.PendingCardSelection != nil ||
 			st.PendingCardReveal != nil ||
 			st.PendingCardDrawSelection != nil ||
 			len(st.PendingBehaviorResolutions) > 0 ||
@@ -299,16 +314,6 @@ func (s *Selection) CardReceipts() []shared.CardReceipt {
 	var result []shared.CardReceipt
 	s.read(func(st *datastore.PlayerState) { result = append([]shared.CardReceipt{}, st.CardReceipts...) })
 	return result
-}
-
-// AddCardReceipt records a completed draw without blocking gameplay.
-func (s *Selection) AddCardReceipt(source, sourceCardID string, cards []string) {
-	if len(cards) == 0 {
-		return
-	}
-	s.update(func(st *datastore.PlayerState) {
-		st.CardReceipts = append(st.CardReceipts, shared.CardReceipt{ID: uuid.NewString(), Source: source, SourceCardID: sourceCardID, Cards: append([]string{}, cards...)})
-	})
 }
 
 // AcknowledgeCardReceipt only dismisses the named receipt, including on repeated requests.

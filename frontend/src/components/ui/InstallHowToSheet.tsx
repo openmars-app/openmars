@@ -1,3 +1,4 @@
+import { useOverlayPortalRoot } from "@/contexts/OverlayEnvironment";
 import React from "react";
 import { createPortal } from "react-dom";
 import CloseButton from "./buttons/CloseButton.tsx";
@@ -68,18 +69,27 @@ const FIREFOX_ANDROID_STEPS: React.ReactNode[] = [
 const closeSheet = () => useInstallAppStore.getState().setHowToOpen(false);
 
 export default function InstallHowToSheet() {
+  const portalRoot = useOverlayPortalRoot();
   const open = useInstallAppStore((s) => s.howToOpen);
   if (!open) {
     return null;
   }
-  return createPortal(<HowToSheet />, document.body);
+  return createPortal(<LiveHowToSheet />, portalRoot);
 }
 
-function HowToSheet() {
-  const reducedMotion = useReducedMotion();
+function LiveHowToSheet() {
   useBackDismiss(closeSheet);
+  return <InstallHowToSheetView platform={installPlatform()} onClose={closeSheet} />;
+}
 
-  const platform = installPlatform();
+export function InstallHowToSheetView({
+  platform,
+  onClose,
+}: {
+  platform: ReturnType<typeof installPlatform>;
+  onClose: () => void;
+}) {
+  const reducedMotion = useReducedMotion();
   let steps = IOS_STEPS;
   if (platform === "firefox-android") {
     steps = FIREFOX_ANDROID_STEPS;
@@ -90,7 +100,7 @@ function HowToSheet() {
       <div
         aria-hidden="true"
         className={`absolute inset-0 bg-black/60 ${reducedMotion ? "" : "animate-[fadeIn_180ms_ease-out]"}`}
-        onClick={closeSheet}
+        onClick={onClose}
       />
       <div
         role="dialog"
@@ -107,7 +117,7 @@ function HowToSheet() {
           <h2 className="m-0 font-orbitron text-sm font-bold tracking-wider uppercase text-shadow-glow">
             Install the app
           </h2>
-          <CloseButton onClick={closeSheet} label="Close" />
+          <CloseButton onClick={onClose} label="Close" />
         </div>
         <ol className="m-0 p-0 pr-3 list-none flex flex-col gap-3">
           {steps.map((step, index) => (

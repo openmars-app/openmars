@@ -34,6 +34,38 @@ const PlayerSelectionOverlay: React.FC<PlayerSelectionOverlayProps> = ({
     await globalWebSocketManager.spectatorConnect(name, game.id);
     onSpectate();
   };
+  return (
+    <PlayerSelectionOverlayView
+      game={game}
+      onSelectPlayer={onSelectPlayer}
+      onCancel={onCancel}
+      visible={visible}
+      onExited={onExited}
+      spectatorName={spectatorName}
+      onNameChange={setSpectatorName}
+      isConnecting={isConnecting}
+      onSpectate={() => {
+        void handleSpectate();
+      }}
+    />
+  );
+};
+
+export function PlayerSelectionOverlayView({
+  game,
+  onSelectPlayer,
+  onSpectate,
+  onCancel,
+  visible,
+  onExited,
+  spectatorName,
+  onNameChange,
+  isConnecting,
+}: PlayerSelectionOverlayProps & {
+  spectatorName: string;
+  onNameChange: (name: string) => void;
+  isConnecting: boolean;
+}) {
   const allPlayers: (PlayerDto | OtherPlayerDto)[] = [
     ...(game.currentPlayer ? [game.currentPlayer] : []),
     ...(game.otherPlayers || []),
@@ -112,9 +144,9 @@ const PlayerSelectionOverlay: React.FC<PlayerSelectionOverlayProps> = ({
         <input
           type="text"
           value={spectatorName}
-          onChange={(e) => setSpectatorName(e.target.value)}
+          onChange={(e) => onNameChange(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") void handleSpectate();
+            if (e.key === "Enter") onSpectate();
           }}
           placeholder="Enter your name"
           disabled={isConnecting}
@@ -126,7 +158,7 @@ const PlayerSelectionOverlay: React.FC<PlayerSelectionOverlayProps> = ({
         />
         <GameButton
           emphasis="quiet"
-          onClick={() => void handleSpectate()}
+          onClick={onSpectate}
           disabled={isConnecting || !spectatorName.trim()}
           className="font-orbitron bg-white/10 border border-white/20 rounded-none py-3 px-6 text-white text-sm font-medium hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-default"
         >
@@ -135,6 +167,6 @@ const PlayerSelectionOverlay: React.FC<PlayerSelectionOverlayProps> = ({
       </div>
     </GameMenuModal>
   );
-};
+}
 
 export default PlayerSelectionOverlay;

@@ -1,3 +1,4 @@
+import { useOverlayPortalRoot, useIsolatedOverlay } from "@/contexts/OverlayEnvironment";
 import {
   useEffect,
   useLayoutEffect,
@@ -59,7 +60,22 @@ interface Props {
   initPhase: InitPhaseDto;
 }
 
-export default function CorporationShowcaseOverlay({ game, initPhase }: Props) {
+export default function CorporationShowcaseOverlay(props: Props) {
+  return (
+    <CorporationShowcaseOverlayView
+      {...props}
+      onAdvance={() => {
+        void globalWebSocketManager.confirmInitAdvance();
+      }}
+    />
+  );
+}
+
+export function CorporationShowcaseOverlayView({
+  game,
+  initPhase,
+  onAdvance,
+}: Props & { onAdvance: () => void }) {
   const { isCompact } = useLayoutMode();
   const reducedMotion = useReducedMotion();
   const [viewport, setViewport] = useState<Viewport>({
@@ -94,7 +110,7 @@ export default function CorporationShowcaseOverlay({ game, initPhase }: Props) {
   const handleNext = () => {
     setViewingPlayerId(null);
     setSentVersion(initPhase.confirmVersion);
-    void globalWebSocketManager.confirmInitAdvance();
+    onAdvance();
   };
 
   if (isCompact) {
@@ -243,6 +259,7 @@ type CardPlayState = "waiting" | "releasing" | "gone";
  * and sound, after which the card stays gone. A card already played on mount is gone.
  */
 function useCardPlay(played: boolean, animate: boolean) {
+  const isolated = useIsolatedOverlay();
   const ref = useRef<HTMLDivElement | null>(null);
   const handled = useRef(played);
   const [state, setState] = useState<CardPlayState>(played ? "gone" : "waiting");
@@ -252,7 +269,9 @@ function useCardPlay(played: boolean, animate: boolean) {
       return;
     }
     handled.current = true;
-    void audioService.playSound("card-played");
+    if (!isolated) {
+      void audioService.playSound("card-played");
+    }
     const element = ref.current;
     if (!element || !animate) {
       setState("gone");
@@ -261,7 +280,7 @@ function useCardPlay(played: boolean, animate: boolean) {
     setState("releasing");
     const animation = playCardRelease(element);
     animation.addEventListener("finish", () => setState("gone"));
-  }, [played, animate]);
+  }, [played, animate, isolated]);
 
   return { ref, state };
 }
@@ -522,6 +541,7 @@ function CompactShowcase({
   nextSent,
   onNext,
 }: CompactShowcaseProps) {
+  const portalRoot = useOverlayPortalRoot();
   const [detailCard, setDetailCard] = useState<CardDto | null>(null);
   const swipeRef = useRef<{ x: number; y: number } | null>(null);
   const swipedRef = useRef(false);
@@ -698,7 +718,7 @@ function CompactShowcase({
         !faded &&
         createPortal(
           <MobileCardDetail card={detailCard} onClose={() => setDetailCard(null)} />,
-          document.body,
+          portalRoot,
         )}
     </div>
   );

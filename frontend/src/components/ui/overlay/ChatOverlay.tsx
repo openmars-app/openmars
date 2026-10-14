@@ -1,3 +1,4 @@
+import { useOverlayEventTarget } from "@/contexts/OverlayEnvironment";
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { ChatMessageDto } from "@/types/generated/api-types.ts";
 import { Z_INDEX } from "@/constants/zIndex";
@@ -31,27 +32,7 @@ function clampToViewport(element: HTMLElement | null, x: number, y: number) {
   return { x: clampedX, y: clampedY };
 }
 
-const ChatOverlay: React.FC<ChatOverlayProps> = ({
-  messages,
-  onSendMessage,
-  embedded,
-  fill,
-  isEndgame,
-  playerColorMap,
-  onBoundsChange,
-}) => {
-  const [inputValue, setInputValue] = useState("");
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isSnapped, setIsSnapped] = useState(true);
-  const [snapX, setSnapX] = useState(0);
-  const dragOffset = useRef({ x: 0, y: 0 });
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesRef = useRef<HTMLDivElement>(null);
-  const stuckToBottomRef = useRef(true);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [showEmotePicker, setShowEmotePicker] = useState(false);
-  const emotePickerRef = useRef<HTMLDivElement>(null);
+const ChatOverlay: React.FC<ChatOverlayProps> = (props) => {
   const isSpectator = useGameStore((s) => s.isSpectator);
   const game = useGameStore((s) => s.game);
   const typing = useBotPresenceStore((s) => s.typing);
@@ -70,6 +51,50 @@ const ChatOverlay: React.FC<ChatOverlayProps> = ({
     return names;
   }, [game?.currentPlayer, game?.otherPlayers, typing]);
 
+  return (
+    <ChatOverlayView
+      {...props}
+      isSpectator={isSpectator}
+      typingNames={typingNames}
+      onSendEmote={(kind) => {
+        void globalWebSocketManager.sendEmote(kind);
+      }}
+    />
+  );
+};
+
+export const ChatOverlayView: React.FC<
+  ChatOverlayProps & {
+    isSpectator: boolean;
+    typingNames: string[];
+    onSendEmote: (kind: Parameters<typeof globalWebSocketManager.sendEmote>[0]) => void;
+  }
+> = ({
+  isSpectator,
+  typingNames,
+  onSendEmote,
+  messages,
+  onSendMessage,
+  embedded,
+  fill,
+  isEndgame,
+  playerColorMap,
+  onBoundsChange,
+}) => {
+  const eventTarget = useOverlayEventTarget();
+  const [inputValue, setInputValue] = useState("");
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isSnapped, setIsSnapped] = useState(true);
+  const [snapX, setSnapX] = useState(0);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const stuckToBottomRef = useRef(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showEmotePicker, setShowEmotePicker] = useState(false);
+  const emotePickerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!showEmotePicker) {
       return undefined;
@@ -79,9 +104,9 @@ const ChatOverlay: React.FC<ChatOverlayProps> = ({
         setShowEmotePicker(false);
       }
     };
-    document.addEventListener("pointerdown", handleClick);
-    return () => document.removeEventListener("pointerdown", handleClick);
-  }, [showEmotePicker]);
+    eventTarget.addEventListener("pointerdown", handleClick);
+    return () => eventTarget.removeEventListener("pointerdown", handleClick);
+  }, [showEmotePicker, eventTarget]);
 
   const snapBottom = BAR_HEIGHT;
 
@@ -342,7 +367,7 @@ const ChatOverlay: React.FC<ChatOverlayProps> = ({
                       aria-label={label}
                       onClick={() => {
                         setShowEmotePicker(false);
-                        void globalWebSocketManager.sendEmote(kind);
+                        onSendEmote(kind);
                       }}
                       className="flex items-center justify-center w-9 h-9 compact:w-11 compact:h-11 rounded cursor-pointer hover:bg-white/10 hover:scale-110 transition-transform"
                     >

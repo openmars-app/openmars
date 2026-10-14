@@ -3,234 +3,1092 @@
     "id": "luna",
     "name": "Luna",
     "steps": [
-      { "outputs": [{ "type": "credit", "amount": 1 }] },
-      { "outputs": [{ "type": "credit", "amount": 2 }] },
-      { "outputs": [{ "type": "credit", "amount": 4 }] },
-      { "outputs": [{ "type": "credit", "amount": 7 }] },
-      { "outputs": [{ "type": "credit", "amount": 10 }] },
-      { "outputs": [{ "type": "credit", "amount": 13 }] },
-      { "outputs": [{ "type": "credit", "amount": 17 }] }
+      {
+        "outputs": [
+          {
+            "type": "credit",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "credit",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "credit",
+            "amount": 4
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "credit",
+            "amount": 7
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "credit",
+            "amount": 10
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "credit",
+            "amount": 13
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "credit",
+            "amount": 17
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "credit", "amount": 2 }],
+    "colonyBonus": [
+      {
+        "type": "credit",
+        "amount": 2
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "credit-production", "amount": 2 }] },
-      { "reward": [{ "type": "credit-production", "amount": 2 }] },
-      { "reward": [{ "type": "credit-production", "amount": 2 }] }
+      {
+        "reward": [
+          {
+            "type": "credit-production",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "credit-production",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "credit-production",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#C0C0C0", "icon": "luna" }
+    "style": {
+      "color": "#C0C0C0",
+      "icon": "colony-luna"
+    }
   },
   {
     "id": "io",
     "name": "Io",
     "steps": [
-      { "outputs": [{ "type": "heat", "amount": 2 }] },
-      { "outputs": [{ "type": "heat", "amount": 3 }] },
-      { "outputs": [{ "type": "heat", "amount": 4 }] },
-      { "outputs": [{ "type": "heat", "amount": 6 }] },
-      { "outputs": [{ "type": "heat", "amount": 8 }] },
-      { "outputs": [{ "type": "heat", "amount": 10 }] },
-      { "outputs": [{ "type": "heat", "amount": 13 }] }
+      {
+        "outputs": [
+          {
+            "type": "heat",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "heat",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "heat",
+            "amount": 4
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "heat",
+            "amount": 6
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "heat",
+            "amount": 8
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "heat",
+            "amount": 10
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "heat",
+            "amount": 13
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "heat", "amount": 2 }],
+    "colonyBonus": [
+      {
+        "type": "heat",
+        "amount": 2
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "heat-production", "amount": 1 }] },
-      { "reward": [{ "type": "heat-production", "amount": 1 }] },
-      { "reward": [{ "type": "heat-production", "amount": 1 }] }
+      {
+        "reward": [
+          {
+            "type": "heat-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "heat-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "heat-production",
+            "amount": 1
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#FFD700", "icon": "io" }
+    "style": {
+      "color": "#FFD700",
+      "icon": "colony-io"
+    }
   },
   {
     "id": "ceres",
     "name": "Ceres",
     "steps": [
-      { "outputs": [{ "type": "steel", "amount": 1 }] },
-      { "outputs": [{ "type": "steel", "amount": 2 }] },
-      { "outputs": [{ "type": "steel", "amount": 3 }] },
-      { "outputs": [{ "type": "steel", "amount": 4 }] },
-      { "outputs": [{ "type": "steel", "amount": 6 }] },
-      { "outputs": [{ "type": "steel", "amount": 8 }] },
-      { "outputs": [{ "type": "steel", "amount": 10 }] }
+      {
+        "outputs": [
+          {
+            "type": "steel",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "steel",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "steel",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "steel",
+            "amount": 4
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "steel",
+            "amount": 6
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "steel",
+            "amount": 8
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "steel",
+            "amount": 10
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "steel", "amount": 2 }],
+    "colonyBonus": [
+      {
+        "type": "steel",
+        "amount": 2
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "steel-production", "amount": 1 }] },
-      { "reward": [{ "type": "steel-production", "amount": 1 }] },
-      { "reward": [{ "type": "steel-production", "amount": 1 }] }
+      {
+        "reward": [
+          {
+            "type": "steel-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "steel-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "steel-production",
+            "amount": 1
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#8B4513", "icon": "ceres" }
+    "style": {
+      "color": "#8B4513",
+      "icon": "colony-ceres"
+    }
   },
   {
     "id": "europa",
     "name": "Europa",
     "steps": [
-      { "outputs": [{ "type": "credit-production", "amount": 1 }] },
-      { "outputs": [{ "type": "credit-production", "amount": 1 }] },
-      { "outputs": [{ "type": "energy-production", "amount": 1 }] },
-      { "outputs": [{ "type": "energy-production", "amount": 1 }] },
-      { "outputs": [{ "type": "plant-production", "amount": 1 }] },
-      { "outputs": [{ "type": "plant-production", "amount": 1 }] },
-      { "outputs": [{ "type": "plant-production", "amount": 1 }] }
+      {
+        "outputs": [
+          {
+            "type": "credit-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "credit-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "energy-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "energy-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "plant-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "plant-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "plant-production",
+            "amount": 1
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "credit", "amount": 1 }],
+    "colonyBonus": [
+      {
+        "type": "credit",
+        "amount": 1
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "ocean-placement", "amount": 1 }] },
-      { "reward": [{ "type": "ocean-placement", "amount": 1 }] },
-      { "reward": [{ "type": "ocean-placement", "amount": 1 }] }
+      {
+        "reward": [
+          {
+            "type": "ocean-placement",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "ocean-placement",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "ocean-placement",
+            "amount": 1
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#4169E1", "icon": "europa" }
+    "style": {
+      "color": "#4169E1",
+      "icon": "colony-europa"
+    }
   },
   {
     "id": "ganymede",
     "name": "Ganymede",
     "steps": [
-      { "outputs": [{ "type": "plant", "amount": 0 }] },
-      { "outputs": [{ "type": "plant", "amount": 1 }] },
-      { "outputs": [{ "type": "plant", "amount": 2 }] },
-      { "outputs": [{ "type": "plant", "amount": 3 }] },
-      { "outputs": [{ "type": "plant", "amount": 4 }] },
-      { "outputs": [{ "type": "plant", "amount": 5 }] },
-      { "outputs": [{ "type": "plant", "amount": 6 }] }
+      {
+        "outputs": [
+          {
+            "type": "plant",
+            "amount": 0
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "plant",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "plant",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "plant",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "plant",
+            "amount": 4
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "plant",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "plant",
+            "amount": 6
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "plant", "amount": 1 }],
+    "colonyBonus": [
+      {
+        "type": "plant",
+        "amount": 1
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "plant-production", "amount": 1 }] },
-      { "reward": [{ "type": "plant-production", "amount": 1 }] },
-      { "reward": [{ "type": "plant-production", "amount": 1 }] }
+      {
+        "reward": [
+          {
+            "type": "plant-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "plant-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "plant-production",
+            "amount": 1
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#228B22", "icon": "ganymede" }
+    "style": {
+      "color": "#228B22",
+      "icon": "colony-ganymede"
+    }
   },
   {
     "id": "callisto",
     "name": "Callisto",
     "steps": [
-      { "outputs": [{ "type": "energy", "amount": 0 }] },
-      { "outputs": [{ "type": "energy", "amount": 2 }] },
-      { "outputs": [{ "type": "energy", "amount": 3 }] },
-      { "outputs": [{ "type": "energy", "amount": 5 }] },
-      { "outputs": [{ "type": "energy", "amount": 7 }] },
-      { "outputs": [{ "type": "energy", "amount": 10 }] },
-      { "outputs": [{ "type": "energy", "amount": 13 }] }
+      {
+        "outputs": [
+          {
+            "type": "energy",
+            "amount": 0
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "energy",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "energy",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "energy",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "energy",
+            "amount": 7
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "energy",
+            "amount": 10
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "energy",
+            "amount": 13
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "energy", "amount": 3 }],
+    "colonyBonus": [
+      {
+        "type": "energy",
+        "amount": 3
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "energy-production", "amount": 1 }] },
-      { "reward": [{ "type": "energy-production", "amount": 1 }] },
-      { "reward": [{ "type": "energy-production", "amount": 1 }] }
+      {
+        "reward": [
+          {
+            "type": "energy-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "energy-production",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "energy-production",
+            "amount": 1
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#9370DB", "icon": "callisto" }
+    "style": {
+      "color": "#9370DB",
+      "icon": "colony-callisto"
+    }
   },
   {
     "id": "triton",
     "name": "Triton",
     "steps": [
-      { "outputs": [{ "type": "titanium", "amount": 0 }] },
-      { "outputs": [{ "type": "titanium", "amount": 1 }] },
-      { "outputs": [{ "type": "titanium", "amount": 1 }] },
-      { "outputs": [{ "type": "titanium", "amount": 2 }] },
-      { "outputs": [{ "type": "titanium", "amount": 3 }] },
-      { "outputs": [{ "type": "titanium", "amount": 4 }] },
-      { "outputs": [{ "type": "titanium", "amount": 5 }] }
+      {
+        "outputs": [
+          {
+            "type": "titanium",
+            "amount": 0
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "titanium",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "titanium",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "titanium",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "titanium",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "titanium",
+            "amount": 4
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "titanium",
+            "amount": 5
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "titanium", "amount": 1 }],
+    "colonyBonus": [
+      {
+        "type": "titanium",
+        "amount": 1
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "titanium", "amount": 3 }] },
-      { "reward": [{ "type": "titanium", "amount": 3 }] },
-      { "reward": [{ "type": "titanium", "amount": 3 }] }
+      {
+        "reward": [
+          {
+            "type": "titanium",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "titanium",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "titanium",
+            "amount": 3
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#1E90FF", "icon": "triton" }
+    "style": {
+      "color": "#1E90FF",
+      "icon": "colony-triton"
+    }
   },
   {
     "id": "enceladus",
     "activationResource": "microbe",
     "name": "Enceladus",
     "steps": [
-      { "outputs": [{ "type": "microbe", "amount": 0 }] },
-      { "outputs": [{ "type": "microbe", "amount": 1 }] },
-      { "outputs": [{ "type": "microbe", "amount": 2 }] },
-      { "outputs": [{ "type": "microbe", "amount": 3 }] },
-      { "outputs": [{ "type": "microbe", "amount": 4 }] },
-      { "outputs": [{ "type": "microbe", "amount": 4 }] },
-      { "outputs": [{ "type": "microbe", "amount": 5 }] }
+      {
+        "outputs": [
+          {
+            "type": "microbe",
+            "amount": 0
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "microbe",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "microbe",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "microbe",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "microbe",
+            "amount": 4
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "microbe",
+            "amount": 4
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "microbe",
+            "amount": 5
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "microbe", "amount": 1 }],
+    "colonyBonus": [
+      {
+        "type": "microbe",
+        "amount": 1
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "microbe", "amount": 3 }] },
-      { "reward": [{ "type": "microbe", "amount": 3 }] },
-      { "reward": [{ "type": "microbe", "amount": 3 }] }
+      {
+        "reward": [
+          {
+            "type": "microbe",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "microbe",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "microbe",
+            "amount": 3
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#00CED1", "icon": "enceladus" }
+    "style": {
+      "color": "#00CED1",
+      "icon": "colony-enceladus"
+    }
   },
   {
     "id": "miranda",
     "activationResource": "animal",
     "name": "Miranda",
     "steps": [
-      { "outputs": [{ "type": "animal", "amount": 0 }] },
-      { "outputs": [{ "type": "animal", "amount": 1 }] },
-      { "outputs": [{ "type": "animal", "amount": 1 }] },
-      { "outputs": [{ "type": "animal", "amount": 2 }] },
-      { "outputs": [{ "type": "animal", "amount": 2 }] },
-      { "outputs": [{ "type": "animal", "amount": 3 }] },
-      { "outputs": [{ "type": "animal", "amount": 3 }] }
+      {
+        "outputs": [
+          {
+            "type": "animal",
+            "amount": 0
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "animal",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "animal",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "animal",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "animal",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "animal",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "animal",
+            "amount": 3
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "animal", "amount": 1 }],
+    "colonyBonus": [
+      {
+        "type": "animal",
+        "amount": 1
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "animal", "amount": 1 }] },
-      { "reward": [{ "type": "animal", "amount": 1 }] },
-      { "reward": [{ "type": "animal", "amount": 1 }] }
+      {
+        "reward": [
+          {
+            "type": "animal",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "animal",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "animal",
+            "amount": 1
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#FF69B4", "icon": "miranda" }
+    "style": {
+      "color": "#FF69B4",
+      "icon": "colony-miranda"
+    }
   },
   {
     "id": "pluto",
     "name": "Pluto",
     "steps": [
-      { "outputs": [{ "type": "card-draw", "amount": 0 }] },
-      { "outputs": [{ "type": "card-draw", "amount": 1 }] },
-      { "outputs": [{ "type": "card-draw", "amount": 2 }] },
-      { "outputs": [{ "type": "card-draw", "amount": 2 }] },
-      { "outputs": [{ "type": "card-draw", "amount": 3 }] },
-      { "outputs": [{ "type": "card-draw", "amount": 3 }] },
-      { "outputs": [{ "type": "card-draw", "amount": 4 }] }
+      {
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 0
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 4
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "card-draw", "amount": 1 }],
+    "colonyBonus": [
+      {
+        "type": "card-draw",
+        "amount": 1
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "card-draw", "amount": 2 }] },
-      { "reward": [{ "type": "card-draw", "amount": 2 }] },
-      { "reward": [{ "type": "card-draw", "amount": 2 }] }
+      {
+        "reward": [
+          {
+            "type": "card-draw",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "card-draw",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "card-draw",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#696969", "icon": "pluto" }
+    "style": {
+      "color": "#696969",
+      "icon": "colony-pluto"
+    }
   },
   {
     "id": "titan",
     "activationResource": "floater",
     "name": "Titan",
     "steps": [
-      { "outputs": [{ "type": "floater", "amount": 0 }] },
-      { "outputs": [{ "type": "floater", "amount": 1 }] },
-      { "outputs": [{ "type": "floater", "amount": 1 }] },
-      { "outputs": [{ "type": "floater", "amount": 2 }] },
-      { "outputs": [{ "type": "floater", "amount": 3 }] },
-      { "outputs": [{ "type": "floater", "amount": 3 }] },
-      { "outputs": [{ "type": "floater", "amount": 4 }] }
+      {
+        "outputs": [
+          {
+            "type": "floater",
+            "amount": 0
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "floater",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "floater",
+            "amount": 1
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "floater",
+            "amount": 2
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "floater",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "floater",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "outputs": [
+          {
+            "type": "floater",
+            "amount": 4
+          }
+        ]
+      }
     ],
-    "colonyBonus": [{ "type": "floater", "amount": 1 }],
+    "colonyBonus": [
+      {
+        "type": "floater",
+        "amount": 1
+      }
+    ],
     "colonies": [
-      { "reward": [{ "type": "floater", "amount": 3 }] },
-      { "reward": [{ "type": "floater", "amount": 3 }] },
-      { "reward": [{ "type": "floater", "amount": 3 }] }
+      {
+        "reward": [
+          {
+            "type": "floater",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "floater",
+            "amount": 3
+          }
+        ]
+      },
+      {
+        "reward": [
+          {
+            "type": "floater",
+            "amount": 3
+          }
+        ]
+      }
     ],
     "location": "venus",
-    "style": { "color": "#FF8C00", "icon": "titan" }
+    "style": {
+      "color": "#FF8C00",
+      "icon": "colony-titan"
+    }
   }
 ]

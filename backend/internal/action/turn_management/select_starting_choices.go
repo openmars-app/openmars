@@ -446,6 +446,32 @@ func ApplyPreludeCard(ctx context.Context, g *game.Game, p *player.Player, prelu
 		return fmt.Errorf("card %s is not a prelude card", preludeID)
 	}
 
+	// A required immediate card play must be possible before committing the Prelude.
+	for _, behavior := range card.Behaviors {
+		if !gamecards.HasAutoTrigger(behavior) {
+			continue
+		}
+		for _, output := range behavior.Outputs {
+			op, ok := output.(*shared.CardOperationCondition)
+			if !ok || op.ResourceType != shared.ResourceCardPlay {
+				continue
+			}
+			if !baseaction.CanResolveCardPlay(p, g, cardRegistry, op) {
+				if err := g.Deck().Remove(ctx, []string{card.ID}); err != nil {
+					return err
+				}
+				p.Resources().Add(map[shared.ResourceType]int{shared.ResourceCredit: 15})
+				if stateRepo != nil {
+					display := baseaction.BuildCardDisplayData(card, shared.SourceTypeCardPlay)
+					if _, err := stateRepo.WriteFull(ctx, g.ID(), g, card.Name, shared.SourceTypeCardPlay, p.ID(), "Discarded unplayable prelude for 15 credits", nil, nil, display); err != nil {
+						log.Warn("Failed to log prelude refund", slog.Any("error", err))
+					}
+				}
+				return nil
+			}
+		}
+	}
+
 	tags := make([]string, len(card.Tags))
 	for i, tag := range card.Tags {
 		tags[i] = string(tag)

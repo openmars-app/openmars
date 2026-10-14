@@ -3,7 +3,8 @@ import OrChip from "./components/OrChip.tsx";
 import BehaviorQualifiers, { OperationRequirements } from "./components/BehaviorQualifiers.tsx";
 import React, { useMemo } from "react";
 import { BehaviorSectionProps, ClassifiedBehavior, BehaviorPresentation } from "./types.ts";
-import { CalculatedOutputDto } from "@/types/generated/api-types.ts";
+import { CalculatedOutputDto, PerConditionDto } from "@/types/generated/api-types.ts";
+import { getPer } from "@/types/resourceConditions.ts";
 import { classifyBehaviors } from "./utils/behaviorClassifier.ts";
 import { detectTilePlacementScale } from "./utils/tileScaling.ts";
 import { isResourceAffordable } from "./utils/resourceValidation.ts";
@@ -23,7 +24,7 @@ import DiscountLayout from "./components/DiscountLayout.tsx";
 import PaymentSubstituteLayout from "./components/PaymentSubstituteLayout.tsx";
 import ValueModifierLayout from "./components/ValueModifierLayout.tsx";
 import DefenseLayout from "./components/DefenseLayout.tsx";
-import { hasResourceVisual } from "./components/ResourceDisplay.tsx";
+import { ComputedPerAmountsContext, hasResourceVisual } from "./components/ResourceDisplay.tsx";
 
 function DependencyHeader({
   classifiedBehavior,
@@ -120,6 +121,7 @@ const BehaviorContent: React.FC<BehaviorSectionProps> = ({
   playerResources,
   resourceStorage,
   cardId,
+  vpConditions,
   greyOutAll = false,
   hideActionChip = false,
   noContainer = false,
@@ -145,6 +147,33 @@ const BehaviorContent: React.FC<BehaviorSectionProps> = ({
     }
     return map;
   }, [computedValues, sourceBehaviorIndex]);
+
+  const computedPerAmounts = useMemo(() => {
+    const amounts = new Map<PerConditionDto, number>();
+    behaviors?.forEach((behavior, behaviorIndex) => {
+      // The backend sends scaled outputs in authored order, including choice outputs.
+      // Associate them before layout merging/reordering; per objects survive layout clones.
+      const calculated = (computedValuesByIndex.get(behaviorIndex) ?? []).filter(
+        (output) => output.isScaled,
+      );
+      let calculatedIndex = 0;
+      const outputs = [
+        ...(behavior.outputs ?? []),
+        ...(behavior.choices ?? []).flatMap((choice) => choice.outputs ?? []),
+      ];
+      for (const output of outputs) {
+        const per = getPer(output);
+        if (!per || per.amount <= 0) {
+          continue;
+        }
+        const value = calculated[calculatedIndex++];
+        if (value?.resourceType === output.type) {
+          amounts.set(per, value.amount);
+        }
+      }
+    });
+    return amounts;
+  }, [behaviors, computedValuesByIndex]);
 
   const { tileScaleInfo, cardLayoutPlan, optimizedBehaviors } = getBehaviorLayout(
     behaviors,
@@ -257,6 +286,9 @@ const BehaviorContent: React.FC<BehaviorSectionProps> = ({
           classifiedBehavior={classifiedBehavior}
           index={index}
           cardId={cardId}
+          adjacentScoring={vpConditions
+            ?.filter((condition) => condition.per?.adjacentToSelfTile)
+            .map((condition) => condition.per!.type)}
           noContainer={noContainer || sharedEffect}
           description={classifiedBehavior.description}
           showTooltip={tooltipsEnabled}
@@ -310,11 +342,14 @@ const BehaviorContent: React.FC<BehaviorSectionProps> = ({
     const sourceIndices =
       classifiedBehavior.originalIndices ??
       (classifiedBehavior.originalIndex === undefined ? [] : [classifiedBehavior.originalIndex]);
-    const behaviorComputedOutputs = classifiedBehavior.alternativeOriginalIndices
-      ? (classifiedBehavior.alternativeOriginalIndices
-          .map((sourceIndex) => computedValuesByIndex.get(sourceIndex))
-          .find((outputs) => outputs?.length) ?? [])
-      : sourceIndices.flatMap((sourceIndex) => computedValuesByIndex.get(sourceIndex) ?? []);
+    let behaviorComputedOutputs: CalculatedOutputDto[] | undefined;
+    if (computedValues !== undefined) {
+      behaviorComputedOutputs = classifiedBehavior.alternativeOriginalIndices
+        ? (classifiedBehavior.alternativeOriginalIndices
+            .map((sourceIndex) => computedValuesByIndex.get(sourceIndex))
+            .find((outputs) => outputs?.length) ?? [])
+        : sourceIndices.flatMap((sourceIndex) => computedValuesByIndex.get(sourceIndex) ?? []);
+    }
 
     let content: React.ReactNode = null;
 
@@ -401,7 +436,9 @@ const BehaviorContent: React.FC<BehaviorSectionProps> = ({
         Boolean(behavior.maxUsesPerGeneration) &&
         (type !== "manual-action" || behavior.maxUsesPerGeneration! > 1));
     const immediateExchange =
-      type === "triggered-effect" &&
+      (type === "triggered-effect" || type === "immediate-effect") &&
+      !behavior.optional &&
+      !!behavior.inputs?.length &&
       behavior.triggers?.every((trigger) => trigger.type === "auto" && !trigger.condition);
 
     return (
@@ -414,6 +451,9 @@ const BehaviorContent: React.FC<BehaviorSectionProps> = ({
         borderLabel={type === "auto-no-background" ? undefined : borderLabel}
         noContainer={noContainer || groupedAction || groupedEffect || immediateExchange}
         cardId={cardId}
+        adjacentScoring={vpConditions
+          ?.filter((condition) => condition.per?.adjacentToSelfTile)
+          .map((condition) => condition.per!.type)}
       >
         <div
           className={`flex ${inlineDependency || inlineStateAction || (wide && (groupedAction || groupedEffect)) ? "flex-row justify-center" : "flex-col"} items-center gap-1 w-full ${dependency && !dependency.active ? "opacity-50" : ""}`}
@@ -458,19 +498,21 @@ const BehaviorContent: React.FC<BehaviorSectionProps> = ({
 
   // Render behaviors with overflow handling if needed
   const containerClass =
-    cardLayoutPlan.needsOverflowHandling && !wide
+    cardLayoutPlan.needsOverflowHandling && !wide && !immediateRow
       ? "flex flex-col gap-[var(--behavior-section-gap,3px)] items-center w-full max-h-[120px] overflow-y-auto overflow-x-hidden scroll-smooth [scrollbar-width:thin] [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar-track]:bg-white/10 [&::-webkit-scrollbar-track]:rounded-px [&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-thumb]:rounded-px"
-      : `flex ${immediateRow || wide ? "flex-row flex-wrap justify-center" : "flex-col"} gap-[var(--behavior-section-gap,3px)] ${immediateRow ? "[align-items:last_baseline]" : "items-center"} w-full`;
+      : `flex ${immediateRow || wide ? "flex-row flex-wrap justify-center" : "flex-col"} ${immediateRow ? "gap-x-2 gap-y-[var(--behavior-section-gap,3px)]" : "gap-[var(--behavior-section-gap,3px)]"} items-center w-full`;
 
   return (
-    <div
-      className={`behavior-section ${containerClass}`}
-      data-behavior-layout={wide ? "corporation" : undefined}
-    >
-      {optimizedBehaviors.map((classifiedBehavior, index) =>
-        renderBehavior(classifiedBehavior, index),
-      )}
-    </div>
+    <ComputedPerAmountsContext.Provider value={computedPerAmounts}>
+      <div
+        className={`behavior-section ${containerClass}`}
+        data-behavior-layout={wide ? "corporation" : undefined}
+      >
+        {optimizedBehaviors.map((classifiedBehavior, index) =>
+          renderBehavior(classifiedBehavior, index),
+        )}
+      </div>
+    </ComputedPerAmountsContext.Provider>
   );
 };
 

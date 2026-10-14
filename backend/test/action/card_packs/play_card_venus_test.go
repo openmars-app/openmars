@@ -1294,14 +1294,17 @@ func TestSisterPlanetSupport_CreditProduction(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 	card := testutil.GetCardByName("Sister Planet Support")
-	cardRegistry := testutil.CreateTestCardRegistry()
+	cardRegistry := testutil.CreateTestCardRegistryWithAdditionalCards([]gamecards.Card{
+		{ID: "venus-1", Name: "Venus Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagVenus}},
+		{ID: "earth-1", Name: "Earth Card", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Tags: []shared.CardTag{shared.TagEarth}},
+	})
 	players := testGame.GetAllPlayers()
 	p := players[0]
 	p.SetCorporationID(testutil.CardID("Tharsis Republic"))
 	testutil.AssertNoError(t, testGame.UpdateStatus(ctx, shared.GameStatusActive), "UpdateStatus failed")
 	testutil.AssertNoError(t, testGame.UpdatePhase(ctx, shared.GamePhaseAction), "UpdatePhase failed")
 	testutil.AssertNoError(t, testGame.SetCurrentTurn(ctx, p.ID(), 2), "SetCurrentTurn failed")
-	// Self-tags satisfy the requirement since the card itself has venus+earth
+	// Both tags must already be in play before this card is played.
 	p.PlayedCards().AddCard("venus-1", "Venus Card", "automated", []string{"venus"})
 	p.PlayedCards().AddCard("earth-1", "Earth Card", "automated", []string{"earth"})
 	p.Resources().Add(map[shared.ResourceType]int{shared.ResourceCredit: 100})
@@ -2818,6 +2821,33 @@ func TestDawnCity_RealPlacementAndRequirements(t *testing.T) {
 				}
 			}
 			testutil.AssertTrue(t, scored, "Dawn City has a scoring entry")
+		})
+	}
+}
+
+func TestSisterPlanetSupport_RequiresBothPriorTags(t *testing.T) {
+	for _, tags := range [][]string{nil, {"earth"}, {"venus"}, {"wild"}} {
+		t.Run(fmt.Sprint(tags), func(t *testing.T) {
+			g, repo := testutil.CreateTestGameWithPlayers(t, 1)
+			p := g.GetAllPlayers()[0]
+			ctx := context.Background()
+			testutil.AssertNoError(t, g.UpdateStatus(ctx, shared.GameStatusActive), "active")
+			testutil.AssertNoError(t, g.UpdatePhase(ctx, shared.GamePhaseAction), "phase")
+			testutil.AssertNoError(t, g.SetCurrentTurn(ctx, p.ID(), 2), "turn")
+			p.PlayedCards().AddCard("prior", "Prior tags", "automated", tags)
+			p.Resources().Add(map[shared.ResourceType]int{shared.ResourceCredit: 7})
+			id := testutil.CardID("Sister Planet Support")
+			p.Hand().AddCard(id)
+			priorTags := make([]shared.CardTag, len(tags))
+			for i, tag := range tags {
+				priorTags[i] = shared.CardTag(tag)
+			}
+			registry := testutil.CreateTestCardRegistryWithAdditionalCards([]gamecards.Card{{ID: "prior", Name: "Prior tags", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Tags: priorTags}})
+			play := cardAction.NewPlayCardAction(repo, registry, nil, testutil.TestLogger())
+			err := play.Execute(ctx, g.ID(), p.ID(), id, shared.NativePayment(shared.ResourceCredit, 7), nil, nil, nil, nil, nil)
+			testutil.AssertTrue(t, err != nil, "missing tags reject play")
+			testutil.AssertEqual(t, 7, p.Resources().Get().Credits, "failed requirement cannot spend credits")
+			testutil.AssertTrue(t, p.Hand().HasCard(id), "failed card stays in hand")
 		})
 	}
 }

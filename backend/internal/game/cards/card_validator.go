@@ -1,8 +1,10 @@
 package cards
 
 import (
+	"errors"
 	"fmt"
 	"openmars/internal/game/board"
+	"openmars/internal/game/colonies"
 
 	"openmars/internal/game/global_parameters"
 	"openmars/internal/game/player"
@@ -264,6 +266,24 @@ func ValidateTileRequirement(req Requirement, p *player.Player, b *board.Board) 
 	}
 	if req.Max != nil && count > *req.Max {
 		return fmt.Errorf("need at most %d %s tiles, have %d", *req.Max, req.Type, count)
+	}
+	return nil
+}
+
+var ErrColoniesTooFew = errors.New("not enough colonies")
+var ErrColoniesTooMany = errors.New("too many colonies")
+
+// ValidateColonyRequirement uses the authored ownership scope, retaining self as the default.
+func ValidateColonyRequirement(req Requirement, playerID string, colonies *colonies.Colonies) error {
+	count := colonies.CountPlayerColonies(playerID)
+	if req.Target == "any-player" {
+		count = colonies.CountAllColonies()
+	}
+	if req.Min != nil && count < *req.Min {
+		return fmt.Errorf("%w: need %d, have %d", ErrColoniesTooFew, *req.Min, count)
+	}
+	if req.Max != nil && count > *req.Max {
+		return fmt.Errorf("%w: maximum %d, have %d", ErrColoniesTooMany, *req.Max, count)
 	}
 	return nil
 }

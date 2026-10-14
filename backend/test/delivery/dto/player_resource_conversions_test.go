@@ -22,7 +22,7 @@ func TestToPlayerDto_ResourceConversions_AvailableWhenAffordable(t *testing.T) {
 	g, p, cardRegistry := setupStuckPlayerGame(t)
 	p.Resources().Set(shared.Resources{Plants: 8, Heat: 8})
 
-	playerDto := dto.ToPlayerDto(p, g, cardRegistry, nil, nil, nil)
+	playerDto := dto.ToPlayerDto(p, g, cardRegistry, nil, nil, nil, nil)
 
 	plants := findResourceConversion(t, playerDto.ResourceConversions, dto.StandardProjectConvertPlantsToGreenery)
 	if !plants.Available {
@@ -42,7 +42,7 @@ func TestToPlayerDto_ResourceConversions_UnavailableWhenShort(t *testing.T) {
 	g, p, cardRegistry := setupStuckPlayerGame(t)
 	p.Resources().Set(shared.Resources{Plants: 7, Heat: 7})
 
-	playerDto := dto.ToPlayerDto(p, g, cardRegistry, nil, nil, nil)
+	playerDto := dto.ToPlayerDto(p, g, cardRegistry, nil, nil, nil, nil)
 
 	for _, projectType := range []dto.StandardProject{dto.StandardProjectConvertPlantsToGreenery, dto.StandardProjectConvertHeatToTemperature} {
 		conversion := findResourceConversion(t, playerDto.ResourceConversions, projectType)

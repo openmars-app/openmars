@@ -14,8 +14,26 @@ export default function ServerDownDialog() {
     return null;
   }
   return (
+    <ServerDownDialogView
+      serverName={gatewayServer.name}
+      onRetry={() => window.location.reload()}
+      onSwitchServer={changeServer}
+    />
+  );
+}
+
+export function ServerDownDialogView({
+  serverName,
+  onRetry,
+  onSwitchServer,
+}: {
+  serverName: string;
+  onRetry: () => void;
+  onSwitchServer: () => void;
+}) {
+  return (
     <GameMenuModal
-      title={`Lost connection to ${gatewayServer.name}`}
+      title={`Lost connection to ${serverName}`}
       showBackdrop={true}
       zIndex={Z_INDEX.CONFIRMATION_MODAL}
     >
@@ -23,10 +41,10 @@ export default function ServerDownDialog() {
         The server isn't responding. Games on a server that goes down can't continue.
       </p>
       <div className="flex gap-4 justify-center">
-        <GameButton emphasis="secondary" onClick={() => window.location.reload()}>
+        <GameButton emphasis="secondary" onClick={onRetry}>
           Retry
         </GameButton>
-        <GameButton onClick={changeServer}>Switch server</GameButton>
+        <GameButton onClick={onSwitchServer}>Switch server</GameButton>
       </div>
     </GameMenuModal>
   );

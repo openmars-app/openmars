@@ -1974,6 +1974,12 @@ code {
     scrollbar-width: thin;
   }
 
+  .game-card[data-presentation="compact"] .game-card-behaviors > .behavior-section {
+    padding-block: 5px;
+    margin-block: -5px;
+    max-height: calc(100% + 10px);
+  }
+
   .behavior-section {
     overflow-anchor: none;
   }

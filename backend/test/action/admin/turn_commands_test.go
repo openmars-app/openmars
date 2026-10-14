@@ -29,7 +29,7 @@ func TestAdminMoveTurn_GivesNormalTurnAndContinuesInOrder(t *testing.T) {
 
 	g.CurrentTurn().ConsumeAction()
 	g.CurrentTurn().ConsumeAction()
-	baseaction.AutoAdvanceTurnIfNeeded(g, order[1], testutil.TestLogger())
+	baseaction.AutoAdvanceTurnIfNeeded(g, order[1], testutil.TestLogger(), testutil.CreateTestCardRegistry())
 	testutil.AssertEqual(t, order[2], g.CurrentTurn().PlayerID(), "turn continues to the next player")
 }
 

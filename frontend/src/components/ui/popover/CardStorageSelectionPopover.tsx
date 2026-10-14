@@ -16,6 +16,7 @@ import CardPreviewPanel, {
   CardPreviewThumbnail,
 } from "./CardPreviewPanel.tsx";
 import GameButton from "../buttons/GameButton.tsx";
+import { getResourceName } from "@/utils/resourceColors.ts";
 import {
   GameFlowPopover,
   GameFlowTitle,
@@ -95,6 +96,7 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
 
   const hasNoStorage = validCards.length === 0;
   const canDismiss = !mandatory || hasNoStorage;
+  const resourceName = getResourceName(resourceType, amount).toLowerCase();
 
   const handleContinueWithoutStorage = () => {
     onCardSelect("");
@@ -133,7 +135,7 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
         {!hasNoStorage && !isDependency && (
           <div className="text-white/60 text-xs compact:text-[13px] text-shadow-glow mt-1 flex items-center justify-center gap-1.5">
             <span>
-              Place {amount} resource{amount !== 1 ? "s" : ""}
+              Place {amount} {resourceName}
             </span>
             {resourceType !== "card-resource" && <GameIcon iconType={resourceType} size="small" />}
           </div>
@@ -168,8 +170,7 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
               No {resourceType === "card-resource" ? "matching" : resourceType} storage available
             </div>
             <div className="text-white/70 text-xs compact:text-[13px] max-w-[280px]">
-              If you continue, the {resourceType === "card-resource" ? "resource" : resourceType}{" "}
-              will be lost.
+              Continuing skips this gain of {amount} {resourceName}.
             </div>
           </div>
         ) : (
@@ -245,7 +246,7 @@ const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = 
                   clickSound={false}
                   onClick={handleContinueWithoutStorage}
                 >
-                  Continue Anyway
+                  Continue without {resourceName}
                 </GameButton>
               )}
             </>

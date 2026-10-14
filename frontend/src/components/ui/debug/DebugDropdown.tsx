@@ -1,3 +1,4 @@
+import GameButton from "../buttons/GameButton";
 import FloatingWindow from "./FloatingWindow.tsx";
 import React, { useState, useEffect } from "react";
 import { useWindowDrag, useWindowManager } from "./WindowManager.tsx";
@@ -24,6 +25,7 @@ interface DebugDropdownProps {
   onClose: () => void;
   gameState: GameDto | null;
   changedPaths?: Set<string>;
+  onOpenUIDebug?: () => void;
 }
 
 const DebugDropdown: React.FC<DebugDropdownProps> = ({
@@ -31,6 +33,7 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
   onClose,
   gameState,
   changedPaths = new Set(),
+  onOpenUIDebug,
 }) => {
   const [activeItem, setActiveItem] = useState<ActiveItem>("game-state");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
@@ -129,6 +132,11 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
         zIndex: getZIndex(WINDOW_ID),
       }}
     >
+      {gameState?.settings.developmentMode && onOpenUIDebug && (
+        <GameButton onClick={onOpenUIDebug} className="self-start mb-3 min-h-11">
+          UI Debug
+        </GameButton>
+      )}
       <div
         style={{
           display: "flex",

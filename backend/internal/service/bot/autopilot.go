@@ -38,6 +38,20 @@ func (ts *ToolServer) Autopilot(ctx context.Context, snap *Snapshot) error {
 	case p.PendingCardSelection != nil:
 		return a.ConfirmSellPatents.Execute(ctx, gid, pid, firstCardIDs(p.PendingCardSelection.AvailableCards, p.PendingCardSelection.MinCards))
 
+	case p.PendingCardPlaySelection != nil:
+		for _, card := range p.PendingCardPlaySelection.AvailableCards {
+			if !card.Available {
+				continue
+			}
+			payment, err := ts.quotePayment(snap.Game, snap.Player, action.PaymentIntent{Action: "play-card", CardID: card.ID}, nil)
+			if err != nil {
+				continue
+			}
+			if err = a.PlayCard.Execute(ctx, gid, pid, card.ID, payment, nil, nil, nil, nil, nil); err == nil {
+				return nil
+			}
+		}
+		return fmt.Errorf("no automatic card play available; resolve the pending card with its choices")
 	case p.PendingCardDrawSelection != nil:
 		sel := p.PendingCardDrawSelection
 		return a.ConfirmCardDraw.Execute(ctx, gid, pid, firstCardIDs(sel.AvailableCards, sel.MinFreeTakeCount), []string{}, emptyPayment())
@@ -73,9 +87,15 @@ func (ts *ToolServer) Autopilot(ctx context.Context, snap *Snapshot) error {
 		return fmt.Errorf("no legal resource removal")
 
 	case p.PendingEffectSelection != nil:
+		if p.PendingEffectSelection.CanContinueWithoutSelection {
+			return a.ConfirmEffectSelection.Continue(ctx, gid, pid)
+		}
 		return a.ConfirmEffectSelection.Execute(ctx, gid, pid, 0)
 
 	case p.PendingColonySelection != nil:
+		if p.PendingColonySelection.CanContinueWithoutSelection {
+			return a.ConfirmColonyPlacement.Continue(ctx, gid, pid)
+		}
 		if len(p.PendingColonySelection.AvailableColonyIDs) == 0 {
 			return fmt.Errorf("colony selection has no options")
 		}
@@ -85,12 +105,18 @@ func (ts *ToolServer) Autopilot(ctx context.Context, snap *Snapshot) error {
 		return a.ConfirmColonyResource.Execute(ctx, gid, pid, "")
 
 	case p.PendingAwardFundSelection != nil:
+		if p.PendingAwardFundSelection.CanContinueWithoutSelection {
+			return a.ConfirmAwardFund.Continue(ctx, gid, pid)
+		}
 		if len(p.PendingAwardFundSelection.AvailableAwards) == 0 {
 			return fmt.Errorf("award selection has no options")
 		}
 		return a.ConfirmAwardFund.Execute(ctx, gid, pid, p.PendingAwardFundSelection.AvailableAwards[0])
 
 	case p.PendingFreeTradeSelection != nil:
+		if p.PendingFreeTradeSelection.CanContinueWithoutSelection {
+			return a.ConfirmFreeTrade.Continue(ctx, gid, pid)
+		}
 		if len(p.PendingFreeTradeSelection.AvailableColonyIDs) == 0 {
 			return fmt.Errorf("free trade has no colonies")
 		}

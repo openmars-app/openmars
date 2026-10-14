@@ -1,8 +1,11 @@
+import CardPlaySelectionOverlay from "../../ui/overlay/CardPlaySelectionOverlay";
+import { useResolutionFailure } from "@/hooks/useResolutionFailure";
+import GameExitConfirmDialog from "../../ui/modals/GameExitConfirmDialog";
 import { usePaymentStore } from "@/stores/paymentStore";
-import ResourceRemovalOverlay from "../../ui/overlay/ResourceRemovalOverlay";
+import { PendingResourceRemovalPopover } from "../../ui/popover/TargetPlayerSelectionPopover";
 import CardRevealOverlay from "@/components/ui/overlay/CardRevealOverlay.tsx";
 import EffectSelectionOverlay from "@/components/ui/overlay/EffectSelectionOverlay.tsx";
-import { useEffect, useCallback, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import GameLayout, { SolarSystemFade, type GameLayoutProps } from "./GameLayout.tsx";
 import MobileGameLayout from "../../mobile/MobileGameLayout.tsx";
@@ -11,6 +14,7 @@ import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
+const UIDebugWindow = lazy(() => import("../../ui/debug/uiDebug/UIDebugWindow"));
 import PerformanceWindow from "../../ui/debug/PerformanceWindow.tsx";
 import FeedbackWindow from "../../ui/debug/FeedbackWindow.tsx";
 
@@ -44,7 +48,6 @@ import { usePlayedCardNotification } from "@/hooks/usePlayedCardNotification.ts"
 import ChatOverlay from "../../ui/overlay/ChatOverlay.tsx";
 import GameButton from "../../ui/buttons/GameButton.tsx";
 import { BotPersonaChip, PlayerChip } from "../../ui/display/BotChips.tsx";
-import GameMenuModal from "../../ui/overlay/GameMenuModal.tsx";
 import CardBrowserOverlay from "../../ui/overlay/CardBrowserOverlay.tsx";
 import MainMenuHamburger, { CurrentGameMenuButton } from "../../ui/buttons/MainMenuHamburger.tsx";
 import EndGameBottomBar from "../../ui/endgame/EndGameBottomBar.tsx";
@@ -189,6 +192,7 @@ function WaitingPlayerList({ game }: { game: GameDto }) {
 }
 
 export default function GameInterface() {
+  const resolutionFailure = useResolutionFailure();
   const location = useLocation();
   const navigate = useNavigate();
   const { gameId: urlGameId } = useParams<{ gameId?: string }>();
@@ -230,6 +234,11 @@ export default function GameInterface() {
   const showProductionPhaseModal = useUIOverlayStore((s) => s.showProductionPhaseModal);
   const isProductionModalHidden = useUIOverlayStore((s) => s.isProductionModalHidden);
   const openProductionToCardSelection = useUIOverlayStore((s) => s.openProductionToCardSelection);
+  const showUIDebug = useUIOverlayStore((s) => s.showUIDebug);
+  useEffect(
+    () => () => useUIOverlayStore.getState().setShowUIDebug(false),
+    [game?.id, game?.settings.developmentMode],
+  );
   const showDebugDropdown = useUIOverlayStore((s) => s.showDebugDropdown);
   const showPerformanceWindow = useUIOverlayStore((s) => s.showPerformanceWindow);
   const showFeedbackWindow = useUIOverlayStore((s) => s.showFeedbackWindow);
@@ -242,6 +251,7 @@ export default function GameInterface() {
   const isStartingSelectionHidden = useUIOverlayStore((s) => s.isStartingSelectionHidden);
   const showPendingCardSelection = useUIOverlayStore((s) => s.showPendingCardSelection);
   const hasBlockingSelection = Boolean(
+    currentPlayer?.pendingCardPlaySelection ||
     currentPlayer?.pendingCardDrawSelection ||
     currentPlayer?.pendingCardSelection ||
     currentPlayer?.pendingTileSelection ||
@@ -645,6 +655,7 @@ export default function GameInterface() {
 
   const hideCardFanForModals =
     showStartingSelection ||
+    !!currentPlayer?.pendingCardPlaySelection ||
     showPendingCardSelection ||
     showCardDrawSelection ||
     (game?.currentPlayer?.pendingBehaviorResolutions?.length ?? 0) > 0 ||
@@ -664,7 +675,17 @@ export default function GameInterface() {
   const playSession = useCardPlayFlowStore((s) => s.playSession);
   const playError = useCardPlayFlowStore((s) => s.playError);
   const showPaymentSelection = usePaymentStore((s) => !!s.pending);
+  const pendingCardPlayFlowOpen =
+    !!playSession ||
+    showPaymentSelection ||
+    showChoiceSelection ||
+    showCardStorageSelection ||
+    showTargetPlayerSelection ||
+    showCardResourceSelection ||
+    showAmountSelection ||
+    showFreeTradeWarning;
   const inspectionBlocked =
+    !!currentPlayer?.pendingCardPlaySelection ||
     !!playSession ||
     hideCardFanForModals ||
     hasPendingActionSelection ||
@@ -885,10 +906,21 @@ export default function GameInterface() {
         />
 
         <WindowManagerProvider>
+          {game?.settings.developmentMode && showUIDebug && (
+            <Suspense fallback={null}>
+              <UIDebugWindow
+                key={game.id}
+                onClose={() => useUIOverlayStore.getState().setShowUIDebug(false)}
+              />
+            </Suspense>
+          )}
           <DebugDropdown
             isVisible={showDebugDropdown}
             onClose={() => useUIOverlayStore.getState().setShowDebugDropdown(false)}
             gameState={game}
+            onOpenUIDebug={() => {
+              useUIOverlayStore.getState().setShowUIDebug(true);
+            }}
             changedPaths={changedPaths}
           />
 
@@ -956,75 +988,25 @@ export default function GameInterface() {
         )}
 
         {showLeaveGameConfirm && (
-          <GameMenuModal
-            title="Leave game?"
-            showBackdrop={true}
-            onClose={() => useUIOverlayStore.getState().setShowLeaveGameConfirm(false)}
-            zIndex={Z_INDEX.CONFIRMATION_MODAL}
-          >
-            <p className="text-white/80 text-center mb-6">
-              You can reconnect to the game again without losing any progress.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <GameButton
-                emphasis="secondary"
-                onClick={() => useUIOverlayStore.getState().setShowLeaveGameConfirm(false)}
-              >
-                Cancel
-              </GameButton>
-              <GameButton tone="error" onClick={handleConfirmLeaveGame}>
-                Leave
-              </GameButton>
-            </div>
-          </GameMenuModal>
+          <GameExitConfirmDialog
+            kind="leave"
+            onCancel={() => useUIOverlayStore.getState().setShowLeaveGameConfirm(false)}
+            onConfirm={handleConfirmLeaveGame}
+          />
         )}
-
         {showCloseGameConfirm && (
-          <GameMenuModal
-            title="Close game?"
-            showBackdrop={true}
-            onClose={() => useUIOverlayStore.getState().setShowCloseGameConfirm(false)}
-            zIndex={Z_INDEX.CONFIRMATION_MODAL}
-          >
-            <p className="text-white/80 text-center mb-6">
-              You can reconnect to the game again without losing any progress.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <GameButton
-                emphasis="secondary"
-                onClick={() => useUIOverlayStore.getState().setShowCloseGameConfirm(false)}
-              >
-                Cancel
-              </GameButton>
-              <GameButton tone="error" onClick={handleConfirmLeaveGame}>
-                Close
-              </GameButton>
-            </div>
-          </GameMenuModal>
+          <GameExitConfirmDialog
+            kind="close"
+            onCancel={() => useUIOverlayStore.getState().setShowCloseGameConfirm(false)}
+            onConfirm={handleConfirmLeaveGame}
+          />
         )}
-
         {showEndGameConfirm && (
-          <GameMenuModal
-            title="End game?"
-            showBackdrop={true}
-            onClose={() => useUIOverlayStore.getState().setShowEndGameConfirm(false)}
-            zIndex={Z_INDEX.CONFIRMATION_MODAL}
-          >
-            <p className="text-white/80 text-center mb-6">
-              This will end the game for all players. This action cannot be undone.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <GameButton
-                emphasis="secondary"
-                onClick={() => useUIOverlayStore.getState().setShowEndGameConfirm(false)}
-              >
-                Cancel
-              </GameButton>
-              <GameButton tone="error" onClick={handleConfirmEndGame}>
-                End game
-              </GameButton>
-            </div>
-          </GameMenuModal>
+          <GameExitConfirmDialog
+            kind="end"
+            onCancel={() => useUIOverlayStore.getState().setShowEndGameConfirm(false)}
+            onConfirm={handleConfirmEndGame}
+          />
         )}
 
         {showStartingSelection && !isStartingSelectionHidden && game && !isCompact && (
@@ -1141,6 +1123,15 @@ export default function GameInterface() {
             }}
           />
         )}
+        {currentPlayer?.pendingCardPlaySelection && !pendingCardPlayFlowOpen && (
+          <CardPlaySelectionOverlay
+            selection={currentPlayer.pendingCardPlaySelection}
+            onPlay={(id) => {
+              void flow.handlePlayCard(id);
+            }}
+          />
+        )}
+
         {game?.currentPlayer?.pendingCardDrawSelection && (
           <CardDrawSelectionOverlay
             mode="selection"
@@ -1393,7 +1384,7 @@ export default function GameInterface() {
         )}
 
         {game?.currentPlayer?.pendingResourceRemovalSelection && (
-          <ResourceRemovalOverlay
+          <PendingResourceRemovalPopover
             key={game.currentPlayer.pendingResourceRemovalSelection.id}
             selection={game.currentPlayer.pendingResourceRemovalSelection}
             currentPlayerId={game.currentPlayer.id}
@@ -1420,6 +1411,10 @@ export default function GameInterface() {
 
         {game?.currentPlayer?.pendingColonySelection && game && (
           <ColonySelectionOverlay
+            failure={resolutionFailure}
+            onContinue={() =>
+              globalWebSocketManager.continueSelection("action.confirm-colony-placement")
+            }
             isOpen={showColonyPlacementSelection}
             pendingSelection={game.currentPlayer.pendingColonySelection}
             colonies={
@@ -1428,7 +1423,7 @@ export default function GameInterface() {
                 : (game.colonies ?? [])
             }
             allPlayers={colonyAllPlayers}
-            onConfirm={(colonyId) => void globalWebSocketManager.confirmColonyPlacement(colonyId)}
+            onConfirm={(colonyId) => globalWebSocketManager.confirmColonyPlacement(colonyId)}
           />
         )}
 
@@ -1440,6 +1435,10 @@ export default function GameInterface() {
         )}
         {game?.currentPlayer?.pendingEffectSelection && (
           <EffectSelectionOverlay
+            failure={resolutionFailure}
+            onContinue={() =>
+              globalWebSocketManager.continueSelection("action.confirm-effect-selection")
+            }
             key={game.currentPlayer.pendingEffectSelection.sourceCardId}
             selection={game.currentPlayer.pendingEffectSelection}
             cards={[
@@ -1453,6 +1452,8 @@ export default function GameInterface() {
         )}
         {game?.currentPlayer?.pendingFreeTradeSelection && game && (
           <FreeTradeSelectionOverlay
+            failure={resolutionFailure}
+            onContinue={() => globalWebSocketManager.continueSelection("action.confirm-free-trade")}
             isOpen={showFreeTradeSelection}
             pendingSelection={game.currentPlayer.pendingFreeTradeSelection}
             colonies={game.colonies ?? []}
@@ -1462,7 +1463,7 @@ export default function GameInterface() {
             playedCards={currentPlayer?.playedCards ?? []}
             corporation={currentPlayer?.corporation}
             onConfirm={(colonyId, trackSteps) =>
-              void globalWebSocketManager.confirmFreeTrade(colonyId, trackSteps)
+              globalWebSocketManager.confirmFreeTrade(colonyId, trackSteps)
             }
           />
         )}

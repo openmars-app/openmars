@@ -20,10 +20,10 @@ interface GameIconProps {
   /**
    * Amount to display on the icon.
    * - For credits: Shows value inside the icon (number or string like "X")
-   * - For other resources: Shows number in bottom-right corner (if > 1)
+   * - For other resources: Shows the amount before the icon; corporation cards may opt into a badge
    */
   amount?: number | string;
-  amountPlacement?: "badge" | "center";
+  amountPlacement?: "inline" | "badge" | "center";
   /**
    * Whether to display attack/threat indicator with red glow animation.
    * Only applicable for resource icons when showing enemy attacks or resource removal.
@@ -72,7 +72,7 @@ interface GameIconProps {
 const GameIcon: React.FC<GameIconProps> = ({
   iconType,
   amount,
-  amountPlacement = "badge",
+  amountPlacement = "inline",
   isAttack = false,
   size = "medium",
   className = "",
@@ -88,7 +88,7 @@ const GameIcon: React.FC<GameIconProps> = ({
 
   const iconUrl = baseType ? getIconPath(baseType) : null;
   const displayType = baseType || "";
-  const customIcon = getCardStateIcon(displayType);
+  const customIcon = iconUrl ? null : getCardStateIcon(displayType);
 
   if (!iconUrl && !customIcon) {
     const dimension =
@@ -205,29 +205,48 @@ const GameIcon: React.FC<GameIconProps> = ({
             className="w-full h-full object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
           />
         )}
-        {amount !== undefined && typeof amount === "number" && amount > 1 && !isCredits && (
-          <span
-            className="absolute bottom-0 right-0 text-white font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] bg-black/50 rounded-full px-1 min-w-[16px] text-center leading-none"
-            style={{ fontSize: `${dimensions.baseFontSize}px` }}
-          >
-            {amount}
-          </span>
-        )}
+        {amountPlacement === "badge" &&
+          amount !== undefined &&
+          typeof amount === "number" &&
+          amount > 1 &&
+          !isCredits && (
+            <span
+              className="absolute bottom-0 right-0 text-white font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] bg-black/50 rounded-full px-1 min-w-[16px] text-center leading-none"
+              style={{ fontSize: `${dimensions.baseFontSize}px` }}
+            >
+              {amount}
+            </span>
+          )}
       </div>
     );
   };
 
+  const content = (
+    <>
+      {!isCredits && amountPlacement === "inline" && amount !== undefined && amount !== 1 && (
+        <span
+          className="font-orbitron font-bold leading-none"
+          data-resource-amount
+          style={{ fontSize: `${dimensions.baseFontSize}px` }}
+        >
+          {amount}
+        </span>
+      )}
+      {renderCoreIcon()}
+    </>
+  );
+
   if (isProduction) {
     return (
       <div
-        className={`inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)] ${className}`}
+        className={`inline-flex items-center justify-center gap-1 bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)] ${className}`}
       >
-        {renderCoreIcon()}
+        {content}
       </div>
     );
   }
 
-  return renderCoreIcon();
+  return <span className="inline-flex items-center gap-1 shrink-0">{content}</span>;
 };
 
 export default GameIcon;

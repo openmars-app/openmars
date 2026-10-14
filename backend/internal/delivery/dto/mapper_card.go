@@ -2,6 +2,7 @@ package dto
 
 import (
 	"log/slog"
+	"openmars/internal/game/board"
 	gamecards "openmars/internal/game/cards"
 	"openmars/internal/game/player"
 	"openmars/internal/game/shared"
@@ -211,6 +212,7 @@ func toMinMaxValueDto(v shared.MinMaxValue) MinMaxValueDto {
 
 func toTileRestrictionsDto(tr shared.TileRestrictions) TileRestrictionsDto {
 	dto := TileRestrictionsDto{
+		PlacementLocation: board.ReservedPlacementLocation(tr.BoardTags),
 		BoardTags:         tr.BoardTags,
 		Adjacency:         tr.Adjacency,
 		Area:              tr.Area,
@@ -298,9 +300,10 @@ func toResourceConditionDto(bc shared.BehaviorCondition) any {
 		}
 	case *shared.CardOperationCondition:
 		dto := CardOperationConditionDto{
-			Optional: c.Optional,
-			Per:      ptrCast(c.Per, toPerConditionDto),
-			Type:     rt, Amount: amount, Target: target,
+			CostReduction: c.CostReduction,
+			Optional:      c.Optional,
+			Per:           ptrCast(c.Per, toPerConditionDto),
+			Type:          rt, Amount: amount, Target: target,
 			Selectors: mapSlice(c.Selectors, toSelectorDto),
 		}
 		if c.VariableAmount {

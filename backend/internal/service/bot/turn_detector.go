@@ -38,7 +38,7 @@ func IsMyTurn(game *dto.GameDto, myPlayerID string) bool {
 	if p.PendingColonySelection != nil || p.PendingColonyResourceSelection != nil || p.PendingAwardFundSelection != nil || p.PendingFreeTradeSelection != nil {
 		return true
 	}
-	if p.PendingCardDrawSelection != nil {
+	if p.PendingCardDrawSelection != nil || p.PendingCardPlaySelection != nil {
 		return true
 	}
 	if len(p.PendingBehaviorResolutions) > 0 {
@@ -97,6 +97,9 @@ func GetPendingActionType(game *dto.GameDto) string {
 	}
 	if p.PendingFreeTradeSelection != nil {
 		return "free-trade-selection"
+	}
+	if p.PendingCardPlaySelection != nil {
+		return "card-play-selection"
 	}
 	if p.PendingCardDrawSelection != nil {
 		return "card-draw-selection"

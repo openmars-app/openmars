@@ -30,7 +30,7 @@ type CardRequirements struct {
 
 // Requirement represents a single card requirement
 type Requirement struct {
-	Target    string               `json:"target,omitempty" tstype:"'self-player'"`
+	Target    string               `json:"target,omitempty" tstype:"'self-player' | 'any-player'"`
 	Permanent bool                 `json:"permanent,omitempty"`
 	State     string               `json:"state,omitempty"`
 	Equals    *int                 `json:"equals,omitempty"`

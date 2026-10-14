@@ -1,3 +1,4 @@
+import { useOverlayPortalRoot } from "@/contexts/OverlayEnvironment";
 import CloseButton from "@/components/ui/buttons/CloseButton.tsx";
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -39,6 +40,7 @@ const GameMenuModal: React.FC<GameMenuModalProps> = ({
   headerEnd,
   footer,
 }) => {
+  const portalRoot = useOverlayPortalRoot();
   const [animState, setAnimState] = useState<"entering" | "visible" | "exiting">("entering");
   const layoutClass = layout === "dialog" ? "" : `menu-modal-${layout}`;
 
@@ -141,7 +143,7 @@ const GameMenuModal: React.FC<GameMenuModalProps> = ({
     </>
   );
 
-  return showBackdrop ? createPortal(content, document.body) : content;
+  return showBackdrop ? createPortal(content, portalRoot) : content;
 };
 
 export default GameMenuModal;

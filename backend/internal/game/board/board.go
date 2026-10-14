@@ -295,60 +295,7 @@ func GenerateMarsBoard(includeVenus bool) []Tile {
 		}
 	}
 
-	// Add celestial body tiles (planets and moons outside Mars)
-	celestialTiles := []struct {
-		Pos         shared.HexPosition
-		Tags        []string
-		DisplayName string
-		Location    TileLocation
-	}{
-		{shared.HexPosition{Q: 500, R: 0, S: -500}, []string{BoardTagPhobosSpaceHaven}, "Phobos Space Haven", TileLocationPhobos},
-		{shared.HexPosition{Q: 400, R: 0, S: -400}, []string{BoardTagDawnCity}, "Dawn City", TileLocationMercury},
-		{shared.HexPosition{Q: 200, R: 0, S: -200}, []string{BoardTagGanymedeColony}, "Ganymede Colony", TileLocationGanymede},
-		{shared.HexPosition{Q: 300, R: 0, S: -300}, []string{BoardTagLunaMetropolis}, "Luna Metropolis", TileLocationLuna},
-	}
-	for _, ct := range celestialTiles {
-		displayName := ct.DisplayName
-		tiles = append(tiles, Tile{
-			Coordinates: ct.Pos,
-			Type:        shared.ResourceLandTile,
-			Location:    ct.Location,
-			Tags:        ct.Tags,
-			DisplayName: &displayName,
-			Bonuses:     nil,
-			OccupiedBy:  nil,
-			OwnerID:     nil,
-		})
-	}
-
-	if !includeVenus {
-		return tiles
-	}
-
-	// Venus tiles (non-adjacent coordinates so cities can't neighbor each other)
-	venusTiles := []struct {
-		Pos         shared.HexPosition
-		Tags        []string
-		DisplayName string
-	}{
-		{shared.HexPosition{Q: 100, R: 0, S: -100}, []string{BoardTagMaxwellBase}, "Maxwell Base"},
-		{shared.HexPosition{Q: 102, R: 0, S: -102}, []string{BoardTagStratopolis}, "Stratopolis"},
-	}
-	for _, vt := range venusTiles {
-		displayName := vt.DisplayName
-		tiles = append(tiles, Tile{
-			Coordinates: vt.Pos,
-			Type:        shared.ResourceLandTile,
-			Location:    TileLocationVenus,
-			Tags:        vt.Tags,
-			DisplayName: &displayName,
-			Bonuses:     nil,
-			OccupiedBy:  nil,
-			OwnerID:     nil,
-		})
-	}
-
-	return tiles
+	return appendReservedCelestialTiles(tiles, includeVenus)
 }
 
 func min(a, b int) int {

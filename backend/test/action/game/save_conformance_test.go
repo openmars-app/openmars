@@ -172,7 +172,19 @@ func compareSavedPositions(t *testing.T, a, b *saveWorld) {
 		}
 		normalize(value, reflect.TypeFor[datastore.GameState]())
 		for _, p := range value["players"].(map[string]any) {
-			normalize(p.(map[string]any), reflect.TypeFor[datastore.PlayerState]())
+			playerState := p.(map[string]any)
+			normalize(playerState, reflect.TypeFor[datastore.PlayerState]())
+			// Independently continued games generate distinct acknowledgement IDs.
+			// Receipt contents must match; exact saved IDs are checked by the roundtrip test.
+			if receipts, ok := playerState["cardReceipts"].([]any); ok {
+				for _, raw := range receipts {
+					receipt := raw.(map[string]any)
+					if receipt["ID"] == "" {
+						t.Fatal("card receipt has no acknowledgement ID")
+					}
+					delete(receipt, "ID")
+				}
+			}
 		}
 		// Tile appearance is seeded by the newly assigned game ID.
 		if tiles, ok := value["tiles"].([]any); ok {

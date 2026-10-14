@@ -1,3 +1,7 @@
+import { usePendingSubmission } from "@/hooks/usePendingSubmission";
+import type { ResolutionFailure } from "@/hooks/useResolutionFailure";
+import GamePopoverEmpty from "../GamePopover/GamePopoverEmpty";
+import GameIcon from "../display/GameIcon";
 import React, { useState, useMemo } from "react";
 import {
   PendingFreeTradeSelectionDto,
@@ -27,7 +31,9 @@ interface FreeTradeSelectionOverlayProps {
   allPlayers: PlayerInfo[];
   playedCards: CardDto[];
   corporation?: CardDto | null;
-  onConfirm: (colonyId: string, trackSteps: number) => void;
+  onContinue: () => void | Promise<unknown>;
+  failure?: ResolutionFailure | null;
+  onConfirm: (colonyId: string, trackSteps: number) => void | Promise<unknown>;
 }
 
 const FreeTradeSelectionOverlay: React.FC<FreeTradeSelectionOverlayProps> = ({
@@ -40,9 +46,17 @@ const FreeTradeSelectionOverlay: React.FC<FreeTradeSelectionOverlayProps> = ({
   playedCards,
   corporation,
   onConfirm,
+  onContinue,
+  failure,
 }) => {
   const tradeFleetAvailable = (tradeFleets[viewingPlayerId]?.available ?? 0) > 0;
   const [selectedSteps, setSelectedSteps] = useState<Record<string, number>>({});
+  const { submitting, error, submit } = usePendingSubmission(
+    failure,
+    "action.confirm-free-trade",
+    JSON.stringify(pendingSelection),
+  );
+  const empty = pendingSelection.canContinueWithoutSelection;
   const [selectedColonyId, setSelectedColonyId] = useState<string | null>(null);
   const [storageWarning, setStorageWarning] = useState<{
     message: string;
@@ -117,86 +131,109 @@ const FreeTradeSelectionOverlay: React.FC<FreeTradeSelectionOverlayProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {colonies.map((colony) => {
-            const tradeable = isColonyTradeable(colony);
-            const isSelected = selectedColonyId === colony.id;
-            const tradeOption = selectedTradeOption(colony.tradeOptions, selectedSteps[colony.id]);
-            const tradeGainOutputs = tradeOption?.outputs ?? [];
+          {empty ? (
+            <GamePopoverEmpty
+              icon={<GameIcon iconType="colony" size="large" />}
+              title="No trade available"
+              description="There are no legal choices for this effect. Continue without resolving it."
+            />
+          ) : (
+            colonies.map((colony) => {
+              const tradeable = isColonyTradeable(colony);
+              const isSelected = selectedColonyId === colony.id;
+              const tradeOption = selectedTradeOption(
+                colony.tradeOptions,
+                selectedSteps[colony.id],
+              );
+              const tradeGainOutputs = tradeOption?.outputs ?? [];
 
-            return (
-              <div key={colony.id}>
-                <GameButton
-                  emphasis="quiet"
-                  type="button"
-                  className={`w-full text-left px-3 py-2.5 rounded-none border transition-all ${
-                    !tradeable
-                      ? "border-white/5 bg-white/[0.01] opacity-40 cursor-default"
-                      : isSelected
-                        ? "bg-white/10 cursor-pointer"
-                        : "border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04] cursor-pointer"
-                  }`}
-                  style={{
-                    borderColor: isSelected && tradeable ? colony.style.color : undefined,
-                  }}
-                  onClick={() => {
-                    if (tradeable) {
-                      setSelectedColonyId(colony.id);
-                    }
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-white text-xs font-bold font-orbitron m-0">
-                        {colony.name}
-                      </h3>
-                      {colony.tradedThisGen && (
-                        <span className="text-[9px] font-orbitron text-white/30 uppercase compact:text-[11px]">
-                          Traded
-                        </span>
-                      )}
-                    </div>
-                    {tradeable && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-white/30 text-sm">→</span>
-                        <ColonyOutputDisplay outputs={tradeGainOutputs} />
+              return (
+                <div key={colony.id}>
+                  <GameButton
+                    emphasis="quiet"
+                    type="button"
+                    className={`w-full text-left px-3 py-2.5 rounded-none border transition-all ${
+                      !tradeable
+                        ? "border-white/5 bg-white/[0.01] opacity-40 cursor-default"
+                        : isSelected
+                          ? "border-space-blue-500 bg-space-blue-900/60 cursor-pointer"
+                          : "border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04] cursor-pointer"
+                    }`}
+                    disabled={submitting || !tradeable}
+                    selected={isSelected}
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      if (tradeable) {
+                        setSelectedColonyId(colony.id);
+                      }
+                    }}
+                  >
+                    <div className="w-full min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-white text-xs font-bold font-orbitron m-0">
+                            {colony.name}
+                          </h3>
+                          {colony.tradedThisGen && (
+                            <span className="text-[9px] font-orbitron text-white/30 uppercase compact:text-[11px]">
+                              Traded
+                            </span>
+                          )}
+                        </div>
+                        {tradeable && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-white/30 text-sm">→</span>
+                            <ColonyOutputDisplay outputs={tradeGainOutputs} />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  <div className={COLONY_TRACK_SCROLL_CLASS}>
-                    <div className={COLONY_TRACK_INNER_CLASS}>
-                      <ColonySteps
-                        steps={colony.steps}
-                        markerPosition={colony.markerPosition}
-                        previewPosition={tradeOption?.markerPosition}
-                        playerColonies={colony.playerColonies}
-                        maxSlots={colony.colonies.length}
-                        getPlayerColor={getPlayerColor}
-                        getPlayerName={getPlayerName}
-                      />
+                      <div className={COLONY_TRACK_SCROLL_CLASS}>
+                        <div className={COLONY_TRACK_INNER_CLASS}>
+                          <ColonySteps
+                            steps={colony.steps}
+                            markerPosition={colony.markerPosition}
+                            previewPosition={tradeOption?.markerPosition}
+                            playerColonies={colony.playerColonies}
+                            maxSlots={colony.colonies.length}
+                            getPlayerColor={getPlayerColor}
+                            getPlayerName={getPlayerName}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 mt-1.5 text-[9px] text-white/40 compact:text-[11px]">
+                        <span className="font-orbitron uppercase tracking-wider">Colony Bonus</span>
+                        <ColonyOutputDisplay outputs={colony.colonyBonus} />
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 mt-1.5 text-[9px] text-white/40 compact:text-[11px]">
-                    <span className="font-orbitron uppercase tracking-wider">Colony Bonus</span>
-                    <ColonyOutputDisplay outputs={colony.colonyBonus} />
-                  </div>
-                </GameButton>
-                <TradeTrackChoices
-                  options={colony.tradeOptions}
-                  selected={tradeOption?.trackSteps ?? 0}
-                  disabled={!tradeable}
-                  onSelect={(steps) => {
-                    setSelectedSteps((previous) => ({ ...previous, [colony.id]: steps }));
-                    setSelectedColonyId(colony.id);
-                  }}
-                />
-              </div>
-            );
-          })}
+                  </GameButton>
+                  <TradeTrackChoices
+                    options={colony.tradeOptions}
+                    selected={tradeOption?.trackSteps ?? 0}
+                    disabled={submitting || !tradeable}
+                    onSelect={(steps) => {
+                      setSelectedSteps((previous) => ({ ...previous, [colony.id]: steps }));
+                      setSelectedColonyId(colony.id);
+                    }}
+                  />
+                </div>
+              );
+            })
+          )}
         </div>
 
-        <div className="px-4 py-3 border-t border-white/10 flex items-center justify-end">
+        {error && (
+          <p role="alert" className="px-4 py-2 text-red-300 text-sm">
+            {error}
+          </p>
+        )}
+        <div className="px-4 py-3 border-t border-white/10 flex items-center justify-end gap-3">
+          {empty && (
+            <GameButton size="sm" disabled={submitting} onClick={() => void submit(onContinue)}>
+              Continue
+            </GameButton>
+          )}
           <GameButton
             size="sm"
             className="compact:min-h-11 compact:px-5"
@@ -213,11 +250,17 @@ const FreeTradeSelectionOverlay: React.FC<FreeTradeSelectionOverlayProps> = ({
                 });
                 return;
               }
-              onConfirm(selectedColony.id, selectedOption.trackSteps);
+              void submit(() => onConfirm(selectedColony.id, selectedOption.trackSteps));
             }}
-            disabled={!selectedColony || !selectedOption || !isColonyTradeable(selectedColony)}
+            disabled={
+              empty ||
+              submitting ||
+              !selectedColony ||
+              !selectedOption ||
+              !isColonyTradeable(selectedColony)
+            }
           >
-            Confirm Trade
+            Confirm
           </GameButton>
         </div>
       </div>
@@ -227,7 +270,7 @@ const FreeTradeSelectionOverlay: React.FC<FreeTradeSelectionOverlayProps> = ({
           message={storageWarning.message}
           onCancel={() => setStorageWarning(null)}
           onContinue={() => {
-            onConfirm(storageWarning.colonyId, storageWarning.trackSteps);
+            void submit(() => onConfirm(storageWarning.colonyId, storageWarning.trackSteps));
             setStorageWarning(null);
           }}
         />

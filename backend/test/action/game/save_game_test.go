@@ -82,8 +82,7 @@ func TestSaveRoundTripAndResume(t *testing.T) {
 	testutil.AssertNoError(t, err, "receipt player")
 	drawn, err := g.Deck().DrawProjectCards(ctx, 1)
 	testutil.AssertNoError(t, err, "receipt draw")
-	bob.Hand().AddCard(drawn[0])
-	bob.Selection().AddCardReceipt("draw", "", drawn)
+	bob.Hand().ReceiveCards(drawn, "draw", "")
 	testutil.AssertNoError(t, repo.DataStore().UpdatePlayer(g.ID(), "bob", func(p *datastore.PlayerState) { p.Resources.Heat = 7 }), "unlogged pending change")
 	data := encodeSave(t, g, a)
 	if bytes.Contains(data, []byte("secret-do-not-export")) {
@@ -817,4 +816,39 @@ func TestSaveResumeRejectsUnavailablePlayers(t *testing.T) {
 			testutil.AssertEqual(t, "alice", restored.HostPlayerID(), "owner unchanged")
 		})
 	}
+}
+
+func TestSavePendingCardPlayRoundTrip(t *testing.T) {
+	g, repo, _, a := saveFixture(t)
+	settings := g.Settings()
+	settings.Features = append(settings.Features, "prelude")
+	g.UpdateSettings(context.Background(), settings)
+	// Move the fixture past starting selection, before introducing the Prelude continuation.
+	testutil.AssertNoError(t, repo.DataStore().UpdateGame(g.ID(), func(s *datastore.GameState) {
+		s.CurrentPhase = shared.GamePhaseAction
+		s.CurrentTurnPlayerID = "alice"
+		s.CurrentTurnActions = 2
+		for id, phase := range s.SelectCorporationPhases {
+			s.Players[id].CorporationID = phase.AvailableCorporations[0]
+		}
+		s.SelectCorporationPhases = nil
+		s.SelectStartingCardsPhases = nil
+	}), "complete starting choices")
+	p, _ := g.GetPlayer("alice")
+	id := testutil.CardID("Excentric Sponsor")
+
+	p.PlayedCards().AddCard(id, "Excentric Sponsor", "prelude", nil)
+	p.Selection().SetPendingCardPlaySelection(&shared.PendingCardPlaySelection{Source: "Excentric Sponsor", SourceCardID: id, CostReduction: 25})
+	data := encodeSave(t, g, a)
+	doc, err := a.Validate(data)
+	testutil.AssertNoError(t, err, "validate pending card play")
+	restored, err := importSave(t, a, doc, "alice", "alice")
+	testutil.AssertNoError(t, err, "restore pending card play")
+	loaded, _ := restored.GetPlayer("alice")
+	testutil.AssertTrue(t, reflect.DeepEqual(p.Selection().GetPendingCardPlaySelection(), loaded.Selection().GetPendingCardPlaySelection()), "pending discount and source retained")
+	doc.State.Players["alice"].PendingCardPlaySelection.CostReduction = 100
+	invalid, err := save.Encode(doc)
+	testutil.AssertNoError(t, err, "encode altered save")
+	_, err = a.Validate(invalid)
+	testutil.AssertTrue(t, err != nil, "forged discount rejected")
 }

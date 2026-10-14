@@ -20,78 +20,6 @@ interface MilestoneListProps {
   onFlowStart?: () => void;
 }
 
-const PRODUCTION_BADGE_CLASS =
-  "inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]";
-const REQUIREMENT_CLIP = "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)";
-
-interface MilestoneIconProps {
-  icon: string;
-  required: number;
-  isScreen: boolean;
-}
-
-function MilestoneIcon({ icon, required, isScreen }: MilestoneIconProps) {
-  const badgeText = isScreen ? "text-[11px]" : "text-[10px]";
-  if (icon === "production-all") {
-    return (
-      <div className={PRODUCTION_BADGE_CLASS}>
-        <span
-          className={`${badgeText} font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]`}
-        >
-          ALL
-        </span>
-      </div>
-    );
-  }
-  if (icon === "requirement-badge") {
-    return (
-      <div
-        className="relative px-2 py-0.5 border border-[rgba(60,60,70,0.7)]"
-        style={{
-          clipPath: REQUIREMENT_CLIP,
-          background:
-            "linear-gradient(-45deg, #5a2a10 25%, #2d1508 25%, #2d1508 50%, #5a2a10 50%, #5a2a10 75%, #2d1508 75%)",
-          backgroundSize: "12px 12px",
-        }}
-      >
-        <div
-          className="absolute inset-0 bg-black/40 pointer-events-none"
-          style={{ clipPath: REQUIREMENT_CLIP }}
-        />
-        <span
-          className={`relative font-orbitron font-bold text-white/50 ${isScreen ? "text-[11px]" : "text-[9px]"}`}
-        >
-          REQ
-        </span>
-      </div>
-    );
-  }
-  if (icon === "green-card-plus-event") {
-    return (
-      <div className="flex items-center gap-0.5">
-        <div className="relative">
-          <GameIcon iconType="card-draw" size="small" />
-          <div className="absolute inset-0 rounded bg-green-500/30 pointer-events-none" />
-        </div>
-        <span className={`text-white/60 font-bold ${badgeText}`}>+</span>
-        <GameIcon iconType="event" size="small" />
-      </div>
-    );
-  }
-  if (icon === "production-threshold") {
-    return (
-      <div className={PRODUCTION_BADGE_CLASS}>
-        <span
-          className={`${badgeText} font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]`}
-        >
-          &ge;{required}
-        </span>
-      </div>
-    );
-  }
-  return <GameIcon iconType={icon} size="small" />;
-}
-
 function milestoneError(errors: StateErrorDto[] | undefined): PopoverItemError | undefined {
   if (!errors?.length || errors.some((e) => e.category === "requirement")) {
     return undefined;
@@ -108,6 +36,23 @@ function milestoneInfo(errors: StateErrorDto[] | undefined): PopoverItemInfo | u
 }
 
 export default function MilestoneList({ gameState, density, onFlowStart }: MilestoneListProps) {
+  return (
+    <MilestoneListView
+      gameState={gameState}
+      density={density}
+      onClaimMilestone={(id) => {
+        onFlowStart?.();
+        void webSocketService.claimMilestone(id);
+      }}
+    />
+  );
+}
+
+export function MilestoneListView({
+  gameState,
+  density,
+  onClaimMilestone,
+}: MilestoneListProps & { onClaimMilestone: (id: string) => void }) {
   const isScreen = density === "screen";
   const canClaimMilestones = canActOnProjects(gameState);
 
@@ -147,8 +92,7 @@ export default function MilestoneList({ gameState, density, onFlowStart }: Miles
     if (!canClaimMilestones) {
       return;
     }
-    onFlowStart?.();
-    void webSocketService.claimMilestone(milestoneId);
+    onClaimMilestone(milestoneId);
   };
 
   const smallText = isScreen ? "text-[13px]" : "text-xs";
@@ -218,11 +162,7 @@ export default function MilestoneList({ gameState, density, onFlowStart }: Miles
               <div className={`flex items-center gap-2 mb-2 ${isScreen ? "flex-wrap" : ""}`}>
                 {globalData?.style?.icon && (
                   <div className="opacity-70 flex items-center">
-                    <MilestoneIcon
-                      icon={globalData.style.icon}
-                      required={milestone.required}
-                      isScreen={isScreen}
-                    />
+                    <GameIcon iconType={globalData.style.icon} size="small" />
                   </div>
                 )}
                 <h3 className="text-white text-sm font-bold font-orbitron m-0">{milestone.name}</h3>

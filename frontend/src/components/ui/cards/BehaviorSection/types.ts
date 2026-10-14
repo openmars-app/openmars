@@ -1,5 +1,6 @@
 import {
   CardBehaviorDto,
+  VPConditionDto,
   ComputedBehaviorValueDto,
   ResourcesDto,
 } from "@/types/generated/api-types.ts";
@@ -15,6 +16,7 @@ export interface BehaviorSectionProps {
   playerResources?: ResourcesDto;
   resourceStorage?: { [cardId: string]: number };
   cardId?: string;
+  vpConditions?: VPConditionDto[];
   cardName?: string;
   sourceBehaviorIndex?: number;
   greyOutAll?: boolean;

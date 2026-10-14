@@ -277,7 +277,7 @@ func (g *Game) subscribeToGlobalParameterBonuses() {
 			ctx := context.Background()
 			cardIDs, drawErr := g.deck.DrawProjectCards(ctx, 1)
 			if drawErr == nil && len(cardIDs) > 0 {
-				p.Hand().AddCard(cardIDs[0])
+				p.Hand().ReceiveCards(cardIDs, "Venus Bonus", "")
 			}
 			g.AddTriggeredEffect(shared.TriggeredEffect{
 				CardName:   "Venus Bonus",

@@ -34,15 +34,15 @@ const IconWithBadge: React.FC<{
   iconType: string;
   showSpBadge?: boolean;
 }> = ({ iconType, showSpBadge = false }) => {
-  return (
-    <div className="relative inline-flex items-center justify-center">
-      <GameIcon iconType={iconType} size="behavior" />
-      {showSpBadge && (
-        <span className="absolute -bottom-[2px] -right-[2px] text-[8px] font-black text-white bg-[rgba(80,80,80,0.9)] px-[3px] py-[1px] leading-none [text-shadow:0_0_2px_rgba(0,0,0,0.8)]">
-          SP
-        </span>
-      )}
-    </div>
+  return showSpBadge ? (
+    <span className="relative inline-flex items-center justify-center" data-standard-project>
+      <GameIcon iconType="project-paper" size="behavior" />
+      <span className="absolute inset-0 flex items-center justify-center [--behavior-icon-size:18px]">
+        <GameIcon iconType={iconType} size="behavior" />
+      </span>
+    </span>
+  ) : (
+    <GameIcon iconType={iconType} size="behavior" />
   );
 };
 

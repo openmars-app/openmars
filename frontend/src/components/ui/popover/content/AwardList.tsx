@@ -21,6 +21,23 @@ interface AwardListProps {
 }
 
 export default function AwardList({ gameState, density, onFlowStart }: AwardListProps) {
+  return (
+    <AwardListView
+      gameState={gameState}
+      density={density}
+      onFundAward={(id) => {
+        onFlowStart?.();
+        void webSocketService.fundAward(id);
+      }}
+    />
+  );
+}
+
+export function AwardListView({
+  gameState,
+  density,
+  onFundAward,
+}: AwardListProps & { onFundAward: (id: string) => void }) {
   const isScreen = density === "screen";
   const canFundAwards = canActOnProjects(gameState);
 
@@ -55,8 +72,7 @@ export default function AwardList({ gameState, density, onFlowStart }: AwardList
     if (!canFundAwards) {
       return;
     }
-    onFlowStart?.();
-    void webSocketService.fundAward(awardId);
+    onFundAward(awardId);
   };
 
   const smallText = isScreen ? "text-[13px]" : "text-xs";

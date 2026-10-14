@@ -126,7 +126,7 @@
             "target": "none"
           }
         ],
-        "description": "Increase your energy production 1 step. Raise temperature 1 step.",
+        "description": "Raise temperature 1 step.",
         "id": "behavior-1"
       },
       {
@@ -143,7 +143,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Increase your energy production 1 step. Raise temperature 1 step.",
+        "description": "Increase your energy production 1 step.",
         "id": "behavior-2"
       }
     ],
@@ -447,7 +447,7 @@
             "target": "none"
           }
         ],
-        "description": "Build Capital. Decrease your energy production 2 steps and increase your M€ production 5 steps.",
+        "description": "Build Capital.",
         "id": "behavior-1"
       },
       {
@@ -469,7 +469,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Build Capital. Decrease your energy production 2 steps and increase your M€ production 5 steps. 1 VP per adjacent ocean.",
+        "description": "Decrease your energy production 2 steps and increase your M€ production 5 steps.",
         "id": "behavior-2"
       }
     ],
@@ -705,7 +705,11 @@
     "description": [
       {
         "type": "action",
-        "text": "Spend 1 steel to gain 5 M€ Increase your titanium production 1 step."
+        "text": "Spend 1 steel to gain 5 M€."
+      },
+      {
+        "type": "generic",
+        "text": "Increase your titanium production 1 step."
       }
     ],
     "tags": [
@@ -969,7 +973,7 @@
             "target": "none"
           }
         ],
-        "description": "Gain 3 plants and build a city. Decrease your energy production 1 step and increase M€ production 3 steps.",
+        "description": "Gain 3 plants and build a city.",
         "id": "behavior-1"
       },
       {
@@ -991,7 +995,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Gain 3 plants and build a city. Decrease your energy production 1 step and increase M€ production 3 steps.",
+        "description": "Decrease your energy production 1 step and increase M€ production 3 steps.",
         "id": "behavior-2"
       }
     ],
@@ -1052,7 +1056,7 @@
             }
           }
         ],
-        "description": "Decrease your energy production 1 step and increase your M€ production 3 steps. Build Noctis City.",
+        "description": "Build Noctis City.",
         "id": "behavior-1"
       },
       {
@@ -1074,7 +1078,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Decrease your energy production 1 step and increase your M€ production 3 steps. Build Noctis City.",
+        "description": "Decrease your energy production 1 step and increase your M€ production 3 steps.",
         "id": "behavior-2"
       }
     ],
@@ -1254,14 +1258,6 @@
         ],
         "outputs": [
           {
-            "type": "city-placement",
-            "amount": 1,
-            "target": "none",
-            "tileRestrictions": {
-              "adjacency": "none"
-            }
-          },
-          {
             "type": "discount",
             "amount": 1,
             "target": "self-player",
@@ -1277,8 +1273,27 @@
             ]
           }
         ],
-        "description": "Build a city **next to no other tile**. Pay 1 M€ less for all cards.",
+        "description": "Pay 1 M€ less for all cards.",
         "id": "behavior-1"
+      },
+      {
+        "id": "behavior-2",
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "city-placement",
+            "amount": 1,
+            "target": "none",
+            "tileRestrictions": {
+              "adjacency": "none"
+            }
+          }
+        ],
+        "description": "Build a city **next to no other tile**."
       }
     ],
     "gameModes": [
@@ -1646,7 +1661,7 @@
             "target": "any-card"
           }
         ],
-        "description": "Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps.",
+        "description": "Add 1 animal **to any animal card**. Gain 3 plants.",
         "id": "behavior-1"
       },
       {
@@ -1663,7 +1678,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Add 1 animal **to any animal card**. Gain 3 plants. Increase your M€ production 2 steps.",
+        "description": "Increase your M€ production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -1834,7 +1849,7 @@
             "target": "none"
           }
         ],
-        "description": "Build a city. Decrease your energy production 1 step and increase your M€ production 3 steps.",
+        "description": "Build a city.",
         "id": "behavior-1"
       },
       {
@@ -1856,7 +1871,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Build a city. Decrease your energy production 1 step and increase your M€ production 3 steps.",
+        "description": "Decrease your energy production 1 step and increase your M€ production 3 steps.",
         "id": "behavior-2"
       }
     ],
@@ -2097,7 +2112,7 @@
             "target": "none"
           }
         ],
-        "description": "Build a city. Decrease your energy production 2 steps and increase your steel production 2 steps.",
+        "description": "Build a city.",
         "id": "behavior-1"
       },
       {
@@ -2119,7 +2134,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Build a city. Decrease your energy production 2 steps and increase your steel production 2 steps.",
+        "description": "Decrease your energy production 2 steps and increase your steel production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -2775,7 +2790,7 @@
             }
           }
         ],
-        "description": "Build a Natural Preserve **next to no other tile**. Increase your M€ production 1 step.",
+        "description": "Build a Natural Preserve **next to no other tile**.",
         "id": "behavior-1"
       },
       {
@@ -2792,7 +2807,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Build a Natural Preserve **next to no other tile**. Increase your M€ production 1 step.",
+        "description": "Increase your M€ production 1 step.",
         "id": "behavior-2"
       }
     ],
@@ -5131,15 +5146,26 @@
                 ]
               }
             ]
-          },
+          }
+        ],
+        "description": "Pay 2 M€ less for space cards.",
+        "id": "behavior-1"
+      },
+      {
+        "id": "behavior-2",
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
           {
             "type": "energy-production",
             "amount": 4,
             "target": "self-player"
           }
         ],
-        "description": "Pay 2 M€ less for space cards Increase your energy production 4 steps",
-        "id": "behavior-1"
+        "description": "Increase your energy production 4 steps."
       }
     ],
     "gameModes": [
@@ -5401,7 +5427,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Decrease your energy production 1 step and increase your M€ production 4 steps. Build a Commercial District",
+        "description": "Decrease your energy production 1 step and increase your M€ production 4 steps.",
         "productionBox": "evaluate",
         "id": "behavior-1"
       },
@@ -5688,7 +5714,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Counts as playing 2 science cards. Draw 2 cards.",
+        "description": "Draw 2 cards.",
         "id": "behavior-1"
       }
     ],
@@ -5930,15 +5956,26 @@
                 ]
               }
             ]
-          },
+          }
+        ],
+        "description": "Pay 2 M€ less for space cards.",
+        "id": "behavior-1"
+      },
+      {
+        "id": "behavior-2",
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
           {
             "type": "energy-production",
             "amount": 6,
             "target": "self-player"
           }
         ],
-        "description": "Pay 2 M€ less for space cards Increase your energy production 6 steps",
-        "id": "behavior-1"
+        "description": "Increase your energy production 6 steps."
       }
     ],
     "gameModes": [
@@ -6775,7 +6812,7 @@
             "target": "none"
           }
         ],
-        "description": "Decrease your energy production 1 step and increase your M€ production 4 steps. Gain 2 plants and build a city",
+        "description": "Gain 2 plants and build a city.",
         "id": "behavior-1"
       },
       {
@@ -6797,7 +6834,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Requires 12% oxygen. Decrease your energy production 1 step and increase your M€ production 4 steps. Gain 2 plants and build a city.",
+        "description": "Decrease your energy production 1 step and increase your M€ production 4 steps.",
         "id": "behavior-2"
       }
     ],
@@ -7570,7 +7607,7 @@
             }
           }
         ],
-        "description": "Decrease your energy production 1 step and increase your M€ production 2 steps. Build a city **adjacent to at least** 2 **other cities**.",
+        "description": "Build a city **adjacent to at least** 2 **other cities**.",
         "id": "behavior-1"
       },
       {
@@ -7592,7 +7629,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Decrease your energy production 1 step and increase your M€ production 2 steps. Build a city **adjacent to at least** 2 **other cities**.",
+        "description": "Decrease your energy production 1 step and increase your M€ production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -7664,18 +7701,18 @@
     "description": [
       {
         "type": "requirement",
-        "text": "Oceans 3 or more, and lose 1 plant."
+        "text": "Oceans 3 or more."
       },
       {
         "type": "generic",
-        "text": "Increase your plant production 1 step."
+        "text": "Lose 1 plant. Increase your plant production 1 step."
       }
     ],
     "tags": [
       "plant"
     ],
     "requirements": {
-      "description": "Oceans 3 or more, and lose 1 plant.",
+      "description": "Oceans 3 or more.",
       "items": [
         {
           "type": "ocean",
@@ -7723,7 +7760,11 @@
         "cover": "none",
         "landmark": "factory",
         "landscaping": "sparse",
-        "details": ["smokestacks", "tanks", "pipes"]
+        "details": [
+          "smokestacks",
+          "tanks",
+          "pipes"
+        ]
       }
     },
     "type": "active",
@@ -8045,7 +8086,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Add an animal to this card when you play an animal or plant tag",
+        "description": "Add an animal to this card when you play an animal or a plant tag (including these 2).",
         "id": "behavior-2"
       }
     ],
@@ -8703,7 +8744,7 @@
             "target": "none"
           }
         ],
-        "description": "Decrease your energy production 2 steps. Increase your steel production 2 steps and your titanium production 1 step. Raise oxygen 2 steps.",
+        "description": "Raise oxygen 2 steps.",
         "id": "behavior-1"
       },
       {
@@ -8730,7 +8771,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Decrease your energy production 2 steps. Increase your steel production 2 steps and your titanium production 1 step. Raise oxygen 2 steps.",
+        "description": "Decrease your energy production 2 steps. Increase your steel production 2 steps and your titanium production 1 step.",
         "id": "behavior-2"
       }
     ],
@@ -8910,7 +8951,7 @@
             }
           }
         ],
-        "description": "Increase your heat production 4 steps. Build a Mohole **on an area reserved for ocean**.",
+        "description": "Build a Mohole **on an area reserved for ocean**.",
         "id": "behavior-1"
       },
       {
@@ -8927,7 +8968,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Increase your heat production 4 steps. Build a Mohole **on an area reserved for ocean**.",
+        "description": "Increase your heat production 4 steps.",
         "id": "behavior-2"
       }
     ],
@@ -9110,18 +9151,18 @@
     "description": [
       {
         "type": "requirement",
-        "text": "Oceans 3 or more, and lose 2 plants."
+        "text": "Oceans 3 or more."
       },
       {
         "type": "generic",
-        "text": "Increase your plant production 2 steps."
+        "text": "Lose 2 plants. Increase your plant production 2 steps."
       }
     ],
     "tags": [
       "plant"
     ],
     "requirements": {
-      "description": "Oceans 3 or more, and lose 2 plants.",
+      "description": "Oceans 3 or more.",
       "items": [
         {
           "type": "ocean",
@@ -10131,7 +10172,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Decrease your energy production 4 steps and increase your plant production 2 steps. Raise your TR 3 steps.",
+        "description": "Raise your TR 3 steps.",
         "id": "behavior-1"
       },
       {
@@ -10153,7 +10194,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Decrease your energy production 4 steps and increase your plant production 2 steps. Raise your TR 3 steps.",
+        "description": "Decrease your energy production 4 steps and increase your plant production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -10201,16 +10242,6 @@
         ],
         "outputs": [
           {
-            "type": "credit-production",
-            "amount": 2,
-            "target": "self-player"
-          },
-          {
-            "type": "energy-production",
-            "amount": -1,
-            "target": "self-player"
-          },
-          {
             "type": "discount",
             "amount": 2,
             "target": "self-player",
@@ -10229,8 +10260,29 @@
             ]
           }
         ],
-        "description": "Decrease your energy production 1 step and increase your M€ production 2 steps. Pay 2 M€ less for space cards",
+        "description": "Pay 2 M€ less for space cards.",
         "id": "behavior-1"
+      },
+      {
+        "id": "behavior-2",
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credit-production",
+            "amount": 2,
+            "target": "self-player"
+          },
+          {
+            "type": "energy-production",
+            "amount": -1,
+            "target": "self-player"
+          }
+        ],
+        "description": "Decrease your energy production 1 step and increase your M€ production 2 steps."
       }
     ],
     "vpConditions": [
@@ -10479,7 +10531,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Decrease your energy production 2 steps and increase your plant production 1 step. Raise your TR 1 step.",
+        "description": "Raise your TR 1 step.",
         "id": "behavior-1"
       },
       {
@@ -10501,7 +10553,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Decrease your energy production 2 steps and increase your plant production 1 step. Raise your TR 1 step.",
+        "description": "Decrease your energy production 2 steps and increase your plant production 1 step.",
         "id": "behavior-2"
       }
     ],
@@ -10688,7 +10740,7 @@
             }
           }
         ],
-        "description": "Increase your M€ production 2 steps. Plant a greenery **on an area reserved for ocean** and raise oxygen 1 step.",
+        "description": "Plant a greenery **on an area reserved for ocean** and raise oxygen 1 step.",
         "id": "behavior-1"
       },
       {
@@ -10705,7 +10757,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Increase your M€ production 2 steps. Plant a greenery **on an area reserved for ocean** and raise oxygen 1 step.",
+        "description": "Increase your M€ production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -10879,7 +10931,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Increase your M€ production 1 step and gain 2 plants",
+        "description": "Gain 2 plants.",
         "id": "behavior-1"
       },
       {
@@ -10896,7 +10948,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Requires -20°C or warmer. Increase your M€ production 1 step and gain 2 plants.",
+        "description": "Increase your M€ production 1 step.",
         "id": "behavior-2"
       }
     ],
@@ -11177,7 +11229,9 @@
         "landscaping": "sparse",
         "entranceMin": 2,
         "entranceMax": 2,
-        "details": ["gatehouses"]
+        "details": [
+          "gatehouses"
+        ]
       }
     },
     "type": "automated",
@@ -11206,7 +11260,7 @@
             "target": "none"
           }
         ],
-        "description": "Decrease your energy production 1 step and increase your M€ production 3 steps. Build a city.",
+        "description": "Build a city.",
         "id": "behavior-1"
       },
       {
@@ -11228,7 +11282,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Decrease your energy production 1 step and increase your M€ production 3 steps. Build a city.",
+        "description": "Decrease your energy production 1 step and increase your M€ production 3 steps.",
         "id": "behavior-2"
       }
     ],
@@ -11527,7 +11581,13 @@
     ],
     "requirements": {
       "description": "2 cities in play.",
-      "items": []
+      "items": [
+        {
+          "type": "city",
+          "min": 2,
+          "location": "anywhere"
+        }
+      ]
     }
   },
   {
@@ -12211,7 +12271,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Spend 2 M€ to draw a card. Build a Restricted Area.",
+        "description": "Spend 2 M€ to draw a card.",
         "id": "behavior-1"
       },
       {
@@ -12269,7 +12329,7 @@
             "target": "none"
           }
         ],
-        "description": "Decrease your energy production 1 step and decrease your M€ production 2 steps. Build a city",
+        "description": "Build a city.",
         "id": "behavior-1"
       },
       {
@@ -12290,7 +12350,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Increase your M€ production 1 step when any city is built **from any player**",
+        "description": "Increase your M€ production 1 step when any city is built, including this.",
         "id": "behavior-2"
       },
       {
@@ -12312,7 +12372,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "**Effect:** Increase your M€ production 1 step when any city is built, including this. Decrease your energy production 1 step and decrease your M€ production 2 steps. Build a city.",
+        "description": "Decrease your energy production 1 step and decrease your M€ production 2 steps.",
         "id": "behavior-3"
       }
     ],
@@ -12512,7 +12572,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Decrease your energy production 1 step. Raise your TR 2 steps.",
+        "description": "Raise your TR 2 steps.",
         "id": "behavior-1"
       },
       {
@@ -12529,7 +12589,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Decrease your energy production 1 step. Raise your TR 2 steps.",
+        "description": "Decrease your energy production 1 step.",
         "id": "behavior-2"
       }
     ],
@@ -14139,7 +14199,7 @@
             "target": "none"
           }
         ],
-        "description": "Decrease your energy production 2 steps. Increase your M€ production 1  step for each Venus and Earth tag you have. Build a city.",
+        "description": "Build a city.",
         "id": "behavior-1"
       },
       {
@@ -14171,7 +14231,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Decrease your energy production 2 steps. Increase your M€ production 1  step for each Venus and Earth tag you have. Build a city.",
+        "description": "Decrease your energy production 2 steps. Increase your M€ production 1 step for each Venus and Earth tag you have.",
         "id": "behavior-2"
       }
     ],
@@ -14622,7 +14682,7 @@
       },
       {
         "type": "generic",
-        "text": "Decrease your energy production 1 step. Build Ganymede Colony."
+        "text": "Decrease your energy production 1 step. Build Maxwell Base."
       }
     ],
     "tags": [
@@ -14662,7 +14722,7 @@
             }
           }
         ],
-        "description": "Decrease your energy production 1 step. Build Ganymede Colony.",
+        "description": "Decrease your energy production 1 step. Build Maxwell Base.",
         "id": "behavior-1"
       },
       {
@@ -15059,7 +15119,18 @@
     ],
     "requirements": {
       "description": "Venus and Earth tags.",
-      "items": []
+      "items": [
+        {
+          "type": "tags",
+          "tag": "earth",
+          "min": 1
+        },
+        {
+          "type": "tags",
+          "tag": "venus",
+          "min": 1
+        }
+      ]
     }
   },
   {
@@ -15295,7 +15366,7 @@
             }
           }
         ],
-        "description": "Increase your M€ production 2 steps.",
+        "description": "Increase your M€ production 2 steps. Build Stratopolis.",
         "id": "behavior-1"
       },
       {
@@ -15360,11 +15431,11 @@
       },
       {
         "type": "requirement",
-        "text": "Venus 12% or more, and spend 1 floater **from any card**."
+        "text": "Venus 12% or more."
       },
       {
         "type": "generic",
-        "text": "1 VP per animal on this card."
+        "text": "Spend 1 floater **from any card**. 1 VP per animal on this card."
       }
     ],
     "tags": [
@@ -15372,7 +15443,7 @@
       "venus"
     ],
     "requirements": {
-      "description": "Venus 12% or more, and spend 1 floater **from any card**.",
+      "description": "Venus 12% or more.",
       "items": [
         {
           "type": "venus",
@@ -16820,7 +16891,7 @@
             "target": "self-player"
           }
         ],
-        "description": "You start with 30 M€, 5 steel, and 1 steel production",
+        "description": "You start with 30 M€ and 5 steel.",
         "id": "behavior-1"
       },
       {
@@ -16865,7 +16936,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "**Effect:** Increase your steel production 1 step when you place a tile on a steel or titanium bonus area. You start with 30 M€, 5 steel, and 1 steel production.",
+        "description": "You start with 1 steel production.",
         "id": "behavior-3"
       }
     ],
@@ -17184,7 +17255,7 @@
             }
           }
         ],
-        "description": "If your TR was raised this generation, you may pay 3 M€ to raise it 1 step more. You start with 40 M€.",
+        "description": "If your TR was raised this generation, you may pay 3 M€ to raise it 1 step more.",
         "id": "behavior-2"
       }
     ],
@@ -17257,7 +17328,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Increase your M€ production 1 step when any Jovian tag is played, including this. You start with 1 titanium production and 42 M€.",
+        "description": "Increase your M€ production 1 step when any Jovian tag is played, including this.",
         "id": "behavior-2"
       }
     ],
@@ -17326,7 +17397,7 @@
             ]
           }
         ],
-        "description": "Pay 3 M€ less for Earth cards. You start with 60 M€.",
+        "description": "Pay 3 M€ less for Earth cards.",
         "id": "behavior-2"
       }
     ],
@@ -17512,12 +17583,8 @@
     "cost": 0,
     "description": [
       {
-        "type": "requirement",
-        "text": "Lose 1 floater."
-      },
-      {
         "type": "generic",
-        "text": "Steal 5 M€ **from any player**."
+        "text": "Remove 1 floater from any of your cards. Steal 5 M€ **from any player**."
       }
     ],
     "behaviors": [
@@ -17550,11 +17617,7 @@
     ],
     "requiresSystems": [
       "colonies"
-    ],
-    "requirements": {
-      "description": "Lose 1 floater.",
-      "items": []
-    }
+    ]
   },
   {
     "id": "C03",
@@ -17653,7 +17716,7 @@
             ]
           }
         ],
-        "description": "Add 1 floater to this card, or spend 1 floater here to gain 2 titanium, or 3 energy, or 4 heat. Add 2 floaters to **any** card.",
+        "description": "Add 1 floater to this card, or spend 1 floater here to gain 2 titanium, or 3 energy, or 4 heat.",
         "id": "behavior-2"
       }
     ],
@@ -18664,7 +18727,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Spend 1 titanium to add 2 floaters here. Raise your TR 1 step. Add 2 floaters to **any** card. 1 VP per 2 floaters here.",
+        "description": "Spend 1 titanium to add 2 floaters here.",
         "id": "behavior-2"
       }
     ],
@@ -19292,7 +19355,7 @@
             "target": "self-card"
           }
         ],
-        "description": "**Effect:** Place an animal here when you play an Earth tag.\n\n**Action:** Gain 1 M€ per animal here. Requires 2 cities in play.",
+        "description": "Place an animal here when you play an Earth tag.",
         "id": "behavior-1"
       },
       {
@@ -19313,7 +19376,7 @@
             }
           }
         ],
-        "description": "**Effect:** Place an animal here when you play an Earth tag.\n\n**Action:** Gain 1 M€ per animal here. Requires 2 cities in play.",
+        "description": "Gain 1 M€ per animal here.",
         "id": "behavior-2"
       }
     ],
@@ -19941,7 +20004,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Decrease your M€ production 1 step to add a camp resource to this card. 1 VP per camp resource on this card.",
+        "description": "Decrease your M€ production 1 step to add a camp resource to this card.",
         "id": "behavior-1"
       }
     ],
@@ -20121,15 +20184,26 @@
                 ]
               }
             ]
-          },
+          }
+        ],
+        "description": "Pay 1 M€ less for all cards.",
+        "id": "behavior-1"
+      },
+      {
+        "id": "behavior-2",
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
           {
             "type": "trade-fleet",
             "amount": 1,
             "target": "self-player"
           }
         ],
-        "description": "Pay 1 M€ less for all cards. Gain 1 Trade Fleet.",
-        "id": "behavior-1"
+        "description": "Gain 1 Trade Fleet."
       }
     ],
     "vpConditions": [
@@ -20286,7 +20360,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires 1 colony. Gain 1 Trade Fleet. Build a city. Decrease your energy production 1 step, and increase your M€ production 4 steps.",
+        "description": "Gain 1 Trade Fleet. Build a city.",
         "id": "behavior-1"
       },
       {
@@ -20308,7 +20382,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Requires 1 colony. Gain 1 Trade Fleet. Build a city. Decrease your energy production 1 step, and increase your M€ production 4 steps.",
+        "description": "Decrease your energy production 1 step, and increase your M€ production 4 steps.",
         "id": "behavior-2"
       }
     ],
@@ -20366,7 +20440,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Place a colony (may be placed where you already have one).",
+        "description": "Place a colony (may be placed where you already have one). Gain 1 Trade Fleet.",
         "id": "behavior-1"
       }
     ],
@@ -20422,7 +20496,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Draw a card **when playing a card with a basic cost of 20 M€ or more**. Increase your M€ production 2 steps.",
+        "description": "Increase your M€ production 2 steps.",
         "productionBox": "evaluate",
         "id": "behavior-1"
       },
@@ -20450,7 +20524,7 @@
             "target": "self-player"
           }
         ],
-        "description": "**Effect:** Draw a card **when playing a card with a basic cost of 20 M€ or more**. Increase your M€ production 2 steps.",
+        "description": "Draw a card **when playing a card with a basic cost of 20 M€ or more**.",
         "id": "behavior-2"
       }
     ],
@@ -20522,7 +20596,7 @@
             "target": "self-card"
           }
         ],
-        "description": "Add 1 animal to this card. Decrease any plant production 1 step. 1 VP per 2 animals on this card.",
+        "description": "Add 1 animal to this card.",
         "id": "behavior-2"
       }
     ],
@@ -20846,7 +20920,7 @@
             "optional": true
           }
         ],
-        "description": "Increase that colony track 1 step when trading.",
+        "description": "You may first increase that colony track 1 step when trading.",
         "id": "behavior-1"
       }
     ],
@@ -20910,7 +20984,7 @@
             "optional": true
           }
         ],
-        "description": "Increase that colony track 1 step when trading.",
+        "description": "You may first increase that colony track 1 step when trading.",
         "id": "behavior-2"
       }
     ],
@@ -20970,7 +21044,18 @@
     ],
     "requirements": {
       "description": "1 city and 1 colony in play.",
-      "items": []
+      "items": [
+        {
+          "type": "city",
+          "location": "anywhere",
+          "min": 1
+        },
+        {
+          "type": "colony",
+          "target": "any-player",
+          "min": 1
+        }
+      ]
     }
   },
   {
@@ -21286,7 +21371,7 @@
             ]
           }
         ],
-        "description": "Pay 5 M€ instead of 3 M€ when buying cards.",
+        "description": "Pay 5 M€ instead of 3 M€ when buying cards, including the starting hand.",
         "id": "behavior-2"
       }
     ],
@@ -22022,7 +22107,7 @@
             "target": "none"
           }
         ],
-        "description": "Build a city. Increase your plant production 1 step.",
+        "description": "Build a city.",
         "id": "behavior-1"
       },
       {
@@ -22039,7 +22124,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Build a city. Increase your plant production 1 step.",
+        "description": "Increase your plant production 1 step.",
         "id": "behavior-2"
       }
     ],
@@ -22117,9 +22202,10 @@
         ],
         "outputs": [
           {
-            "type": "credit",
-            "amount": 25,
-            "target": "self-player"
+            "type": "card-play",
+            "amount": 1,
+            "target": "self-player",
+            "costReduction": 25
           }
         ],
         "description": "Play a card from hand, reducing its cost by 25 M€",
@@ -22423,7 +22509,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Increase your energy production and steel production 1 step each. Gain 6 M€.",
+        "description": "Gain 6 M€.",
         "id": "behavior-1"
       },
       {
@@ -22445,7 +22531,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Increase your energy production and steel production 1 step each. Gain 6 M€.",
+        "description": "Increase your energy production and steel production 1 step each.",
         "id": "behavior-2"
       }
     ],
@@ -22579,7 +22665,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Increase your steel production 2 steps. Gain 4 steel.",
+        "description": "Gain 4 steel.",
         "id": "behavior-1"
       },
       {
@@ -22596,7 +22682,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Increase your steel production 2 steps. Gain 4 steel.",
+        "description": "Increase your steel production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -22636,7 +22722,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Increse your heat production 3 steps. Gain 3 heat.",
+        "description": "Gain 3 heat.",
         "id": "behavior-1"
       },
       {
@@ -22653,7 +22739,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Increse your heat production 3 steps. Gain 3 heat.",
+        "description": "Increase your heat production 3 steps.",
         "id": "behavior-2"
       }
     ],
@@ -22693,7 +22779,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Increase your steel production 1 step, and your heat production 2 steps. Gain 2 heat.",
+        "description": "Gain 2 heat.",
         "id": "behavior-1"
       },
       {
@@ -22715,7 +22801,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Increase your steel production 1 step, and your heat production 2 steps. Gain 2 heat.",
+        "description": "Increase your steel production 1 step, and your heat production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -22847,7 +22933,7 @@
             "target": "none"
           }
         ],
-        "description": "Place an ocean. Increase your heat production 2 steps.",
+        "description": "Place an ocean.",
         "id": "behavior-1"
       },
       {
@@ -22864,7 +22950,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Place an ocean. Increase your heat production 2 steps.",
+        "description": "Increase your heat production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -22949,7 +23035,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Draw 3 cards, and increase your M€ production 1 step. After being played, when you perform an action, the wild tag is any tag of your choice.",
+        "description": "Draw 3 cards, and increase your M€ production 1 step.",
         "id": "behavior-1"
       }
     ],
@@ -22989,7 +23075,7 @@
             "target": "none"
           }
         ],
-        "description": "Build a city. Increase your M€ production 2 steps.",
+        "description": "Build a city.",
         "id": "behavior-1"
       },
       {
@@ -23006,7 +23092,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Build a city. Increase your M€ production 2 steps.",
+        "description": "Increase your M€ production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -23397,7 +23483,7 @@
             }
           }
         ],
-        "description": "Decrease your energy production 1 step. Increase your M€ production 2 steps. Build a city **on a volcanic area**, regardless of adjacent cities.",
+        "description": "Build a city **on a volcanic area**, regardless of adjacent cities.",
         "id": "behavior-1"
       },
       {
@@ -23419,7 +23505,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "Decrease your energy production 1 step. Increase your M€ production 2 steps. Build a city **on a volcanic area**, regardless of adjacent cities.",
+        "description": "Decrease your energy production 1 step. Increase your M€ production 2 steps.",
         "id": "behavior-2"
       }
     ],
@@ -23799,7 +23885,7 @@
             "target": "self-player"
           }
         ],
-        "description": "You start with 44 M€ and 3 M€ production.",
+        "description": "You start with 44 M€.",
         "id": "behavior-1"
       },
       {
@@ -23845,7 +23931,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "**Effect:** Pay 2 M€ less for building cards. You start with 44 M€ and 3 M€ production.",
+        "description": "You start with 3 M€ production.",
         "id": "behavior-3"
       }
     ],
@@ -24346,7 +24432,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires that Unity is ruling or that you have 2 delegates there. Decrease your energy production 1 step and increase your M€ production 3 steps. Build a city. Place 2 delegates in 1 party.",
+        "description": "Decrease your energy production 1 step and increase your M€ production 3 steps. Build a city. Place 2 delegates in 1 party.",
         "id": "behavior-1"
       }
     ],
@@ -24395,7 +24481,7 @@
             }
           }
         ],
-        "description": "Requires that Reds are ruling or that you have 2 delegates there. Gain 1 M€ for each Jovian tag in play.",
+        "description": "Gain 1 M€ for each Jovian tag in play.",
         "id": "behavior-1"
       }
     ],
@@ -24490,7 +24576,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Gain 2 M€ when you play a plant, animal, or microbe tag, including this. Requires that Greens are ruling or that you have 2 delegates there.",
+        "description": "Gain 2 M€ when you play a plant, animal, or microbe tag, including this.",
         "id": "behavior-1"
       }
     ],
@@ -24601,7 +24687,7 @@
             }
           }
         ],
-        "description": "Requires that Mars First is ruling or that you have 2 delegates there. Increase M€ production 1 step for every 3 building tags you have, including this.",
+        "description": "Increase M€ production 1 step for every 3 building tags you have, including this.",
         "id": "behavior-1"
       }
     ],
@@ -24662,7 +24748,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires that Unity is ruling or that you have 2 delegates there. Gain 1 TR. Gain 1 M€ for each Earth tag you have, including this.",
+        "description": "Gain 1 TR. Gain 1 M€ for each Earth tag you have, including this.",
         "id": "behavior-1"
       }
     ],
@@ -24765,7 +24851,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Increase your heat production 2 steps.",
+        "description": "Increase your heat production 2 steps.",
         "id": "behavior-1"
       }
     ],
@@ -24807,7 +24893,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires that Scientists are ruling or that you have 2 delegates there. Draw 2 cards.",
+        "description": "Draw 2 cards.",
         "id": "behavior-1"
       }
     ],
@@ -24851,7 +24937,7 @@
             "target": "none"
           }
         ],
-        "description": "Requires that Greens are ruling or that you have 2 delegates there. Place a greenery and raise oxygen 1 step.",
+        "description": "Place a greenery and raise oxygen 1 step.",
         "id": "behavior-1"
       }
     ],
@@ -24890,7 +24976,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires that you have a Party Leader in any party and that the sitting Chairman is neutral. Remove the **neutral** Chairman and move your own delegate (from the reserve) there instead. Gain 1 TR.",
+        "description": "Remove the **neutral** Chairman and move your own delegate (from the reserve) there instead. Gain 1 TR.",
         "id": "behavior-1"
       }
     ],
@@ -25493,7 +25579,7 @@
             "target": "self-player"
           }
         ],
-        "description": "You start with 35 M€ and 1 steel production.",
+        "description": "You start with 35 M€.",
         "id": "behavior-1"
       },
       {
@@ -25505,7 +25591,7 @@
             "condition": {
               "type": "production-increased",
               "resourceTypes": [
-                "credits-production"
+                "credit-production"
               ]
             }
           }
@@ -25643,7 +25729,7 @@
           }
         ],
         "productionBox": "evaluate",
-        "description": "**Effect:** Gain that resource when you gain production. You start with 1 steel production and 35 M€.",
+        "description": "You start with 1 steel production.",
         "id": "behavior-8"
       }
     ],
@@ -27203,12 +27289,8 @@
     "cost": 2,
     "description": [
       {
-        "type": "requirement",
-        "text": "Lose 2 plants."
-      },
-      {
         "type": "generic",
-        "text": "Increase your M€ production 2 steps."
+        "text": "Lose 2 plants. Increase your M€ production 2 steps."
       }
     ],
     "tags": [
@@ -27233,15 +27315,11 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires that you lose 2 plants. Increase your M€ production 2 steps.",
+        "description": "Lose 2 plants. Increase your M€ production 2 steps.",
         "id": "behavior-1"
       }
     ],
-    "gameModes": [],
-    "requirements": {
-      "description": "Lose 2 plants.",
-      "items": []
-    }
+    "gameModes": []
   },
   {
     "id": "X29",
@@ -27723,7 +27801,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Requires that you have 3 greeneries in play. Gain 12 M€.",
+        "description": "Gain 12 M€.",
         "id": "behavior-1"
       }
     ],
@@ -28920,7 +28998,7 @@
             "tileType": "nuclear-zone"
           }
         ],
-        "description": "Replace any tile with a Nuclear Zone tile.",
+        "description": "Replace any non-ocean tile with a Nuclear Zone tile.",
         "id": "behavior-1"
       }
     ],
@@ -29651,7 +29729,7 @@
     "description": [
       {
         "type": "generic",
-        "text": "Move Earth's withdrawal 1 generation earlier and gain 3 M€, or draw 2 cards."
+        "text": "Before withdrawal, move Earth's withdrawal 1 generation earlier and gain 3 M€, or draw 2 cards before or after withdrawal."
       }
     ],
     "gameModes": [
@@ -29700,7 +29778,7 @@
             ]
           }
         ],
-        "description": "Move Earth's withdrawal 1 generation earlier and gain 3 M€, or draw 2 cards."
+        "description": "Before withdrawal, move Earth's withdrawal 1 generation earlier and gain 3 M€, or draw 2 cards before or after withdrawal."
       }
     ]
   },
@@ -29954,7 +30032,7 @@
       },
       {
         "type": "generic",
-        "text": "You may pay 3 M€ to delay Earth's withdrawal by 1 generation."
+        "text": "Before withdrawal, you may pay 3 M€ to delay Earth's withdrawal by 1 generation."
       }
     ],
     "gameModes": [
@@ -29988,7 +30066,7 @@
             "type": "auto"
           }
         ],
-        "description": "You may pay 3 M€ to delay Earth's withdrawal by 1 generation.",
+        "description": "Before withdrawal, you may pay 3 M€ to delay Earth's withdrawal by 1 generation.",
         "optional": true,
         "outputs": [
           {
@@ -30029,7 +30107,7 @@
     "description": [
       {
         "type": "generic",
-        "text": "Pay 1 steel to delay Earth's withdrawal by 1 generation and gain 1 titanium, or gain 2 steel and 2 heat."
+        "text": "Before withdrawal, pay 1 steel to delay Earth's withdrawal by 1 generation and gain 1 titanium, or gain 2 steel and 2 heat before or after withdrawal."
       }
     ],
     "gameModes": [
@@ -30091,7 +30169,7 @@
             ]
           }
         ],
-        "description": "Pay 1 steel to delay Earth's withdrawal by 1 generation and gain 1 titanium, or gain 2 steel and 2 heat."
+        "description": "Before withdrawal, pay 1 steel to delay Earth's withdrawal by 1 generation and gain 1 titanium, or gain 2 steel and 2 heat before or after withdrawal."
       }
     ]
   },
@@ -32602,7 +32680,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Once per generation, gain 3 M€ after playing a project with an Earth-connected effect while connected, or a building project while disconnected."
+        "description": "While Earth is connected, gain 3 M€ after playing a project with an Earth-connected effect. Shares a once-per-generation limit with the disconnected effect."
       },
       {
         "id": "local-contract",
@@ -32641,7 +32719,7 @@
             "target": "self-player"
           }
         ],
-        "description": "Once per generation, gain 3 M€ after playing a project with an Earth-connected effect while connected, or a building project while disconnected."
+        "description": "After withdrawal, while Earth is disconnected, gain 3 M€ after playing a building project. Shares a once-per-generation limit with the connected effect."
       }
     ]
   },

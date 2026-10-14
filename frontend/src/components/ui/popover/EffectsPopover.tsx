@@ -8,7 +8,7 @@ interface EffectsPopoverProps {
   onClose: () => void;
   effects: PlayerEffectDto[];
   playerName?: string;
-  anchorRef: React.RefObject<HTMLElement>;
+  anchorRef: React.RefObject<HTMLElement | null>;
 }
 
 const EffectsPopover: React.FC<EffectsPopoverProps> = ({

@@ -18,14 +18,14 @@ type PendingResource struct {
 }
 
 // ApplyTradeOutput applies a colony output to a player's resources or production.
-func ApplyTradeOutput(ctx context.Context, g *game.Game, p *player.Player, outputType string, amount int, cardRegistry cards.CardRegistry, log *slog.Logger) *PendingResource {
-	return applyOutput(ctx, g, p, outputType, amount, cardRegistry, log)
+func ApplyTradeOutput(ctx context.Context, g *game.Game, p *player.Player, outputType string, amount int, source string, cardRegistry cards.CardRegistry, log *slog.Logger) *PendingResource {
+	return applyOutput(ctx, g, p, outputType, amount, source, cardRegistry, log)
 }
 
 // applyOutput applies a colony output to a player's resources or production.
 // Returns a PendingResource if the output is a card-targeted resource (microbe/animal/floater)
 // that requires the player to choose which card to place it on.
-func applyOutput(ctx context.Context, g *game.Game, p *player.Player, outputType string, amount int, cardRegistry cards.CardRegistry, log *slog.Logger) *PendingResource {
+func applyOutput(ctx context.Context, g *game.Game, p *player.Player, outputType string, amount int, source string, cardRegistry cards.CardRegistry, log *slog.Logger) *PendingResource {
 	rt := shared.ResourceType(outputType)
 	switch rt {
 	case shared.ResourceCredit, shared.ResourceSteel, shared.ResourceTitanium,
@@ -43,9 +43,7 @@ func applyOutput(ctx context.Context, g *game.Game, p *player.Player, outputType
 				log.Warn("Failed to draw cards for colony output", slog.Any("error", err))
 				return nil
 			}
-			for _, cardID := range cardIDs {
-				p.Hand().AddCard(cardID)
-			}
+			p.Hand().ReceiveCards(cardIDs, source, "")
 			log.Debug("Drew cards for colony output",
 				slog.String("player_id", p.ID()),
 				slog.Int("count", len(cardIDs)))

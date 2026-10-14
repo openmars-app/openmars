@@ -1,6 +1,7 @@
 package action
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -21,13 +22,25 @@ func CalculatePlayerCardState(
 	cardRegistry gamecards.CardRegistry,
 	colonyBonusLookup ...gamecards.ColonyBonusLookup,
 ) player.EntityState {
+	state := CalculatePendingCardPlayability(card, p, g, cardRegistry, colonyBonusLookup...)
+	if pending := p.Selection().GetPendingCardPlaySelection(); MatchesPendingCardPlay(card, pending) {
+		return state
+	}
+	state.Errors = append(state.Errors, validatePhase(g)...)
+	state.Errors = append(state.Errors, validateActionsRemaining(p, g)...)
+	state.Errors = append(state.Errors, validateNoPendingSelection(p, g)...)
+	return state
+}
+
+// CalculatePendingCardPlayability uses hand-card rules without phase or pending-choice blockers.
+func CalculatePendingCardPlayability(card *gamecards.Card, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry, colonyBonusLookup ...gamecards.ColonyBonusLookup) player.EntityState {
+	return calculatePendingCardPlayability(card, p, g, cardRegistry, CardPlayCostReduction(p, card), colonyBonusLookup...)
+}
+
+func calculatePendingCardPlayability(card *gamecards.Card, p *player.Player, g *game.Game, cardRegistry gamecards.CardRegistry, costReduction int, colonyBonusLookup ...gamecards.ColonyBonusLookup) player.EntityState {
 	var errors []player.StateError
 	var warnings []player.StateWarning
 	metadata := make(map[string]interface{})
-
-	errors = append(errors, validatePhase(g)...)
-	errors = append(errors, validateActionsRemaining(p, g)...)
-	errors = append(errors, validateNoPendingSelection(p, g)...)
 
 	cardRegistry = gamecards.ForGame(cardRegistry, g)
 	if effective, err := cardRegistry.GetByID(card.ID); err == nil {
@@ -47,6 +60,10 @@ func CalculatePlayerCardState(
 		}
 	}
 	costMap, discounts := calculateEffectiveCost(card, p, cardRegistry)
+	if costReduction > 0 {
+		costMap[string(shared.ResourceCredit)] = max(0, costMap[string(shared.ResourceCredit)]-costReduction)
+		discounts[string(shared.ResourceCredit)] += costReduction
+	}
 	if len(discounts) > 0 {
 		metadata["discounts"] = discounts
 	}
@@ -97,68 +114,6 @@ func CalculatePlayerCardState(
 		Cost:           costMap,
 		Metadata:       metadata,
 		ComputedValues: computedValues,
-		LastCalculated: time.Now(),
-	}
-}
-
-// CalculatePendingCardPlayability computes playability state for a pending card
-// (during card selection/buying). Skips phase, turn, and tile-selection checks
-// since those are irrelevant during card selection.
-func CalculatePendingCardPlayability(
-	card *gamecards.Card,
-	p *player.Player,
-	g *game.Game,
-	cardRegistry gamecards.CardRegistry,
-) player.EntityState {
-	var errors []player.StateError
-	var warnings []player.StateWarning
-	metadata := make(map[string]interface{})
-
-	cardRegistry = gamecards.ForGame(cardRegistry, g)
-	if effective, err := cardRegistry.GetByID(card.ID); err == nil {
-		card = effective
-	}
-	required := *card
-	required.Behaviors = nil
-	for _, b := range card.Behaviors {
-		if !b.Optional {
-			required.Behaviors = append(required.Behaviors, b)
-		}
-	}
-	card = &required
-	for _, b := range card.Behaviors {
-		if gamecards.HasAutoTrigger(b) && g.ModeRequirementsMet(b.StateRequirements) {
-			errors = append(errors, modeBehaviorErrors(card.ID, b, p, g, cardRegistry, metadata)...)
-		}
-	}
-	costMap, discounts := calculateEffectiveCost(card, p, cardRegistry)
-	if len(discounts) > 0 {
-		metadata["discounts"] = discounts
-	}
-
-	errors = append(errors, validateAffordabilityWithSubstitutes(p, g, cardRegistry, card, costMap)...)
-	errors = append(errors, validateRequirements(card, p, g, cardRegistry)...)
-	errors = append(errors, validateProductionOutputs(card, p)...)
-	errors = append(errors, validateCardResourceOutputs(card, p, cardRegistry)...)
-	errors = append(errors, validateCardDiscardOutputs(card, p)...)
-	errors = append(errors, validateNegativeResourceOutputsForCard(card, p)...)
-	errors = append(errors, ValidateTileOutputs(card, p, g)...)
-
-	for _, behavior := range card.Behaviors {
-		if !gamecards.HasAutoTrigger(behavior) {
-			continue
-		}
-		warnings = append(warnings, validateGlobalParamWarnings(behavior.Outputs, g)...)
-		for _, choice := range behavior.Choices {
-			warnings = append(warnings, validateGlobalParamWarnings(choice.Outputs, g)...)
-		}
-	}
-
-	return player.EntityState{
-		Errors:         errors,
-		Warnings:       warnings,
-		Cost:           costMap,
-		Metadata:       metadata,
 		LastCalculated: time.Now(),
 	}
 }
@@ -1287,20 +1242,12 @@ func checkRequirement(
 		}
 
 	case gamecards.RequirementColony:
-		colonyCount := g.Colonies().CountPlayerColonies(p.ID())
-		if req.Min != nil && colonyCount < *req.Min {
-			return &player.StateError{
-				Code:     player.ErrorCodeColoniesTooFew,
-				Category: player.ErrorCategoryRequirement,
-				Message:  "Not enough colonies",
+		if err := gamecards.ValidateColonyRequirement(req, p.ID(), g.Colonies()); err != nil {
+			code := player.ErrorCodeColoniesTooFew
+			if errors.Is(err, gamecards.ErrColoniesTooMany) {
+				code = player.ErrorCodeColoniesTooMany
 			}
-		}
-		if req.Max != nil && colonyCount > *req.Max {
-			return &player.StateError{
-				Code:     player.ErrorCodeColoniesTooMany,
-				Category: player.ErrorCategoryRequirement,
-				Message:  "Too many colonies",
-			}
+			return &player.StateError{Code: code, Category: player.ErrorCategoryRequirement, Message: err.Error()}
 		}
 
 	case gamecards.RequirementVenus:

@@ -862,3 +862,15 @@ func TestViron_NormalPurchaseDoesNotConsumeReuse(t *testing.T) {
 	}
 	testutil.AssertEqual(t, 1, g.CurrentTurn().ActionsRemaining(), "one turn action consumed")
 }
+
+func TestManutech_CreditProductionGainAndDecrease(t *testing.T) {
+	g, repo, registry, playerID, _ := testutil.SetupTwoPlayerGame(t)
+	ctx := context.Background()
+	testutil.AssertNoError(t, admin.NewSetCorporationAction(repo, registry, nil, testutil.TestLogger()).Execute(ctx, g.ID(), playerID, testutil.CardID("Manutech")), "set corporation")
+	p, _ := g.GetPlayer(playerID)
+	before := p.Resources().Get().Credits
+	p.Resources().AddProduction(map[shared.ResourceType]int{shared.ResourceCreditProduction: 3})
+	testutil.AssertEqual(t, before+3, p.Resources().Get().Credits, "gain full credit increase")
+	p.Resources().AddProduction(map[shared.ResourceType]int{shared.ResourceCreditProduction: -1})
+	testutil.AssertEqual(t, before+3, p.Resources().Get().Credits, "decrease grants nothing")
+}

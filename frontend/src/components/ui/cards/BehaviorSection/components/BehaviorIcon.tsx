@@ -8,6 +8,7 @@ interface TileScaleInfo {
 
 interface BehaviorIconProps {
   resourceType: string;
+  sizingType?: string;
   isProduction?: boolean;
   isAttack?: boolean;
   context?: "standalone" | "action" | "production" | "default";
@@ -17,13 +18,14 @@ interface BehaviorIconProps {
 
 const BehaviorIcon: React.FC<BehaviorIconProps> = ({
   resourceType,
+  sizingType = resourceType,
   isProduction: _isProduction = false,
   isAttack = false,
   context = "default",
   isAffordable = true,
   tileScaleInfo,
 }) => {
-  const cleanType = resourceType?.toLowerCase().replace(/[_\s]/g, "-");
+  const cleanType = sizingType?.toLowerCase().replace(/[_\s]/g, "-");
 
   if (cleanType === "vp") {
     return <span className="font-orbitron font-bold text-white text-xs leading-none">VP</span>;
@@ -79,7 +81,8 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
     cleanType === "volcano-tile";
   const isStandaloneCard = cleanType === "card-draw" || cleanType === "card";
   const shouldUseStandaloneSize =
-    context === "standalone" && (isPlacement || isStandaloneTile || isStandaloneCard);
+    context === "standalone" &&
+    (isPlacement || isStandaloneTile || isStandaloneCard || cleanType === "copy");
 
   if (!isScaledTile) {
     if (isAttack) {
@@ -108,7 +111,13 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
     ? `${iconClass} opacity-40 [filter:grayscale(0.7)_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]`
     : iconClass;
 
-  return <img src={icon} alt={cleanType} className={finalIconClass} />;
+  return (
+    <img
+      src={icon}
+      alt={resourceType.toLowerCase().replace(/[_\s]/g, "-")}
+      className={finalIconClass}
+    />
+  );
 };
 
 export const BehaviorSign: React.FC<{ positive?: boolean; className?: string }> = ({

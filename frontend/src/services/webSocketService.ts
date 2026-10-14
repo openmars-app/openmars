@@ -555,6 +555,16 @@ export class WebSocketService {
     return this.send(MessageTypeActionConfirmColonyResource, { cardId });
   }
 
+  continueSelection(
+    requestType:
+      | "action.confirm-colony-placement"
+      | "action.confirm-free-trade"
+      | "action.confirm-effect-selection"
+      | "action.confirm-award-fund",
+  ): string {
+    return this.send(requestType, { skip: true });
+  }
+
   confirmColonyPlacement(colonyId: string): string {
     return this.send(MessageTypeActionConfirmColonyPlacement, { colonyId });
   }

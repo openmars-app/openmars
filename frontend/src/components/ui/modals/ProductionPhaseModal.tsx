@@ -1,3 +1,4 @@
+import { useOverlayEventTarget } from "@/contexts/OverlayEnvironment";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   GameDto,
@@ -107,13 +108,30 @@ function useCounterAnimation(
   return { value: displayValue, done };
 }
 
-const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
+const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = (props) => (
+  <ProductionPhaseModalView
+    {...props}
+    onSelectCards={async (ids, options) => {
+      await globalWebSocketManager.confirmProductionCards(ids, options);
+    }}
+  />
+);
+
+export const ProductionPhaseModalView: React.FC<
+  ProductionPhaseModalProps & {
+    onSelectCards: (ids: string[], options?: { randomBuy?: boolean }) => Promise<void>;
+    soundsEnabled?: boolean;
+  }
+> = ({
   isOpen,
   gameState,
   onClose,
   onHide,
   openDirectlyToCardSelection = false,
+  onSelectCards,
+  soundsEnabled = true,
 }) => {
+  const eventTarget = useOverlayEventTarget();
   const { isCompact } = useLayoutMode();
   const soundHandlesRef = useRef<HTMLAudioElement[]>([]);
   const [hasSubmittedCardSelection, setHasSubmittedCardSelection] = useState(false);
@@ -135,11 +153,14 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   }, []);
 
   const playScoreSound = useCallback(() => {
+    if (!soundsEnabled) {
+      return;
+    }
     const handle = audioService.playSoundWithHandle("production-score");
     if (handle) {
       soundHandlesRef.current.push(handle);
     }
-  }, []);
+  }, [soundsEnabled]);
 
   const clearAnimationTimers = useCallback(() => {
     for (const t of animationTimersRef.current) {
@@ -161,7 +182,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   const handleCardSelection = useCallback(
     async (selectedCardIds: string[], options?: { randomBuy?: boolean }) => {
       try {
-        await globalWebSocketManager.confirmProductionCards(selectedCardIds, options);
+        await onSelectCards(selectedCardIds, options);
         setHasSubmittedCardSelection(true);
         setShowCardSelection(false);
       } catch (error) {
@@ -169,7 +190,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         onClose();
       }
     },
-    [onClose],
+    [onClose, onSelectCards],
   );
 
   const isLastRound = gameState?.isLastRound ?? false;
@@ -343,12 +364,12 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     };
 
     if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
+      eventTarget.addEventListener("keydown", handleKeyDown);
+      return () => eventTarget.removeEventListener("keydown", handleKeyDown);
     }
 
     return () => {};
-  }, [isOpen, hasSubmittedCardSelection, showCardSelection, handleNextClick]);
+  }, [isOpen, hasSubmittedCardSelection, showCardSelection, handleNextClick, eventTarget]);
 
   if (
     !isOpen ||

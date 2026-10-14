@@ -136,7 +136,7 @@ func (a *ConfirmCardDiscardAction) Execute(ctx context.Context, gameID string, p
 		description = fmt.Sprintf("Discarded %d card(s)", len(cardsToDiscard))
 	}
 	a.WriteStateLogWithChoiceAndOutputs(ctx, g, selection.Source, shared.SourceTypePassiveEffect, playerID, description, nil, calculatedOutputs)
-	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 
 	log.Info("Card discard confirmation completed",
 		slog.String("source", selection.Source),
@@ -170,9 +170,7 @@ func (a *ConfirmCardDiscardAction) applyPendingOutputs(
 							slog.Any("error", err))
 						continue
 					}
-					for _, cardID := range drawnCards {
-						opponent.Hand().AddCard(cardID)
-					}
+					opponent.Hand().ReceiveCards(drawnCards, selection.Source, selection.SourceCardID)
 					log.Debug("Opponent drew cards",
 						slog.String("opponent_id", opponent.ID()),
 						slog.Int("count", len(drawnCards)))
@@ -193,9 +191,7 @@ func (a *ConfirmCardDiscardAction) applyPendingOutputs(
 			if err != nil {
 				return nil, fmt.Errorf("failed to draw cards: %w", err)
 			}
-			for _, cardID := range drawnCards {
-				p.Hand().AddCard(cardID)
-			}
+			p.Hand().ReceiveCards(drawnCards, selection.Source, selection.SourceCardID)
 			selfOutputs = append(selfOutputs, shared.CalculatedOutput{
 				ResourceType: string(shared.ResourceCardDraw),
 				Amount:       len(drawnCards),

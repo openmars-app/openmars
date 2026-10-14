@@ -1,3 +1,4 @@
+import { useOverlayEventTarget } from "@/contexts/OverlayEnvironment";
 import type { GameModeDto } from "@/types/generated/api-types.ts";
 import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
@@ -51,6 +52,7 @@ const fieldClass =
   "w-full rounded-none border border-space-blue-500 bg-black px-3 py-2.5 text-sm text-white outline-none focus-visible:border-blue-400 focus-visible:ring-1 focus-visible:ring-blue-400";
 
 export default memo(function CardBrowserSidebar(props: SidebarProps) {
+  const eventTarget = useOverlayEventTarget();
   const { playButtonClickSound } = useSoundEffects();
   const panel = useRef<HTMLElement>(null);
   const [copyError, setCopyError] = useState(false);
@@ -85,12 +87,12 @@ export default memo(function CardBrowserSidebar(props: SidebarProps) {
         }
       }
     };
-    document.addEventListener("keydown", keydown, true);
+    eventTarget.addEventListener("keydown", keydown, true);
     return () => {
-      document.removeEventListener("keydown", keydown, true);
+      eventTarget.removeEventListener("keydown", keydown, true);
       previouslyFocused?.focus();
     };
-  }, [open, onClose]);
+  }, [open, onClose, eventTarget]);
 
   return (
     <>

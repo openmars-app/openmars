@@ -111,7 +111,7 @@ func (a *ConfirmBehaviorChoiceAction) Execute(ctx context.Context, gameID string
 	// Clear the pending selection
 	p.Selection().RemovePendingBehaviorResolution(resolutionID)
 	a.WriteStateLogWithChoiceAndOutputs(ctx, g, selection.Source, shared.SourceTypePassiveEffect, playerID, "Resolved effect", &choiceIndex, calculatedOutputs)
-	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 
 	log.Info("Behavior choice confirmation completed",
 		slog.String("source", selection.Source),
@@ -162,7 +162,7 @@ func (a *ConfirmBehaviorChoiceAction) ExecuteOptional(ctx context.Context, gameI
 		description = "Applied optional effect"
 	}
 	a.WriteStateLogWithChoiceAndOutputs(ctx, g, selection.Source, shared.SourceTypeCardPlay, playerID, description, nil, outputs)
-	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 	log.Info("Optional effect resolved", slog.String("resolution_id", resolutionID), slog.Bool("accepted", accept))
 	return nil
 }

@@ -92,6 +92,7 @@ const ColonySteps: React.FC<ColonyStepsProps> = ({
   const { pattern, sameType } = analyzeSteps(steps);
 
   const stepCount = steps.length;
+  const hasMarker = markerPosition >= 0 && markerPosition < stepCount;
   const markerLeftPercent = (markerPosition / stepCount) * 100;
 
   return (
@@ -138,38 +139,47 @@ const ColonySteps: React.FC<ColonyStepsProps> = ({
       {/* Step boxes with sliding marker overlay */}
       <div className="relative flex w-full">
         {/* Animated light region covering steps up to marker */}
-        <div
-          className="absolute top-0 h-full pointer-events-none bg-white/5 rounded-l"
-          style={{
-            zIndex: getZIndex("LOCAL", 5),
-            width: `${((markerPosition + 1) / stepCount) * 100}%`,
-            transition: "width 500ms cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        />
+        {hasMarker && (
+          <div
+            className="absolute top-0 h-full pointer-events-none bg-white/5 rounded-l"
+            style={{
+              zIndex: getZIndex("LOCAL", 5),
+              width: `${((markerPosition + 1) / stepCount) * 100}%`,
+              transition: "width 500ms cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          />
+        )}
 
         {/* Sliding marker highlight */}
-        <div
-          className="absolute top-0 h-full pointer-events-none ring-1 ring-white bg-white/25 rounded-sm"
-          style={{
-            zIndex: getZIndex("LOCAL", 10),
-            width: `${100 / stepCount}%`,
-            left: `${markerLeftPercent}%`,
-            transition: "left 500ms cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        />
-
-        {/* Boosted marker from Trade Envoys */}
-        {previewPosition !== undefined && previewPosition !== markerPosition && (
+        {hasMarker && (
           <div
-            className="absolute top-0 h-full pointer-events-none ring-1 ring-amber-400/60 bg-amber-400/15 rounded-sm"
+            data-colony-marker
+            className="absolute top-0 h-full pointer-events-none ring-1 ring-white bg-white/25 rounded-sm"
             style={{
-              zIndex: getZIndex("LOCAL", 8),
+              zIndex: getZIndex("LOCAL", 10),
               width: `${100 / stepCount}%`,
-              left: `${(previewPosition / stepCount) * 100}%`,
+              left: `${markerLeftPercent}%`,
               transition: "left 500ms cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           />
         )}
+
+        {/* Boosted marker from Trade Envoys */}
+        {hasMarker &&
+          previewPosition !== undefined &&
+          previewPosition >= 0 &&
+          previewPosition < stepCount &&
+          previewPosition !== markerPosition && (
+            <div
+              className="absolute top-0 h-full pointer-events-none ring-1 ring-amber-400/60 bg-amber-400/15 rounded-sm"
+              style={{
+                zIndex: getZIndex("LOCAL", 8),
+                width: `${100 / stepCount}%`,
+                left: `${(previewPosition / stepCount) * 100}%`,
+                transition: "left 500ms cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+            />
+          )}
 
         {steps.map((step, i) => {
           const isFirst = i === 0;

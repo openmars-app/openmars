@@ -134,6 +134,10 @@ func TestVenusBonus_CardDrawAt8(t *testing.T) {
 	finalCardCount := player.Hand().CardCount()
 	testutil.AssertEqual(t, initialCardCount+1, finalCardCount,
 		"Player should draw 1 card when venus crosses 8%")
+	receipts := player.Selection().CardReceipts()
+	testutil.AssertEqual(t, 1, len(receipts), "Venus draw creates one private receipt")
+	testutil.AssertEqual(t, "Venus Bonus", receipts[0].Source, "Venus receipt source")
+	testutil.AssertEqual(t, 1, len(receipts[0].Cards), "Venus receipt shows the drawn card")
 }
 
 func TestVenusBonus_TRAt16(t *testing.T) {

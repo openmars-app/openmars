@@ -1,3 +1,4 @@
+import BadgedGameIcon from "../../../display/BadgedGameIcon";
 import { StateSymbol, useCardResourceStorage } from "../../CardStateVisuals.tsx";
 import { OperationRequirements } from "./BehaviorQualifiers.tsx";
 import { BehaviorArrow } from "./BehaviorIcon";
@@ -202,34 +203,32 @@ const renderTriggerIcon = (trigger: TriggerDto, triggerIndex: number): React.Rea
   // Check if trigger has selectors (new system)
   const hasSelectors = trigger.condition?.selectors && trigger.condition.selectors.length > 0;
 
-  // Handle standard-project-played triggers with SP chip
+  // Qualify a single project with its symbol; explain broader restrictions in the tooltip.
   const isStandardProjectPlayed = trigger.condition?.type === "standard-project-played";
   if (isStandardProjectPlayed) {
-    const ALL_STANDARD_PROJECTS = [
-      "power-plant",
-      "asteroid",
-      "aquifer",
-      "greenery",
-      "city",
-      "sell-patents",
-    ];
-    const selectors = trigger.condition?.selectors || [];
-    const specifiedProjects = selectors.flatMap((s: SelectorDto) => s.standardProjects || []);
-    const isSubset =
-      specifiedProjects.length > 0 && specifiedProjects.length < ALL_STANDARD_PROJECTS.length;
-
-    return (
-      <div key={triggerIndex} className="flex gap-[2px] items-center">
-        <span className="text-[10px] font-semibold text-white bg-black/30 border border-white/15 px-1.5 py-0.5 [text-shadow:0_0_2px_rgba(0,0,0,0.6)]">
-          SP
+    const projects =
+      trigger.condition?.selectors?.flatMap((selector) => selector.standardProjects ?? []) ?? [];
+    const badgeByProject: Record<string, string> = {
+      "power-plant": "power-tag",
+      greenery: "greenery-tile",
+      aquifer: "ocean-tile",
+      city: "city-tile",
+      asteroid: "temperature",
+    };
+    const badges = projects.map((project) => badgeByProject[project]).filter(Boolean);
+    if (projects.length > 1 || badges.length !== projects.length) {
+      return (
+        <span
+          key={triggerIndex}
+          className="inline-flex items-center gap-1"
+          data-standard-project-exception
+        >
+          <GameIcon iconType="standard-project" size="behavior" />
+          <span className="font-bold text-white">*</span>
         </span>
-        {isSubset && (
-          <span className="text-white font-bold text-sm [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-            *
-          </span>
-        )}
-      </div>
-    );
+      );
+    }
+    return <BadgedGameIcon key={triggerIndex} icon="standard-project" badges={badges} />;
   }
 
   // Check if trigger is city-placed condition (e.g., Tharsis Republic)
@@ -837,7 +836,7 @@ const isTilePlacementWithBonusProductionPattern = (allBehaviors: CardBehaviorDto
 };
 
 const ALL_PRODUCTION_TYPES = new Set([
-  "credits-production",
+  "credit-production",
   "steel-production",
   "titanium-production",
   "plant-production",
@@ -862,13 +861,26 @@ const isAllStandardResourceProductionPattern = (allBehaviors: CardBehaviorDto[])
     if (!ALL_PRODUCTION_TYPES.has(resourceTypes[0])) {
       return false;
     }
+    const outputs = b.outputs ?? [];
+    if (
+      outputs.length !== 1 ||
+      outputs[0].type !== resourceTypes[0].replace("-production", "") ||
+      outputs[0].amount !== 1 ||
+      outputs[0].target !== "self-player" ||
+      b.inputs?.length ||
+      b.choices?.length ||
+      b.optional ||
+      b.stateRequirements?.length
+    ) {
+      return false;
+    }
     coveredTypes.add(resourceTypes[0]);
   }
   return coveredTypes.size === 6;
 };
 
 const PRODUCTION_TYPE_TO_RESOURCE: Record<string, string> = {
-  "credits-production": "credit",
+  "credit-production": "credit",
   "steel-production": "steel",
   "titanium-production": "titanium",
   "plant-production": "plant",
@@ -932,9 +944,7 @@ const TriggeredEffectLayout: React.FC<TriggeredEffectLayoutProps> = ({
     return (
       <div className="behavior-flow flex gap-[3px] items-center justify-center max-w-full">
         <div className="bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)] flex items-center">
-          <span className="bg-[rgba(255,255,255,0.9)] text-black text-[10px] font-bold px-1 py-[1px] leading-tight">
-            SR
-          </span>
+          <GameIcon iconType="resources" size="behavior" />
         </div>
         <span
           className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[8px] shrink-0"
@@ -942,9 +952,7 @@ const TriggeredEffectLayout: React.FC<TriggeredEffectLayoutProps> = ({
         >
           :
         </span>
-        <span className="bg-[rgba(255,255,255,0.9)] text-black text-[10px] font-bold px-1 py-[1px] leading-tight">
-          SR
-        </span>
+        <GameIcon iconType="resources" size="behavior" />
       </div>
     );
   }
@@ -964,7 +972,7 @@ const TriggeredEffectLayout: React.FC<TriggeredEffectLayoutProps> = ({
     return (
       <div className="flex flex-col gap-1 items-center justify-center">
         <div className="flex gap-[2px] items-center justify-center">
-          <GameIcon iconType="tile-placement" size="behavior" />
+          <GameIcon iconType="mine" size="behavior" />
           {hasBonusRestriction && (
             <span className="text-white font-bold text-sm [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
               *

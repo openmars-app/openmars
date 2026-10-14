@@ -1,9 +1,9 @@
-import type { StateErrorDto } from "@/types/generated/api-types.ts";
 import { Z_INDEX } from "@/constants/zIndex.ts";
 import RevealTrigger from "../display/RevealTrigger.tsx";
 
 interface PlayabilityProps {
-  errors: StateErrorDto[];
+  errors: { message: string }[];
+  warning?: boolean;
 }
 
 export function PlayabilityErrorList({ errors }: PlayabilityProps) {
@@ -21,11 +21,11 @@ export function PlayabilityErrorList({ errors }: PlayabilityProps) {
   );
 }
 
-export default function PlayabilityBadge({ errors }: PlayabilityProps) {
+export default function PlayabilityBadge({ errors, warning = false }: PlayabilityProps) {
   return (
     <RevealTrigger
       as="button"
-      aria-label="Why this card can't be played"
+      aria-label={warning ? "Card warnings" : "Why this card can't be played"}
       placement="below"
       maxWidth={240}
       cornerSize={8}
@@ -39,7 +39,9 @@ export default function PlayabilityBadge({ errors }: PlayabilityProps) {
         </ul>
       }
     >
-      <span className="size-8 flex items-center justify-center bg-black/80 border border-[#e74c3c] text-[#ff6b6b]">
+      <span
+        className={`size-8 flex items-center justify-center bg-black/80 border ${warning ? "border-amber-400 text-amber-300" : "border-[#e74c3c] text-[#ff6b6b]"}`}
+      >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 3 2 21h20z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
           <path d="M12 10v5M12 17.5v.5" stroke="currentColor" strokeWidth="2" />

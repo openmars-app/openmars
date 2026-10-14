@@ -24,6 +24,7 @@ Go tools are pinned in [backend/go.mod](backend/go.mod) and [backend/golangci-li
 ## Working agreement
 
 - Keep changes within the requested task. Prefer existing files and abstractions; create files when the change needs them. Do not create documentation unless requested.
+- Store temporary work worth retaining—including generated assets, source images, previews, showcases, and intermediate files—in the repository-root `./tmp/`, preferably in a task-specific subdirectory. Use system `/tmp` only for genuinely disposable files that can be lost without affecting ongoing work.
 - Move APIs forward without compatibility shims, deprecated fields, old message types, or compatibility branches. When replacing a contract, remove its old form and update consumers together.
 - Never push directly to `main`; use a feature branch and pull request.
 - Do not stop or restart the user's development servers without their authorization. Disposable test servers and the frontend inspector may manage their own processes.

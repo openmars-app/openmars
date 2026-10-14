@@ -9,7 +9,7 @@ interface ActionsPopoverProps {
   actions: PlayerActionDto[];
   playerName?: string;
   onActionSelect?: (action: PlayerActionDto) => void;
-  anchorRef: React.RefObject<HTMLElement>;
+  anchorRef: React.RefObject<HTMLElement | null>;
   gameState?: GameDto;
 }
 

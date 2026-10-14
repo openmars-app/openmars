@@ -20,9 +20,24 @@ const JoinGamePopover: React.FC<JoinGamePopoverProps> = ({
   game,
   anchorRef,
 }) => {
+  const join = useJoinGame({ game });
+  return (
+    <JoinGamePopoverView isVisible={isVisible} onClose={onClose} anchorRef={anchorRef} {...join} />
+  );
+};
+
+export function JoinGamePopoverView({
+  isVisible,
+  onClose,
+  anchorRef,
+  playerName,
+  setPlayerName,
+  isLoading,
+  handleJoin,
+  handleKeyDown,
+  loadingMessage,
+}: Omit<JoinGamePopoverProps, "game"> & ReturnType<typeof useJoinGame>) {
   const position = useMenuPopoverPosition(anchorRef);
-  const { playerName, setPlayerName, isLoading, handleJoin, handleKeyDown, loadingMessage } =
-    useJoinGame({ game });
 
   return (
     <>
@@ -65,6 +80,6 @@ const JoinGamePopover: React.FC<JoinGamePopoverProps> = ({
       {isLoading && <LoadingOverlay isLoaded={false} message={loadingMessage} />}
     </>
   );
-};
+}
 
 export default JoinGamePopover;

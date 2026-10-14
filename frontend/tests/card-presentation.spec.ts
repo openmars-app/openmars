@@ -124,7 +124,10 @@ test("contact duration is centered in the loop and independent of its start offs
   await page.goto("/cards?quick&mode=earth-withdrawal&cId=ES041&cId=ES042&cId=ES043");
   const relay = page.locator('[data-card-id="ES041"] [data-behavior-atom="state-window"]');
   await expect(relay).toHaveText("2");
-  await expect(relay.locator("span.absolute")).toHaveText("2");
+  await expect(relay.getByText("2", { exact: true })).toBeVisible();
+  await expect(
+    relay.locator('[data-contact-duration="generation"] img[alt="generation"]'),
+  ).toHaveCount(1);
   await expect(
     page.locator('[data-card-id="ES042"] [data-behavior-atom="state-window"]'),
   ).toHaveText("1");
@@ -169,7 +172,7 @@ test("permanent production and immediate imports keep their meaning", async ({ p
   if (info.project.use.hasTouch) await badge.tap();
   else await badge.hover();
   await expect(
-    page.getByText("2 permanent energy production and Earth disconnected.", {
+    page.getByText("2 permanent energy production and Earth disconnected after withdrawal.", {
       exact: true,
     }),
   ).toBeVisible();
@@ -255,6 +258,8 @@ test("permanent card markers preserve card size and action conditions stay legib
   await expect(relocation).toBeVisible();
   const marked = relocation.locator('[data-semantic-icon="technology-import"] img');
   const plain = relocation.locator('.behavior-section [role="img"][aria-label="Card"] img');
+  await expect(marked).toBeVisible();
+  await expect(plain).toBeVisible();
   const markedBounds = await marked.boundingBox();
   const plainBounds = await plain.boundingBox();
   expect(markedBounds!.width).toBeCloseTo(plainBounds!.width, 0);
@@ -313,7 +318,7 @@ test("requirements have a description label and Municipal Power Exchange require
   const description = card.locator(".game-card-description");
   await expect(description.locator("strong").filter({ hasText: "Requirement:" })).toHaveCount(1);
   await expect(description).toContainText("Requirement: 1 city you own on Mars.");
-  await expect(card.locator(".game-card-requirements")).not.toBeEmpty();
+  await expect(card.locator('.game-card-requirements img[alt="city-tile"]')).toBeVisible();
   await expect(card.locator("[data-behavior-qualifiers] [data-rule-exception]")).toHaveCount(0);
   await expect(card.locator(".behavior-section")).toContainText("*");
   await description.screenshot({ path: info.outputPath("requirement-description.png") });
@@ -364,7 +369,9 @@ test("optional payments have explicit pay and skip controls with no empty choice
   page,
 }, info) => {
   await page.goto("/cards?quick&mode=earth-withdrawal&cId=ES014");
-  await expect(page.locator('[data-card-id="ES014"] [data-optional-choice]')).toContainText("MAY");
+  await expect(page.locator('[data-card-id="ES014"] [data-optional-choice]')).not.toContainText(
+    "MAY",
+  );
   await page.evaluate(async () => {
     const load = (path: string) => import(/* @vite-ignore */ path);
     const [React, DOM, overlay, visuals, connection] = await Promise.all(

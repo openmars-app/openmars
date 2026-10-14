@@ -1,3 +1,4 @@
+import { useOverlayPortalRoot, useIsolatedOverlay } from "@/contexts/OverlayEnvironment";
 import CloseButton from "@/components/ui/buttons/CloseButton.tsx";
 import React, { useRef, useState, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
@@ -123,6 +124,8 @@ const GamePopover: React.FC<GamePopoverProps> = ({
   contentRef,
   overlayLayer,
 }) => {
+  const portalRoot = useOverlayPortalRoot();
+  const centered = useIsolatedOverlay();
   const popoverRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<PopoverLayout | null>(null);
 
@@ -141,7 +144,17 @@ const GamePopover: React.FC<GamePopoverProps> = ({
     }
 
     const update = () => {
-      setLayout(computeLayout(position, width, maxHeight));
+      setLayout(
+        centered
+          ? {
+              width: Math.min(width, window.innerWidth - 2 * VIEWPORT_MARGIN),
+              maxHeight: fitHeight(
+                resolveMaxHeight(maxHeight),
+                window.innerHeight - VIEWPORT_MARGIN,
+              ),
+            }
+          : computeLayout(position, width, maxHeight),
+      );
     };
 
     update();
@@ -151,7 +164,7 @@ const GamePopover: React.FC<GamePopoverProps> = ({
       window.removeEventListener("resize", update);
       window.removeEventListener("orientationchange", update);
     };
-  }, [isVisible, position, width, maxHeight]);
+  }, [isVisible, position, width, maxHeight, centered]);
 
   if (!isVisible) {
     return null;
@@ -160,8 +173,9 @@ const GamePopover: React.FC<GamePopoverProps> = ({
   const resolvedLayout = layout ?? { width };
 
   const themeStyles = getThemeStyles(theme);
-  const animationClass =
-    animation === "slideUp"
+  const animationClass = centered
+    ? ""
+    : animation === "slideUp"
       ? "animate-[popoverSlideUp_0.3s_ease-out]"
       : "animate-[popoverSlideDown_0.3s_ease-out]";
 
@@ -185,16 +199,17 @@ const GamePopover: React.FC<GamePopoverProps> = ({
       className={`fixed game-panel game-panel-clipped ${animationClass} flex flex-col overflow-hidden isolate pointer-events-auto ${className}`}
       style={{
         ...themeStyles,
-        top: resolvedLayout.top,
+        top: centered ? "50%" : resolvedLayout.top,
         bottom: resolvedLayout.bottom,
-        left: resolvedLayout.left,
+        left: centered ? "50%" : resolvedLayout.left,
+        transform: centered ? "translate(-50%, -50%)" : undefined,
         width: resolvedLayout.width,
         maxHeight: resolvedLayout.maxHeight,
         zIndex,
       }}
       {...(overlayLayer ? { "data-overlay-layer": true } : {})}
     >
-      {arrow?.enabled && (
+      {arrow?.enabled && !centered && (
         <div
           className={`absolute -bottom-2 ${getArrowPosition()} w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[var(--popover-accent)]`}
           style={arrow.offset !== undefined ? { right: `${arrow.offset}px` } : undefined}
@@ -202,7 +217,7 @@ const GamePopover: React.FC<GamePopoverProps> = ({
       )}
 
       {header && (
-        <div className="flex items-center justify-between py-[15px] px-5 bg-black/40 border-b border-b-[var(--popover-accent)]/60">
+        <div className="shrink-0 flex items-center justify-between py-[15px] px-5 bg-black/40 border-b border-b-[var(--popover-accent)]/60">
           <div className="flex items-center gap-2.5">
             <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
               {header.title}
@@ -223,12 +238,12 @@ const GamePopover: React.FC<GamePopoverProps> = ({
 
       <div
         ref={contentRef}
-        className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--popover-accent)_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[var(--popover-accent)]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[var(--popover-accent)]"
+        className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--popover-accent)_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[var(--popover-accent)]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[var(--popover-accent)]"
       >
         {children}
       </div>
     </div>,
-    document.body,
+    portalRoot,
   );
 };
 

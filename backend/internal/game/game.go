@@ -1448,6 +1448,12 @@ func (g *Game) calculateAvailableHexesForTileLocked(tileType string, playerID st
 		return tile.ReservedBy != nil && *tile.ReservedBy != playerID
 	}
 
+	// An ocean's OwnerID records who placed it; oceans are not owned tiles.
+	isOwnedTile := func(tile board.Tile) bool {
+		return tile.OccupiedBy != nil && tile.OccupiedBy.Type != shared.ResourceOceanTile &&
+			tile.OwnerID != nil && *tile.OwnerID == playerID
+	}
+
 	// Helper to count adjacent occupied tiles of a specific type
 	countAdjacentOfType := func(tile board.Tile, tileOccupantType string) int {
 		count := 0
@@ -1489,10 +1495,7 @@ func (g *Game) calculateAvailableHexesForTileLocked(tileType string, playerID st
 		for _, neighborPos := range tile.Coordinates.GetNeighbors() {
 			for _, neighborTile := range tiles {
 				if neighborTile.Coordinates.Equals(neighborPos) &&
-					neighborTile.OccupiedBy != nil &&
-					neighborTile.OccupiedBy.Type == targetType &&
-					neighborTile.OwnerID != nil &&
-					*neighborTile.OwnerID == playerID {
+					isOwnedTile(neighborTile) && neighborTile.OccupiedBy.Type == targetType {
 					return true
 				}
 			}
@@ -1500,14 +1503,11 @@ func (g *Game) calculateAvailableHexesForTileLocked(tileType string, playerID st
 		return false
 	}
 
-	// Helper to check if tile has any adjacent tile owned by the player (regardless of type)
+	// Helper to check if tile has any adjacent non-ocean tile owned by the player.
 	hasAnyAdjacentOwned := func(tile board.Tile) bool {
 		for _, neighborPos := range tile.Coordinates.GetNeighbors() {
 			for _, neighborTile := range tiles {
-				if neighborTile.Coordinates.Equals(neighborPos) &&
-					neighborTile.OccupiedBy != nil &&
-					neighborTile.OwnerID != nil &&
-					*neighborTile.OwnerID == playerID {
+				if neighborTile.Coordinates.Equals(neighborPos) && isOwnedTile(neighborTile) {
 					return true
 				}
 			}

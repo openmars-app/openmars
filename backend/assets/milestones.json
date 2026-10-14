@@ -3,209 +3,448 @@
     "id": "terraformer",
     "name": "Terraformer",
     "description": "Have a Terraform Rating of at least 35",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "tr", "min": 35 }
+      "countable": {
+        "type": "tr",
+        "min": 35
+      }
     },
-    "style": { "color": "#FFD700", "icon": "tr" }
+    "style": {
+      "color": "#FFD700",
+      "icon": "milestone-terraformer"
+    }
   },
   {
     "id": "mayor",
     "name": "Mayor",
     "description": "Own at least 4 city tiles",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "city-tile", "target": "self-player", "min": 4 }
+      "countable": {
+        "type": "city-tile",
+        "target": "self-player",
+        "min": 4
+      }
     },
-    "style": { "color": "#9E9E9E", "icon": "city-tile" }
+    "style": {
+      "color": "#9E9E9E",
+      "icon": "milestone-mayor"
+    }
   },
   {
     "id": "gardener",
     "name": "Gardener",
     "description": "Own at least 4 greenery tiles",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "greenery-tile", "target": "self-player", "min": 4 }
+      "countable": {
+        "type": "greenery-tile",
+        "target": "self-player",
+        "min": 4
+      }
     },
-    "style": { "color": "#4CAF50", "icon": "greenery-tile" }
+    "style": {
+      "color": "#4CAF50",
+      "icon": "milestone-gardener"
+    }
   },
   {
     "id": "builder",
     "name": "Builder",
     "description": "Have at least 8 building tags in play",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "tag", "tag": "building", "min": 8 }
+      "countable": {
+        "type": "tag",
+        "tag": "building",
+        "min": 8
+      }
     },
-    "style": { "color": "#795548", "icon": "building-tag" }
+    "style": {
+      "color": "#795548",
+      "icon": "milestone-builder"
+    }
   },
   {
     "id": "planner",
     "name": "Planner",
     "description": "Have at least 12 cards in hand",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "card-count", "min": 12 }
+      "countable": {
+        "type": "card-count",
+        "min": 12
+      }
     },
-    "style": { "color": "#2196F3", "icon": "card-draw" }
+    "style": {
+      "color": "#2196F3",
+      "icon": "milestone-planner"
+    }
   },
   {
     "id": "hoverlord",
     "name": "Hoverlord",
     "description": "Have at least 7 floater resources on your cards",
-    "gameModes": ["classic"],
-    "requiresSystems": ["venus"],
+    "gameModes": [
+      "classic"
+    ],
+    "requiresSystems": [
+      "venus"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "floater", "target": "self-player", "min": 7 }
+      "countable": {
+        "type": "floater",
+        "target": "self-player",
+        "min": 7
+      }
     },
-    "style": { "color": "#FFD700", "icon": "floater" }
+    "style": {
+      "color": "#FFD700",
+      "icon": "milestone-hoverlord"
+    }
   },
   {
     "id": "diversifier",
     "name": "Diversifier",
     "description": "Have at least 8 different tags in play",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "distinct-tag-count", "min": 8 }
+      "countable": {
+        "type": "distinct-tag-count",
+        "min": 8
+      }
     },
-    "style": { "color": "#9C27B0", "icon": "tag" }
+    "style": {
+      "color": "#9C27B0",
+      "icon": "milestone-diversifier"
+    }
   },
   {
     "id": "tactician",
     "name": "Tactician",
     "description": "Have at least 5 cards in play with requirements",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "cards-with-requirements", "min": 5 }
+      "countable": {
+        "type": "cards-with-requirements",
+        "min": 5
+      }
     },
-    "style": { "color": "#F44336", "icon": "requirement-badge" }
+    "style": {
+      "color": "#F44336",
+      "icon": "milestone-tactician"
+    }
   },
   {
     "id": "polar-explorer",
     "name": "Polar Explorer",
     "description": "Have at least 3 tiles on the two bottom rows",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "land-tile", "target": "self-player", "minRow": 3, "min": 3 }
+      "countable": {
+        "type": "land-tile",
+        "target": "self-player",
+        "minRow": 3,
+        "min": 3
+      }
     },
-    "style": { "color": "#00BCD4", "icon": "tile" }
+    "style": {
+      "color": "#00BCD4",
+      "icon": "milestone-polar-explorer"
+    }
   },
   {
     "id": "energizer",
     "name": "Energizer",
     "description": "Have at least 6 energy production",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "energy-production", "min": 6 }
+      "countable": {
+        "type": "energy-production",
+        "min": 6
+      }
     },
-    "style": { "color": "#FF9800", "icon": "energy" }
+    "style": {
+      "color": "#FF9800",
+      "icon": "milestone-energizer"
+    }
   },
   {
     "id": "rim-settler",
     "name": "Rim Settler",
     "description": "Have at least 3 jovian tags in play",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "tag", "tag": "jovian", "min": 3 }
+      "countable": {
+        "type": "tag",
+        "tag": "jovian",
+        "min": 3
+      }
     },
-    "style": { "color": "#673AB7", "icon": "jovian-tag" }
+    "style": {
+      "color": "#673AB7",
+      "icon": "milestone-rim-settler"
+    }
   },
   {
     "id": "generalist",
     "name": "Generalist",
     "description": "Have increased all 6 productions at least 1 step",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "state",
-      "state": { "type": "all-production", "min": 1 }
+      "state": {
+        "type": "all-production",
+        "min": 1
+      }
     },
-    "style": { "color": "#607D8B", "icon": "production-all" }
+    "style": {
+      "color": "#607D8B",
+      "icon": "milestone-generalist"
+    }
   },
   {
     "id": "specialist",
     "name": "Specialist",
     "description": "Have at least 10 production of any resource",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "max-single-production", "min": 10 }
+      "countable": {
+        "type": "max-single-production",
+        "min": 10
+      }
     },
-    "style": { "color": "#E91E63", "icon": "production-threshold" }
+    "style": {
+      "color": "#E91E63",
+      "icon": "milestone-specialist"
+    }
   },
   {
     "id": "ecologist",
     "name": "Ecologist",
     "description": "Have at least 4 bio tags (plant, microbe, or animal) in play",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "tag", "tags": ["plant", "microbe", "animal"], "min": 4 }
+      "countable": {
+        "type": "tag",
+        "tags": [
+          "plant",
+          "microbe",
+          "animal"
+        ],
+        "min": 4
+      }
     },
-    "style": { "color": "#8BC34A", "icon": "plant-tag" }
+    "style": {
+      "color": "#8BC34A",
+      "icon": "milestone-ecologist"
+    }
   },
   {
     "id": "tycoon",
     "name": "Tycoon",
     "description": "Have at least 15 automated and event cards played",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "played-card-type-count", "cardTypeFilter": "automated+event", "min": 15 }
+      "countable": {
+        "type": "played-card-type-count",
+        "cardTypeFilter": "automated+event",
+        "min": 15
+      }
     },
-    "style": { "color": "#FF5722", "icon": "green-card-plus-event" }
+    "style": {
+      "color": "#FF5722",
+      "icon": "milestone-tycoon"
+    }
   },
   {
     "id": "legend",
     "name": "Legend",
     "description": "Have at least 5 event cards played",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "claimCost": 8,
-    "reward": [{ "type": "vp", "amount": 5 }],
+    "reward": [
+      {
+        "type": "vp",
+        "amount": 5
+      }
+    ],
     "requirement": {
       "kind": "countable",
-      "countable": { "type": "played-card-type-count", "cardTypeFilter": "event", "min": 5 }
+      "countable": {
+        "type": "played-card-type-count",
+        "cardTypeFilter": "event",
+        "min": 5
+      }
     },
-    "style": { "color": "#D32F2F", "icon": "event-tag" }
+    "style": {
+      "color": "#D32F2F",
+      "icon": "milestone-legend"
+    }
   }
 ]

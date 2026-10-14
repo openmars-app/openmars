@@ -3,307 +3,858 @@
     "id": "landlord",
     "name": "Landlord",
     "description": "Most tiles on Mars",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "land-tile", "target": "self-player" }
+      {
+        "type": "land-tile",
+        "target": "self-player"
+      }
     ],
-    "style": { "color": "#5D4037", "icon": "tile" }
+    "style": {
+      "color": "#5D4037",
+      "icon": "award-landlord"
+    }
   },
   {
     "id": "banker",
     "name": "Banker",
     "description": "Highest MC production",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "credit-production", "target": "self-player" }
+      {
+        "type": "credit-production",
+        "target": "self-player"
+      }
     ],
-    "style": { "color": "#FFD700", "icon": "credit" }
+    "style": {
+      "color": "#FFD700",
+      "icon": "award-banker"
+    }
   },
   {
     "id": "scientist",
     "name": "Scientist",
     "description": "Most science tags in play",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "tag", "tag": "science" }
+      {
+        "type": "tag",
+        "tag": "science"
+      }
     ],
-    "style": { "color": "#FFFFFF", "icon": "science-tag" }
+    "style": {
+      "color": "#FFFFFF",
+      "icon": "award-scientist"
+    }
   },
   {
     "id": "thermalist",
     "name": "Thermalist",
     "description": "Most heat resources",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "heat", "target": "self-player" }
+      {
+        "type": "heat",
+        "target": "self-player"
+      }
     ],
-    "style": { "color": "#FF5722", "icon": "heat" }
+    "style": {
+      "color": "#FF5722",
+      "icon": "award-thermalist"
+    }
   },
   {
     "id": "miner",
     "name": "Miner",
     "description": "Most steel and titanium resources",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "steel", "target": "self-player" },
-      { "type": "titanium", "target": "self-player" }
+      {
+        "type": "steel",
+        "target": "self-player"
+      },
+      {
+        "type": "titanium",
+        "target": "self-player"
+      }
     ],
-    "style": { "color": "#795548", "icon": "steel" }
+    "style": {
+      "color": "#795548",
+      "icon": "award-miner"
+    }
   },
   {
     "id": "venuphile",
     "name": "Venuphile",
     "description": "Most Venus tags in play",
-    "gameModes": ["classic"],
-    "requiresSystems": ["venus"],
+    "gameModes": [
+      "classic"
+    ],
+    "requiresSystems": [
+      "venus"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "tag", "tag": "venus" }
+      {
+        "type": "tag",
+        "tag": "venus"
+      }
     ],
-    "style": { "color": "#FFD700", "icon": "venus" }
+    "style": {
+      "color": "#FFD700",
+      "icon": "award-venuphile"
+    }
   },
   {
     "id": "cultivator",
     "name": "Cultivator",
     "description": "Most greenery tiles",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "greenery-tile", "target": "self-player" }
+      {
+        "type": "greenery-tile",
+        "target": "self-player"
+      }
     ],
-    "style": { "color": "#4CAF50", "icon": "greenery-tile" }
+    "style": {
+      "color": "#4CAF50",
+      "icon": "award-cultivator"
+    }
   },
   {
     "id": "magnate",
     "name": "Magnate",
     "description": "Most automated cards played",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "played-card-type-count", "cardTypeFilter": "automated" }
+      {
+        "type": "played-card-type-count",
+        "cardTypeFilter": "automated"
+      }
     ],
-    "style": { "color": "#4CAF50", "icon": "card-draw" }
+    "style": {
+      "color": "#4CAF50",
+      "icon": "award-magnate"
+    }
   },
   {
     "id": "space-baron",
     "name": "Space Baron",
     "description": "Most space tags in play",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "tag", "tag": "space" }
+      {
+        "type": "tag",
+        "tag": "space"
+      }
     ],
-    "style": { "color": "#1A237E", "icon": "space-tag" }
+    "style": {
+      "color": "#1A237E",
+      "icon": "award-space-baron"
+    }
   },
   {
     "id": "excentric",
     "name": "Excentric",
     "description": "Most resources on cards",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "total-card-storage" }
+      {
+        "type": "total-card-storage"
+      }
     ],
-    "style": { "color": "#E91E63", "icon": "card-resource" }
+    "style": {
+      "color": "#E91E63",
+      "icon": "award-excentric"
+    }
   },
   {
     "id": "contractor",
     "name": "Contractor",
     "description": "Most building tags in play",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "tag", "tag": "building" }
+      {
+        "type": "tag",
+        "tag": "building"
+      }
     ],
-    "style": { "color": "#795548", "icon": "building-tag" }
+    "style": {
+      "color": "#795548",
+      "icon": "award-contractor"
+    }
   },
   {
     "id": "celebrity",
     "name": "Celebrity",
     "description": "Most cards in play with cost of at least 20 MC",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "played-card-type-count", "minCost": 20 }
+      {
+        "type": "played-card-type-count",
+        "minCost": 20
+      }
     ],
-    "style": { "color": "#FFD700", "icon": "credit" }
+    "style": {
+      "color": "#FFD700",
+      "icon": "award-celebrity"
+    }
   },
   {
     "id": "industrialist",
     "name": "Industrialist",
     "description": "Most steel and energy resources",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "steel", "target": "self-player" },
-      { "type": "energy", "target": "self-player" }
+      {
+        "type": "steel",
+        "target": "self-player"
+      },
+      {
+        "type": "energy",
+        "target": "self-player"
+      }
     ],
-    "style": { "color": "#616161", "icon": "steel" }
+    "style": {
+      "color": "#616161",
+      "icon": "award-industrialist"
+    }
   },
   {
     "id": "desert-settler",
     "name": "Desert Settler",
     "description": "Most tiles on the four bottom rows",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "land-tile", "target": "self-player", "minRow": 1 }
+      {
+        "type": "land-tile",
+        "target": "self-player",
+        "minRow": 1
+      }
     ],
-    "style": { "color": "#FF9800", "icon": "tile" }
+    "style": {
+      "color": "#FF9800",
+      "icon": "award-desert-settler"
+    }
   },
   {
     "id": "estate-dealer",
     "name": "Estate Dealer",
     "description": "Most tiles adjacent to ocean tiles",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "land-tile", "target": "self-player", "adjacentToTileType": "ocean-tile" }
+      {
+        "type": "land-tile",
+        "target": "self-player",
+        "adjacentToTileType": "ocean-tile"
+      }
     ],
-    "style": { "color": "#0288D1", "icon": "ocean-tile" }
+    "style": {
+      "color": "#0288D1",
+      "icon": "award-estate-dealer"
+    }
   },
   {
     "id": "benefactor",
     "name": "Benefactor",
     "description": "Highest terraform rating",
-    "gameModes": ["classic", "earth-withdrawal"],
+    "gameModes": [
+      "classic",
+      "earth-withdrawal"
+    ],
     "costs": [
-      { "awardsBought": 0, "cost": 8 },
-      { "awardsBought": 1, "cost": 14 },
-      { "awardsBought": 2, "cost": 20 }
+      {
+        "awardsBought": 0,
+        "cost": 8
+      },
+      {
+        "awardsBought": 1,
+        "cost": 14
+      },
+      {
+        "awardsBought": 2,
+        "cost": 20
+      }
     ],
     "rewards": [
-      { "place": 1, "outputs": [{ "type": "vp", "amount": 5 }] },
-      { "place": 2, "outputs": [{ "type": "vp", "amount": 2 }] }
+      {
+        "place": 1,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 5
+          }
+        ]
+      },
+      {
+        "place": 2,
+        "outputs": [
+          {
+            "type": "vp",
+            "amount": 2
+          }
+        ]
+      }
     ],
     "quantifier": [
-      { "type": "tr" }
+      {
+        "type": "tr"
+      }
     ],
-    "style": { "color": "#FFD700", "icon": "tr" }
+    "style": {
+      "color": "#FFD700",
+      "icon": "award-benefactor"
+    }
   }
 ]

@@ -1,3 +1,4 @@
+import { useOverlayEventTarget, isPreviewEvent } from "@/contexts/OverlayEnvironment";
 import { useEffect, RefObject } from "react";
 
 export function usePopover({
@@ -11,12 +12,14 @@ export function usePopover({
   popoverRef: RefObject<HTMLElement | null>;
   anchorRef?: RefObject<HTMLElement | null>;
 }) {
+  const eventTarget = useOverlayEventTarget();
   useEffect(() => {
     if (!isVisible) {
       return;
     }
 
     const handleClickOutside = (e: PointerEvent) => {
+      if (eventTarget === document && isPreviewEvent(e)) return;
       const target = e.target as HTMLElement;
       if (target.closest?.("[data-overlay-layer]")) {
         return;
@@ -29,6 +32,13 @@ export function usePopover({
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        eventTarget !== document &&
+        e.target instanceof Node &&
+        !popoverRef.current?.contains(e.target)
+      )
+        return;
+      if (eventTarget === document && isPreviewEvent(e)) return;
       if (e.key !== "Escape" || e.defaultPrevented) {
         return;
       }
@@ -36,11 +46,11 @@ export function usePopover({
       onClose();
     };
 
-    document.addEventListener("pointerdown", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
+    eventTarget.addEventListener("pointerdown", handleClickOutside);
+    eventTarget.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("pointerdown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
+      eventTarget.removeEventListener("pointerdown", handleClickOutside);
+      eventTarget.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isVisible, onClose, popoverRef, anchorRef]);
+  }, [eventTarget, isVisible, onClose, popoverRef, anchorRef]);
 }

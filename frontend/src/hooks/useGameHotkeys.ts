@@ -53,6 +53,7 @@ export function useGameHotkeys(
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
+      if (useUIOverlayStore.getState().showUIDebug) return;
       if (event.ctrlKey || event.metaKey) {
         switch (event.key) {
           case "1":
@@ -80,6 +81,7 @@ export function useGameHotkeys(
       return;
     }
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (useUIOverlayStore.getState().showUIDebug) return;
       if (e.key === "Escape") {
         useSpectateStore.setState({ spectatePlayerId: null });
       }
@@ -90,6 +92,7 @@ export function useGameHotkeys(
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (useUIOverlayStore.getState().showUIDebug) return;
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
         return;

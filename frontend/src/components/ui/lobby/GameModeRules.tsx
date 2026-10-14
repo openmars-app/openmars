@@ -1,3 +1,4 @@
+import { useOverlayPortalRoot, useIsolatedOverlay } from "@/contexts/OverlayEnvironment";
 import { useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { GameModeDto } from "@/types/generated/api-types.ts";
@@ -34,10 +35,12 @@ function CompactRules({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const portalRoot = useOverlayPortalRoot();
+  const isolated = useIsolatedOverlay();
   const modalRef = useRef<HTMLDivElement>(null);
   useModal({ modalRef, isVisible: true, onClose, closeOnEscape: false });
   useBackDismiss(onClose);
-  useRenderPause("game-mode-rules", true);
+  useRenderPause("game-mode-rules", !isolated);
 
   return createPortal(
     <div
@@ -57,7 +60,7 @@ function CompactRules({
         {children}
       </div>
     </div>,
-    document.body,
+    portalRoot,
   );
 }
 

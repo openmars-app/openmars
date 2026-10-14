@@ -128,8 +128,12 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		slog.Any("card_ids", selectedCardIDs),
 		slog.Int("count", len(selectedCardIDs)))
 
-	for _, cardID := range selectedCardIDs {
-		player.Hand().AddCard(cardID)
+	if randomBuy {
+		player.Hand().ReceiveCards(selectedCardIDs, "Random research purchase", "")
+	} else {
+		for _, cardID := range selectedCardIDs {
+			player.Hand().AddCard(cardID)
+		}
 	}
 
 	log.Debug("Cards added to hand",

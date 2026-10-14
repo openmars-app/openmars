@@ -39,22 +39,11 @@ var contentTypes = map[string]string{
 	".txt":         "text/plain; charset=utf-8",
 }
 
-type staticFile struct {
-	path         string
-	size         int64
-	modTime      time.Time
-	contentType  string
-	cacheControl string
-	gzipPath     string
-	gzipSize     int64
-}
-
 type staticHandler struct {
-	files map[string]*staticFile
-	shell *staticFile
+	root string
 }
 
-// NewStaticHandler indexes every file under dir once and serves them from disk.
+// NewStaticHandler serves the current frontend build from disk.
 // Nothing is held in memory: the frontend build is hundreds of megabytes.
 // Precompressed "<file>.gz" siblings are served to clients that accept gzip.
 func NewStaticHandler(dir string) (http.Handler, error) {
@@ -62,46 +51,32 @@ func NewStaticHandler(dir string) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	files := map[string]*staticFile{}
-	err = filepath.WalkDir(root, func(full string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() || strings.HasSuffix(full, ".gz") {
-			return nil
-		}
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-		rel, err := filepath.Rel(root, full)
-		if err != nil {
-			return err
-		}
-		name := filepath.ToSlash(rel)
-		file := &staticFile{
-			path:         full,
-			size:         info.Size(),
-			modTime:      info.ModTime(),
-			contentType:  contentTypeFor(name),
-			cacheControl: cacheControlFor(name),
-		}
-		if gz, err := os.Stat(full + ".gz"); err == nil && !gz.IsDir() {
-			file.gzipPath = full + ".gz"
-			file.gzipSize = gz.Size()
-		}
-		files[name] = file
-		return nil
-	})
+	handler := &staticHandler{root: root}
+	shell, _, err := handler.open(shellFile)
 	if err != nil {
+		return nil, fmt.Errorf("%s has no %s: %w", root, shellFile, err)
+	}
+	if err := shell.Close(); err != nil {
 		return nil, err
 	}
-	shell, ok := files[shellFile]
-	if !ok {
-		return nil, fmt.Errorf("%s has no %s", root, shellFile)
+	logger.Get().Info("Serving frontend", slog.String("dir", root))
+	return handler, nil
+}
+
+func (h *staticHandler) open(name string) (*os.File, fs.FileInfo, error) {
+	file, err := os.OpenInRoot(h.root, name)
+	if err != nil {
+		return nil, nil, err
 	}
-	logger.Get().Info("Serving frontend", slog.String("dir", root), slog.Int("files", len(files)))
-	return &staticHandler{files: files, shell: shell}, nil
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() {
+		_ = file.Close()
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, nil, fs.ErrNotExist
+	}
+	return file, info, nil
 }
 
 func (h *staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -111,45 +86,57 @@ func (h *staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
-	file, ok := h.files[name]
-	if !ok {
-		// Unknown paths are client-side routes, but a missing file must not get the shell
+	if strings.HasSuffix(name, ".gz") {
+		http.NotFound(w, r)
+		return
+	}
+	f, info, err := h.open(name)
+	if err != nil {
+		// Unknown paths are client-side routes, but a missing file must not get the shell.
 		if strings.HasPrefix(name, assetsPrefix) || path.Ext(name) != "" {
 			http.NotFound(w, r)
 			return
 		}
-		file = h.shell
+		name = shellFile
+		f, info, err = h.open(name)
+		if err != nil {
+			http.Error(w, "file unavailable", http.StatusInternalServerError)
+			return
+		}
+	}
+	defer func() { _ = f.Close() }()
+
+	// Rebuilds replace both files and compressed siblings; use current metadata.
+	gzipped := false
+	if acceptsGzip(r) {
+		if compressed, compressedInfo, err := h.open(name + ".gz"); err == nil {
+			_ = f.Close()
+			f, info = compressed, compressedInfo
+			gzipped = true
+		}
 	}
 
 	header := w.Header()
-	// The openmars.app gateway boots this frontend from its own origin
+	// The openmars.app gateway boots this frontend from its own origin.
 	header.Set("Access-Control-Allow-Origin", "*")
 	header.Set("X-Content-Type-Options", "nosniff")
-	header.Set("Cache-Control", file.cacheControl)
-	header.Set("Content-Type", file.contentType)
+	header.Set("Cache-Control", cacheControlFor(name))
+	header.Set("Content-Type", contentTypeFor(name))
 	header.Add("Vary", "Accept-Encoding")
 
-	served, etag := file.path, fmt.Sprintf(`"%x-%x"`, file.size, file.modTime.UnixNano())
-	gzipped := file.gzipPath != "" && acceptsGzip(r)
+	etag := fmt.Sprintf(`"%x-%x"`, info.Size(), info.ModTime().UnixNano())
 	if gzipped {
-		served, etag = file.gzipPath, fmt.Sprintf(`"%x-%x-gz"`, file.gzipSize, file.modTime.UnixNano())
+		etag = fmt.Sprintf(`"%x-%x-gz"`, info.Size(), info.ModTime().UnixNano())
 		header.Set("Content-Encoding", "gzip")
-		// Ranges would address the compressed bytes, not the file the client asked for
+		// Ranges would address the compressed bytes, not the file the client asked for.
 		r.Header.Del("Range")
 	}
 	header.Set("ETag", etag)
 
-	f, err := os.Open(served)
-	if err != nil {
-		http.Error(w, "file unavailable", http.StatusInternalServerError)
-		return
-	}
-	defer func() { _ = f.Close() }()
-
 	if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(fileWriteDeadline)); err != nil {
 		logger.Get().Debug("Could not extend write deadline", slog.Any("error", err))
 	}
-	http.ServeContent(w, r, "", file.modTime, f)
+	http.ServeContent(w, r, "", info.ModTime(), f)
 }
 
 func contentTypeFor(name string) string {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import GameButton from "./GameButton.tsx";
 
 interface CopyLinkButtonProps {
@@ -13,7 +13,13 @@ interface CopyLinkButtonProps {
   onCopyError?: (error: Error) => void;
 }
 
-const CopyLinkButton: React.FC<CopyLinkButtonProps> = ({
+const CopyLinkButton: React.FC<CopyLinkButtonProps> = (props) => (
+  <CopyLinkButtonView {...props} onCopy={(text) => navigator.clipboard.writeText(text)} />
+);
+
+export const CopyLinkButtonView: React.FC<
+  CopyLinkButtonProps & { onCopy: (text: string) => Promise<void> }
+> = ({
   textToCopy,
   defaultText,
   copiedText = "Copied!",
@@ -23,17 +29,27 @@ const CopyLinkButton: React.FC<CopyLinkButtonProps> = ({
   icon,
   onCopySuccess,
   onCopyError,
+  onCopy,
 }) => {
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (resetTimer.current) {
+        clearTimeout(resetTimer.current);
+      }
+    },
+    [],
+  );
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(textToCopy);
+      await onCopy(textToCopy);
       setIsCopied(true);
       onCopySuccess?.();
 
       // Fade back to default text after 1 second
-      setTimeout(() => {
+      resetTimer.current = setTimeout(() => {
         setIsCopied(false);
       }, 1000);
     } catch (error) {

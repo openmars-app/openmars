@@ -1,7 +1,9 @@
 package dto_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -80,7 +82,7 @@ func TestToPlayerDto_HasAvailableActions_FalseWhenStuck(t *testing.T) {
 	milestoneRegistry := testutil.CreateTestMilestoneRegistry()
 	awardRegistry := testutil.CreateTestAwardRegistry()
 
-	playerDto := dto.ToPlayerDto(p, g, cardRegistry, stdProjRegistry, awardRegistry, milestoneRegistry)
+	playerDto := dto.ToPlayerDto(p, g, cardRegistry, stdProjRegistry, awardRegistry, milestoneRegistry, nil)
 
 	if playerDto.HasAvailableActions == nil {
 		t.Fatalf("expected non-nil HasAvailableActions when all registries are present")
@@ -105,7 +107,7 @@ func TestToPlayerDto_HasAvailableActions_TrueWhenAffordable(t *testing.T) {
 	}
 	p.Resources().Set(shared.Resources{Credits: powerPlant.CreditCost()})
 
-	playerDto := dto.ToPlayerDto(p, g, cardRegistry, stdProjRegistry, awardRegistry, milestoneRegistry)
+	playerDto := dto.ToPlayerDto(p, g, cardRegistry, stdProjRegistry, awardRegistry, milestoneRegistry, nil)
 
 	if playerDto.HasAvailableActions == nil {
 		t.Fatalf("expected non-nil HasAvailableActions when all registries are present")
@@ -121,9 +123,38 @@ func TestToPlayerDto_HasAvailableActions_TrueWhenAffordable(t *testing.T) {
 func TestToPlayerDto_HasAvailableActions_NilWhenRegistriesMissing(t *testing.T) {
 	g, p, cardRegistry := setupStuckPlayerGame(t)
 
-	playerDto := dto.ToPlayerDto(p, g, cardRegistry, nil, nil, nil)
+	playerDto := dto.ToPlayerDto(p, g, cardRegistry, nil, nil, nil, nil)
 
 	if playerDto.HasAvailableActions != nil {
 		t.Fatalf("expected nil HasAvailableActions on the nil-registry HTTP path, got %v", *playerDto.HasAvailableActions)
+	}
+}
+
+func TestPendingCardPlay_PrivateDiscountAndBadges(t *testing.T) {
+	g, _ := testutil.CreateTestGameWithPlayers(t, 2)
+	p := g.GetAllPlayers()[0]
+	registry := testutil.CreateTestCardRegistry()
+	p.Hand().AddCard(testutil.CardID("Space Elevator"))
+	p.Selection().SetPendingCardPlaySelection(&shared.PendingCardPlaySelection{Source: "Sponsor", SourceCardID: "P11", CostReduction: 25})
+	own := dto.ToPlayerDto(p, g, registry, nil, nil, nil, nil)
+	testutil.AssertTrue(t, own.PendingCardPlaySelection != nil, "owner sees selection")
+	testutil.AssertEqual(t, 1, len(own.PendingCardPlaySelection.AvailableCards), "hand options")
+	testutil.AssertEqual(t, 2, own.PendingCardPlaySelection.AvailableCards[0].EffectiveCost, "discounted quote")
+	other, err := json.Marshal(dto.ToOtherPlayerDto(p, g, registry))
+	testutil.AssertNoError(t, err, "opponent DTO")
+	testutil.AssertTrue(t, !bytes.Contains(other, []byte("pendingCardPlaySelection")), "opponents cannot see pending hand play")
+	for _, tc := range []struct{ card, location string }{{"Phobos Space Haven", "phobos"}, {"Dawn City", "mercury"}, {"Ganymede Colony", "ganymede"}, {"Maxwell Base", "venus"}} {
+		card := testutil.GetCardByName(tc.card)
+		card.ID = "unrelated-id"
+		view := dto.ToCardDto(card)
+		found := false
+		for _, behavior := range view.Behaviors {
+			for _, output := range behavior.Outputs {
+				if tile, ok := output.(dto.TilePlacementConditionDto); ok && tile.TileRestrictions != nil && tile.TileRestrictions.PlacementLocation == tc.location {
+					found = true
+				}
+			}
+		}
+		testutil.AssertTrue(t, found, "placement badge is derived from site metadata")
 	}
 }

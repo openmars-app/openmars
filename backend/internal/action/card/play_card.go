@@ -74,25 +74,35 @@ func (a *PlayCardAction) Execute(
 		return err
 	}
 
-	if err := baseaction.ValidateGamePhase(g, shared.GamePhaseAction, log); err != nil {
-		return err
-	}
-
-	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
-		return err
-	}
-
-	if err := baseaction.ValidateActionsRemaining(g, playerID, log); err != nil {
-		return err
-	}
-
-	if err := baseaction.ValidateNoPendingSelections(g, playerID, log); err != nil {
-		return err
-	}
-
 	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
 		return err
+	}
+	pendingPlay := player.Selection().GetPendingCardPlaySelection()
+	if pendingPlay != nil {
+		if err := baseaction.ValidateCurrentTurnOrInitPlayer(g, playerID, log); err != nil {
+			return err
+		}
+		phase := g.CurrentPhase()
+		if phase != shared.GamePhaseAction && phase != shared.GamePhaseInitApplyPrelude && phase != shared.GamePhaseInitApplyCorp {
+			return fmt.Errorf("cannot resolve card play in this phase")
+		}
+		if g.GetPendingTileSelection(playerID) != nil || g.GetPendingTileSelectionQueue(playerID) != nil {
+			return fmt.Errorf("resolve tile placement first")
+		}
+	} else {
+		if err := baseaction.ValidateGamePhase(g, shared.GamePhaseAction, log); err != nil {
+			return err
+		}
+		if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
+			return err
+		}
+		if err := baseaction.ValidateActionsRemaining(g, playerID, log); err != nil {
+			return err
+		}
+		if err := baseaction.ValidateNoPendingSelections(g, playerID, log); err != nil {
+			return err
+		}
 	}
 
 	// Collect temporary "next-card" effect card IDs BEFORE playing
@@ -108,6 +118,10 @@ func (a *PlayCardAction) Execute(
 	if err != nil {
 		log.Error("Card not found in registry", slog.Any("error", err))
 		return fmt.Errorf("card not found: %w", err)
+	}
+
+	if pendingPlay != nil && !baseaction.MatchesPendingCardPlay(card, pendingPlay) {
+		return fmt.Errorf("card does not match pending play")
 	}
 
 	log.Debug("Card data retrieved",
@@ -202,7 +216,7 @@ func (a *PlayCardAction) Execute(
 		log.Debug("Choice requirements validated")
 	}
 
-	discountAmount := calculator.CalculateCardDiscounts(player, card)
+	discountAmount := calculator.CalculateCardDiscounts(player, card) + baseaction.CardPlayCostReduction(player, card)
 	effectiveCost := card.Cost - discountAmount
 	if effectiveCost < 0 {
 		effectiveCost = 0
@@ -258,6 +272,9 @@ func (a *PlayCardAction) Execute(
 		return fmt.Errorf("failed to remove card from hand: card not found")
 	}
 
+	if pendingPlay != nil {
+		player.Selection().SetPendingCardPlaySelection(nil)
+	}
 	log.Debug("Card removed from hand")
 
 	cardTags := make([]string, len(card.Tags))
@@ -295,7 +312,11 @@ func (a *PlayCardAction) Execute(
 	// Clean up temporary "next-card" effects that existed before this card was played
 	removePrePlayTemporaryEffects(player, prePlayTemporaryCardIDs, log)
 
-	a.ConsumePlayerAction(g, log)
+	if pendingPlay == nil {
+		a.ConsumePlayerAction(g, log)
+	} else {
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
+	}
 
 	description := fmt.Sprintf("Played %s for %d credits", card.Name, totalValue)
 	displayData := baseaction.BuildCardDisplayData(card, shared.SourceTypeCardPlay)
@@ -423,6 +444,10 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 				return err
 			}
 
+		case gamecards.RequirementColony:
+			if err := gamecards.ValidateColonyRequirement(req, player.ID(), g.Colonies()); err != nil {
+				return err
+			}
 		case gamecards.RequirementVenus:
 			lenience := calculator.CalculateGlobalParameterRequirementOffset(player, "venus")
 			venus := g.GlobalParameters().Venus()

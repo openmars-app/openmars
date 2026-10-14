@@ -4718,6 +4718,10 @@ func TestRadSuits_IncreasesCreditProduction(t *testing.T) {
 	p.Resources().Add(map[shared.ResourceType]int{
 		shared.ResourceCredit: 100,
 	})
+	for range 2 {
+		hex := testutil.FindUnoccupiedLandHex(t, testGame)
+		testutil.PlaceTileForPlayer(ctx, t, testGame, repo, p.ID(), "city", hex)
+	}
 	p.Hand().AddCard(radSuits.ID)
 	prodBefore := p.Resources().Production()
 	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
@@ -6950,6 +6954,47 @@ func TestResearchOutpost_AdjacencyAndPermanentDiscount(t *testing.T) {
 				before := p.Resources().Get().Credits
 				testutil.AssertNoError(t, play.Execute(ctx, g.ID(), id, next.ID, shared.NativePayment(shared.ResourceCredit, next.Cost-1), nil, nil, nil, nil, nil), "discounted play")
 				testutil.AssertEqual(t, before-next.Cost+1, p.Resources().Get().Credits, "permanent discount charged")
+			}
+		})
+	}
+}
+
+func TestRadSuits_RequiresTwoCitiesAnywhere(t *testing.T) {
+	for _, count := range []int{0, 1, 2} {
+		t.Run(fmt.Sprint(count), func(t *testing.T) {
+			ctx := context.Background()
+			g, repo, registry, id, opponentID := testutil.SetupTwoPlayerGame(t)
+			p, _ := g.GetPlayer(id)
+			p.SetCorporationID("")
+			p.Resources().Add(map[shared.ResourceType]int{shared.ResourceCredit: 100})
+			for i := 0; i < count; i++ {
+				location := board.TileLocationMars
+				if i == 1 {
+					location = board.TileLocationPhobos
+				}
+				for _, tile := range g.Board().Tiles() {
+					if tile.Location == location && tile.OccupiedBy == nil {
+						testutil.AssertNoError(t, g.Board().UpdateTileOccupancy(ctx, tile.Coordinates,
+							board.TileOccupant{Type: shared.ResourceCityTile}, opponentID), "Place another player's city")
+						break
+					}
+				}
+			}
+			card := testutil.GetCardByName("Rad-Suits")
+			p.Hand().AddCard(card.ID)
+			before := p.Resources().Get()
+			production := p.Resources().Production()
+			state := baseaction.CalculatePlayerCardState(&card, p, g, registry)
+			testutil.AssertEqual(t, count >= 2, state.Available(), "Preview respects city requirement")
+			play := cardAction.NewPlayCardAction(repo, registry, nil, testutil.TestLogger())
+			err := play.Execute(ctx, g.ID(), id, card.ID, shared.NativePayment(shared.ResourceCredit, card.Cost), nil, nil, nil, nil, nil)
+			if count < 2 {
+				testutil.AssertErrorContains(t, err, "city", "Reject missing cities")
+				testutil.AssertEqual(t, before, p.Resources().Get(), "Rejected card costs nothing")
+				testutil.AssertEqual(t, production, p.Resources().Production(), "Rejected card grants no production")
+			} else {
+				testutil.AssertNoError(t, err, "Global and off-Mars cities meet requirement")
+				testutil.AssertEqual(t, production.Credits+1, p.Resources().Production().Credits, "Gain one credit production")
 			}
 		})
 	}

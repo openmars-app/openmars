@@ -125,6 +125,14 @@ func (a *BehaviorApplier) applyCardStorageOutput(ctx context.Context, o *shared.
 
 func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *shared.CardOperationCondition, amount int, log *slog.Logger) error {
 	switch o.ResourceType {
+	case shared.ResourceCardPlay:
+		if a.game == nil || a.player == nil {
+			return fmt.Errorf("cannot apply card-play: missing player or game")
+		}
+		if a.player.Selection().GetPendingCardPlaySelection() != nil {
+			return fmt.Errorf("card play already pending")
+		}
+		a.player.Selection().SetPendingCardPlaySelection(&shared.PendingCardPlaySelection{Source: a.source, SourceCardID: a.sourceCardID, CostReduction: o.CostReduction, Selectors: shared.CloneSelectors(o.Selectors)})
 	case shared.ResourceCardDraw:
 		if a.game == nil || a.player == nil {
 			return fmt.Errorf("cannot apply card-draw: missing game or player context")
@@ -139,9 +147,7 @@ func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *share
 					log.Warn("Failed to draw cards for opponent", slog.String("opponent_id", opponent.ID()), slog.Any("error", err))
 					continue
 				}
-				for _, cardID := range drawnCards {
-					opponent.Hand().AddCard(cardID)
-				}
+				opponent.Hand().ReceiveCards(drawnCards, a.source, a.sourceCardID)
 				log.Debug("Opponent drew cards", slog.String("opponent_id", opponent.ID()), slog.Int("amount", len(drawnCards)))
 			}
 		} else if HasCardSelectors(o.Selectors) && a.cardRegistry != nil {
@@ -157,12 +163,7 @@ func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *share
 				log.Warn("Failed to draw matching cards", slog.Any("error", err))
 				return nil
 			}
-			for _, cardID := range matched {
-				a.player.Hand().AddCard(cardID)
-			}
-			if a.sourceType == shared.SourceTypeCorporationFirstAction || a.sourceType == shared.SourceTypeCardAction || (a.sourceType == shared.SourceTypeCardPlay && a.game.CurrentPhase() == shared.GamePhaseAction) {
-				a.player.Selection().AddCardReceipt(a.source, a.sourceCardID, matched)
-			}
+			a.player.Hand().ReceiveCards(matched, a.source, a.sourceCardID)
 			if len(discarded) > 0 {
 				_ = a.game.Deck().Discard(ctx, discarded)
 			}
@@ -173,12 +174,7 @@ func (a *BehaviorApplier) applyCardOperationOutput(ctx context.Context, o *share
 				log.Warn("Failed to draw cards", slog.Any("error", err))
 				return nil
 			}
-			for _, cardID := range drawnCards {
-				a.player.Hand().AddCard(cardID)
-			}
-			if a.sourceType == shared.SourceTypeCorporationFirstAction || a.sourceType == shared.SourceTypeCardAction || (a.sourceType == shared.SourceTypeCardPlay && a.game.CurrentPhase() == shared.GamePhaseAction) {
-				a.player.Selection().AddCardReceipt(a.source, a.sourceCardID, drawnCards)
-			}
+			a.player.Hand().ReceiveCards(drawnCards, a.source, a.sourceCardID)
 			log.Debug("Drew cards and added to hand", slog.Int("amount", len(drawnCards)))
 		}
 

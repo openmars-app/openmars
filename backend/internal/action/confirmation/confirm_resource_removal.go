@@ -57,6 +57,6 @@ func (a *ConfirmResourceRemovalAction) Execute(ctx context.Context, gameID, play
 	}
 	p.Selection().SetPendingResourceRemovalSelection(nil)
 	a.WriteStateLogFull(ctx, g, selection.Source, shared.SourceTypeCardPlay, playerID, description, nil, []shared.CalculatedOutput{{ResourceType: string(selection.ResourceType), Amount: -amount}}, nil)
-	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 	return nil
 }

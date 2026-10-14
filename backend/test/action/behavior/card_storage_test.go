@@ -975,6 +975,21 @@ func TestCardStorage_ZeroOutputPreservesTargetPositions(t *testing.T) {
 	testutil.AssertEqual(t, 2, p.Resources().GetCardStorage(host.ID), "second output's target")
 }
 
+func TestCardStorage_MissingAnimalStoragePreservesMicrobeTarget(t *testing.T) {
+	g, _, registry, id, _ := testutil.SetupTwoPlayerGame(t)
+	p, _ := g.GetPlayer(id)
+	ants := testutil.GetCardByName("Ants")
+	p.PlayedCards().AddCard(ants.ID, ants.Name, string(ants.Type), []string{"microbe"})
+	ecology := testutil.GetCardByName("Ecology Research")
+	outputs := ecology.Behaviors[0].Outputs
+	applier := gamecards.NewBehaviorApplier(p, g, ecology.Name, testutil.TestLogger()).
+		WithSourceCardID(ecology.ID).WithCardRegistry(registry).WithTargetCardIDs([]string{"", ants.ID})
+	testutil.AssertNoError(t, applier.ValidateResourceOutputs(outputs), "only the unavailable animal gain is skipped")
+	testutil.AssertNoError(t, applier.ApplyOutputs(context.Background(), outputs), "apply the remaining Ecology Research gains")
+	testutil.AssertEqual(t, 2, p.Resources().GetCardStorage(ants.ID), "Ants receives exactly two microbes, not the animal")
+	testutil.AssertEqual(t, 0, p.Resources().GetCardStorage(ecology.ID), "Ecology Research does not store either resource")
+}
+
 func TestCardStorage_InvalidManualTargetDoesNotPay(t *testing.T) {
 	ctx := context.Background()
 	g, repo, registry, id, otherID := testutil.SetupTwoPlayerGame(t)

@@ -48,6 +48,26 @@ func (h *ConfirmColonyPlacementHandler) HandleMessage(ctx context.Context, conne
 		return
 	}
 
+	if value, exists := payloadMap["skip"]; exists {
+		skip, ok := value.(bool)
+		if !ok {
+			connection.SendError(message.Type, "skip must be a boolean")
+			return
+		}
+		if skip {
+			if len(payloadMap) != 1 {
+				connection.SendError(message.Type, "skip cannot include a selection")
+				return
+			}
+			if err := h.action.Continue(ctx, connection.GameID(), connection.PlayerID()); err != nil {
+				connection.SendError(message.Type, err.Error())
+				return
+			}
+			h.broadcaster.BroadcastGameState(connection.GameID(), nil)
+			return
+		}
+	}
+
 	colonyID, _ := payloadMap["colonyId"].(string)
 	if colonyID == "" {
 		connection.SendError(message.Type, "Missing colonyId in payload")

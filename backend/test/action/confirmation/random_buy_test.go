@@ -64,6 +64,10 @@ func TestConfirmProductionCards_RandomBuy_BuysOneCardForThreeCredits(t *testing.
 	testutil.AssertEqual(t, 7, p1.Resources().Get().Credits, "should pay 3 credits for one random buy")
 
 	pickedID := p1.Hand().Cards()[len(p1.Hand().Cards())-1]
+	receipts := p1.Selection().CardReceipts()
+	testutil.AssertEqual(t, 1, len(receipts), "Unseen purchase creates one receipt")
+	testutil.AssertEqual(t, "Random research purchase", receipts[0].Source, "Random purchase source")
+	testutil.AssertEqual(t, pickedID, receipts[0].Cards[0], "Receipt shows the purchased card")
 	for _, id := range drawn {
 		testutil.AssertTrue(t, id != pickedID, "random buy must pull a fresh card from the deck, not one of the cards the player already rejected")
 	}
