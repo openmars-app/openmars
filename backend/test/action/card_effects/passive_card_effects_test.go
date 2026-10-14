@@ -7,6 +7,7 @@ import (
 	"openmars/internal/action"
 	cardAction "openmars/internal/action/card"
 	confirmAction "openmars/internal/action/confirmation"
+	tileAction "openmars/internal/action/tile"
 	"openmars/internal/events"
 	gamecards "openmars/internal/game/cards"
 	"openmars/internal/game/shared"
@@ -378,7 +379,7 @@ func TestOlympusConference_TriggeredChoice_CreatesPendingSelection(t *testing.T)
 	testutil.StartTestGame(t, testGame)
 
 	owner.PlayedCards().AddCard("card-olympus-conference", "Olympus Conference", "active", []string{"building", "earth", "science"})
-	owner.Resources().AddToStorage("card-olympus-conference", 0)
+	owner.Resources().AddToStorage("card-olympus-conference", 1)
 
 	effect := shared.CardEffect{
 		CardID:        "card-olympus-conference",
@@ -429,7 +430,7 @@ func TestOlympusConference_Choice0_AddScience(t *testing.T) {
 	testutil.StartTestGame(t, testGame)
 
 	owner.PlayedCards().AddCard("card-olympus-conference", "Olympus Conference", "active", []string{"building", "earth", "science"})
-	owner.Resources().AddToStorage("card-olympus-conference", 0)
+	owner.Resources().AddToStorage("card-olympus-conference", 1)
 
 	effect := shared.CardEffect{
 		CardID:        "card-olympus-conference",
@@ -543,7 +544,7 @@ func TestOlympusConference_Choice1_FailsWithoutScience(t *testing.T) {
 	testutil.StartTestGame(t, testGame)
 
 	owner.PlayedCards().AddCard("card-olympus-conference", "Olympus Conference", "active", []string{"building", "earth", "science"})
-	owner.Resources().AddToStorage("card-olympus-conference", 0)
+	owner.Resources().AddToStorage("card-olympus-conference", 1)
 
 	effect := shared.CardEffect{
 		CardID:        "card-olympus-conference",
@@ -559,6 +560,8 @@ func TestOlympusConference_Choice1_FailsWithoutScience(t *testing.T) {
 		PlayerID: owner.ID(),
 		Tag:      "science",
 	})
+
+	owner.Resources().AddToStorage("card-olympus-conference", -1)
 
 	confirmBehaviorChoice := confirmAction.NewConfirmBehaviorChoiceAction(repo, cardRegistry, nil, logger)
 	err := confirmBehaviorChoice.Execute(ctx, testGame.ID(), owner.ID(), owner.Selection().GetPendingBehaviorResolutions()[0].ID, 1, nil)
@@ -1420,4 +1423,161 @@ func TestPets_DoesNotGainAnimalsForPreexistingCities(t *testing.T) {
 	storage := owner.Resources().GetCardStorage(card.ID)
 	testutil.AssertEqual(t, 1, storage,
 		"Pets should only have 1 initial animal, no retroactive animals for preexisting cities")
+}
+
+func TestOlympusConference_SelfTriggerUsesPostPlayResources(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		starting int
+		onPlay   int
+		pending  int
+		stored   int
+	}{
+		{name: "empty storage auto adds science", stored: 1},
+		{name: "starting science retains both choices", starting: 1, pending: 1, stored: 1},
+		{name: "on-play science retains both choices", onPlay: 1, pending: 1, stored: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, repo, _, playerID, opponentID := testutil.SetupTwoPlayerGame(t)
+			p, _ := g.GetPlayer(playerID)
+			card := testutil.GetCardByName("Olympus Conference")
+			storage := *card.ResourceStorage
+			storage.Starting = tc.starting
+			card.ResourceStorage = &storage
+			if tc.onPlay > 0 {
+				card.Behaviors = append(append([]shared.CardBehavior{}, card.Behaviors...), shared.CardBehavior{
+					ID: "initial-science", Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
+					Outputs: []shared.BehaviorCondition{shared.NewCardStorageCondition(shared.ResourceScience, tc.onPlay, "self-card")},
+				})
+			}
+			registry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{card})
+			p.Resources().Add(map[shared.ResourceType]int{shared.ResourceCredit: 100})
+			p.Hand().AddCard(card.ID)
+			testutil.AssertNoError(t, g.SetCurrentTurn(context.Background(), playerID, 1), "set last action")
+			play := cardAction.NewPlayCardAction(repo, registry, nil, testutil.TestLogger())
+			testutil.AssertNoError(t, play.Execute(context.Background(), g.ID(), playerID, card.ID, shared.NativePayment(shared.ResourceCredit, card.Cost), nil, nil, nil, nil, nil), "play without a pre-play choice")
+			testutil.AssertEqual(t, tc.pending, len(p.Selection().GetPendingBehaviorResolutions()), "only meaningful choices remain")
+			testutil.AssertEqual(t, tc.stored, p.Resources().GetCardStorage(card.ID), "self trigger uses resources after initial gains")
+			if tc.pending == 0 {
+				testutil.AssertEqual(t, opponentID, g.CurrentTurn().PlayerID(), "forced effect must not hold the turn")
+			} else {
+				testutil.AssertEqual(t, playerID, g.CurrentTurn().PlayerID(), "real choice holds the turn")
+			}
+		})
+	}
+}
+
+func TestPassiveChoice_ForcedResolution(t *testing.T) {
+	for _, triggerType := range []string{"tag-played", "card-played"} {
+		for _, tc := range []struct {
+			name              string
+			stored            int
+			onlySpend         bool
+			chooseTarget      bool
+			combinedCost      bool
+			interactiveOutput bool
+			earlierEffect     bool
+			wantStored        int
+			wantPending       int
+			wantCards         int
+		}{
+			{name: "empty storage", wantStored: 1},
+			{name: "stored science", stored: 1, wantStored: 1, wantPending: 1},
+			{name: "no legal choice", onlySpend: true},
+			{name: "forced spending choice", stored: 1, onlySpend: true, wantCards: 1},
+			{name: "destination remains a choice", chooseTarget: true, wantPending: 1},
+			{name: "combined costs determine affordability", combinedCost: true, wantStored: 1},
+			{name: "multi-step output cannot spend automatically", interactiveOutput: true, onlySpend: true, stored: 1, wantStored: 1, wantPending: 1},
+			{name: "earlier effect preserves ordering", earlierEffect: true, wantPending: 2},
+		} {
+			t.Run(triggerType+"/"+tc.name, func(t *testing.T) {
+				g, _ := testutil.CreateTestGameWithPlayers(t, 1)
+				p := g.GetAllPlayers()[0]
+				p.SetCorporationID(testutil.CardID("Tharsis Republic"))
+				testutil.StartTestGame(t, g)
+				card := gamecards.Card{ID: "science-source", Name: "Science source", Type: gamecards.CardTypeActive, ResourceStorage: &gamecards.ResourceStorage{Type: shared.ResourceScience}}
+				registry := gamecards.NewInMemoryCardRegistry([]gamecards.Card{card})
+				p.PlayedCards().AddCard(card.ID, card.Name, "active", nil)
+				p.Resources().AddToStorage(card.ID, tc.stored)
+				behavior := olympusConferenceChoiceBehavior()
+				behavior.Triggers[0].Condition.Type = triggerType
+				if triggerType == "card-played" {
+					behavior.Triggers[0].Condition.Selectors = nil
+				}
+				if tc.onlySpend {
+					behavior.Choices = behavior.Choices[1:]
+				}
+				if tc.chooseTarget {
+					behavior.Choices = []shared.Choice{{Outputs: []shared.BehaviorCondition{
+						shared.NewCardStorageCondition(shared.ResourceScience, 1, "any-card"),
+					}}}
+				}
+				if tc.combinedCost {
+					p.Resources().Set(shared.Resources{Credits: 1})
+					behavior.Choices[1].Inputs = []shared.BehaviorCondition{
+						shared.NewBasicResourceCondition(shared.ResourceCredit, 1, "self-player"),
+						shared.NewBasicResourceCondition(shared.ResourceCredit, 1, "self-player"),
+					}
+				}
+				if tc.interactiveOutput {
+					behavior.Choices[0].Outputs = append(behavior.Choices[0].Outputs, shared.NewTilePlacementCondition(shared.ResourceCityPlacement, 1, "none"))
+				}
+				effect := shared.CardEffect{CardID: card.ID, CardName: card.Name, Behavior: behavior}
+				p.Effects().AddEffect(effect)
+				action.SubscribePassiveEffectToEvents(context.Background(), g, p, effect, testutil.TestLogger(), registry)
+				if tc.earlierEffect {
+					p.Selection().AddPendingBehaviorResolution(&shared.PendingBehaviorResolution{Kind: "card-discard", Source: "Earlier effect"})
+				}
+				before := p.Hand().CardCount()
+				if triggerType == "tag-played" {
+					events.Publish(g.EventBus(), events.TagPlayedEvent{GameID: g.ID(), PlayerID: p.ID(), CardID: card.ID, Tag: "science"})
+				} else {
+					events.Publish(g.EventBus(), events.CardPlayedEvent{GameID: g.ID(), PlayerID: p.ID(), CardID: card.ID})
+				}
+				action.ResolveForcedPassiveChoices(g, testutil.TestLogger(), registry)
+				testutil.AssertEqual(t, tc.wantStored, p.Resources().GetCardStorage(card.ID), "correct forced resource transfer")
+				testutil.AssertEqual(t, tc.wantCards, p.Hand().CardCount()-before, "only a legal draw executes")
+				if tc.combinedCost {
+					testutil.AssertEqual(t, 1, p.Resources().Get().Credits, "unaffordable branch cannot pay partial costs")
+				}
+				testutil.AssertEqual(t, tc.wantPending, len(p.Selection().GetPendingBehaviorResolutions()), "preserve real decisions, remove impossible ones")
+				action.ResolveForcedPassiveChoices(g, testutil.TestLogger(), registry)
+				testutil.AssertEqual(t, tc.wantStored, p.Resources().GetCardStorage(card.ID), "forced choice resolves only once")
+			})
+		}
+	}
+}
+
+func TestPassiveChoice_ResolvesAfterEarlierDiscard(t *testing.T) {
+	g, repo, registry, id, opponentID := testutil.SetupTwoPlayerGame(t)
+	p, _ := g.GetPlayer(id)
+	card := testutil.GetCardByName("Olympus Conference")
+	p.PlayedCards().AddCard(card.ID, card.Name, string(card.Type), []string{"science"})
+	discardID := p.Selection().AddPendingBehaviorResolution(&shared.PendingBehaviorResolution{Kind: "card-discard", Source: "Earlier effect", MinCards: 0, MaxCards: 1})
+	p.Selection().AddPendingBehaviorResolution(&shared.PendingBehaviorResolution{Kind: "choice", Source: card.Name, SourceCardID: card.ID, Choices: olympusConferenceChoiceBehavior().Choices})
+	testutil.AssertNoError(t, g.SetCurrentTurn(context.Background(), id, 0), "last action already consumed")
+	confirm := confirmAction.NewConfirmCardDiscardAction(repo, registry, nil, testutil.TestLogger())
+	testutil.AssertNoError(t, confirm.Execute(context.Background(), g.ID(), id, discardID, nil), "skip earlier discard")
+	testutil.AssertEqual(t, 1, p.Resources().GetCardStorage(card.ID), "remaining forced choice resolves once")
+	testutil.AssertEqual(t, 0, len(p.Selection().GetPendingBehaviorResolutions()), "no redundant choice prompt remains")
+	testutil.AssertEqual(t, opponentID, g.CurrentTurn().PlayerID(), "completion can release the turn")
+}
+
+func TestPassiveChoice_ResolvesAfterTileSelection(t *testing.T) {
+	ctx := context.Background()
+	g, repo, registry, id, opponentID := testutil.SetupTwoPlayerGame(t)
+	p, _ := g.GetPlayer(id)
+	card := testutil.GetCardByName("Olympus Conference")
+	p.PlayedCards().AddCard(card.ID, card.Name, string(card.Type), []string{"science"})
+	p.Selection().AddPendingBehaviorResolution(&shared.PendingBehaviorResolution{Kind: "choice", Source: card.Name, SourceCardID: card.ID, Choices: olympusConferenceChoiceBehavior().Choices})
+	hex := testutil.FindUnoccupiedLandHex(t, g)
+	testutil.AssertNoError(t, g.SetPendingTileSelection(ctx, id, &shared.PendingTileSelection{TileType: "city", AvailableHexes: []string{hex}, Source: "Earlier effect"}), "set tile selection")
+	testutil.AssertNoError(t, g.SetCurrentTurn(ctx, id, 0), "last action already consumed")
+	action.ResolveForcedPassiveChoices(g, testutil.TestLogger(), registry)
+	testutil.AssertEqual(t, 0, p.Resources().GetCardStorage(card.ID), "tile selection keeps effect ordering open")
+	_, err := tileAction.NewSelectTileAction(repo, registry, nil, testutil.TestLogger()).Execute(ctx, g.ID(), id, hex)
+	testutil.AssertNoError(t, err, "place city")
+	testutil.AssertEqual(t, 1, p.Resources().GetCardStorage(card.ID), "remaining forced choice resolves after placement")
+	testutil.AssertEqual(t, 0, len(p.Selection().GetPendingBehaviorResolutions()), "no redundant choice prompt remains")
+	testutil.AssertEqual(t, opponentID, g.CurrentTurn().PlayerID(), "completion releases the turn")
 }

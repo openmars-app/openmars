@@ -169,7 +169,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	}
 
 	if phase := g.CurrentPhase(); phase != shared.GamePhaseInitApplyCorp && phase != shared.GamePhaseInitApplyPrelude {
-		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 	}
 	log.Info("Card draw confirmation completed",
 		slog.String("source", selection.Source),

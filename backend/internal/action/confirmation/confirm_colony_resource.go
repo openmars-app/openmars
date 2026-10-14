@@ -59,7 +59,7 @@ func (a *ConfirmColonyResourceAction) Execute(ctx context.Context, gameID string
 			slog.String("resource_type", selection.ResourceType),
 			slog.Int("amount", selection.Amount))
 		p.Selection().PopPendingColonyResource()
-		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 		return nil
 	}
 
@@ -99,6 +99,6 @@ func (a *ConfirmColonyResourceAction) Execute(ctx context.Context, gameID string
 		slog.String("target_card", targetCardID),
 		slog.String("source", selection.Source))
 
-	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 	return nil
 }

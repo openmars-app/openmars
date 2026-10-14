@@ -30,6 +30,6 @@ func (a *ConfirmCardRevealAction) Execute(ctx context.Context, gameID, playerID 
 		return fmt.Errorf("no pending card reveal")
 	}
 	p.Selection().SetPendingCardReveal(nil)
-	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 	return nil
 }

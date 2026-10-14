@@ -80,7 +80,7 @@ func (a *ConfirmAwardFundAction) Execute(ctx context.Context, gameID string, pla
 
 	p.Selection().SetPendingAwardFundSelection(nil)
 
-	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+	baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 
 	log.Info("Award funded for free",
 		slog.String("award", def.Name))

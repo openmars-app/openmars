@@ -193,7 +193,7 @@ func TestAutoAdvanceWaitsForPendingTileSelection(t *testing.T) {
 	testutil.AssertNoError(t, err, "Setting turn should succeed")
 
 	// Call AutoAdvanceTurnIfNeeded - should NOT advance because of pending tile
-	baseaction.AutoAdvanceTurnIfNeeded(testGame, player1ID, logger)
+	baseaction.AutoAdvanceTurnIfNeeded(testGame, player1ID, logger, testutil.CreateTestCardRegistry())
 
 	testutil.AssertEqual(t, player1ID, testGame.CurrentTurn().PlayerID(), "Should NOT advance due to pending tile selection")
 }

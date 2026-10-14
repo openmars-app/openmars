@@ -165,7 +165,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			return nil, fmt.Errorf("failed to process next tile: %w", err)
 		}
 
-		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 
 		log.Debug("Tile cleared",
 			slog.String("position", selectedHex))
@@ -206,7 +206,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			log.Warn("Failed to handle completion callback", slog.Any("error", err))
 		}
 
-		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 
 		log.Info("Tile replaced",
 			slog.String("position", selectedHex),
@@ -264,7 +264,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			log.Warn("Failed to handle completion callback", slog.Any("error", err))
 		}
 
-		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 
 		log.Info("Tile destroyed",
 			slog.String("position", selectedHex),
@@ -301,7 +301,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 			log.Warn("Failed to handle completion callback", slog.Any("error", err))
 		}
 
-		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 
 		log.Debug("Land claim reserved",
 			slog.String("position", selectedHex))
@@ -409,10 +409,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 					continue
 				}
 
-				for _, cardID := range cardIDs {
-					p.Hand().AddCard(cardID)
-				}
-				p.Selection().AddCardReceipt("Tile bonus", pendingTileSelection.SourceCardID, cardIDs)
+				p.Hand().ReceiveCards(cardIDs, "Tile bonus", pendingTileSelection.SourceCardID)
 
 				g.AddTriggeredEffect(shared.TriggeredEffect{
 					CardName:   "Tile Bonus",
@@ -560,7 +557,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	case shared.GamePhaseInitApplyCorp, shared.GamePhaseInitApplyPrelude:
 		// During init phases, tile placement completes and the frontend sends the next confirm
 	default:
-		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log)
+		baseaction.AutoAdvanceTurnIfNeeded(g, playerID, log, a.CardRegistryForGame(g))
 	}
 
 	log.Info("Tile placed",
