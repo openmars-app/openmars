@@ -65,7 +65,30 @@ export function useColonyControls(
   gameState: GameDto | undefined,
   onFlowStart?: () => void,
 ): ColonyControls {
-  const [mode, setMode] = useState<ColonyMode>("trade");
+  return useColonyControlState(
+    gameState,
+    {
+      trade: (id, payment, steps) => {
+        void webSocketService.tradeWithColony(id, payment, steps);
+      },
+      build: (id) => {
+        void webSocketService.buildColony(id);
+      },
+    },
+    onFlowStart,
+  );
+}
+
+export function useColonyControlState(
+  gameState: GameDto | undefined,
+  actions: {
+    trade: (id: string, payment: TradePaymentType, steps: number) => void;
+    build: (id: string) => void;
+  },
+  onFlowStart?: () => void,
+  initialMode: ColonyMode = "trade",
+): ColonyControls {
+  const [mode, setMode] = useState<ColonyMode>(initialMode);
   const [storageWarning, setStorageWarning] = useState<StorageWarningState | null>(null);
 
   const tradeActionCosts = gameState?.currentPlayer?.actionCosts?.find(
@@ -116,10 +139,10 @@ export function useColonyControls(
   };
 
   const trade = (colonyId: string, trackSteps: number) => {
-    if (!canAct) {
+    if (!canAct || !affordable[tradePayment]) {
       return;
     }
-    const send = () => void webSocketService.tradeWithColony(colonyId, tradePayment, trackSteps);
+    const send = () => actions.trade(colonyId, tradePayment, trackSteps);
     const colony = colonies.find((c) => c.id === colonyId);
     const tradeOutputs =
       colony?.tradeOptions.find((option) => option.trackSteps === trackSteps)?.outputs ?? [];
@@ -130,7 +153,7 @@ export function useColonyControls(
     if (!canAct) {
       return;
     }
-    const send = () => void webSocketService.buildColony(colonyId);
+    const send = () => actions.build(colonyId);
     const colony = colonies.find((c) => c.id === colonyId);
     const reward = colony?.colonies[colony.playerColonies.length]?.reward ?? [];
     runWithStorageCheck(reward, send);
@@ -339,7 +362,7 @@ interface ColonyCardProps {
 function ColonyCard({ colony, controls, density, getPlayerColor, getPlayerName }: ColonyCardProps) {
   const isScreen = density === "screen";
   const { canAct, mode, tradePayment, tradeCosts } = controls;
-  const canTrade = canAct && colony.tradeAvailable;
+  const canTrade = canAct && colony.tradeAvailable && controls.affordable[tradePayment];
   const canBuild = canAct && colony.buildAvailable;
 
   const isDisabled = mode === "trade" ? !canTrade : !canBuild;
@@ -352,13 +375,7 @@ function ColonyCard({ colony, controls, density, getPlayerColor, getPlayerName }
   const tradeExpression = getTradeExpression(colony.steps);
 
   const labelText = isScreen ? "text-[11px]" : "text-[10px]";
-  const actionButtonClass = (enabled: boolean) => {
-    const sizeClass = isScreen ? "!min-h-11 min-w-[88px] px-4 text-[13px]" : "px-3 py-1 text-xs";
-    const stateClass = enabled
-      ? "bg-white/15 hover:bg-white/25 text-white"
-      : "bg-gray-600/30 text-gray-500";
-    return `${sizeClass} rounded-none font-semibold font-orbitron transition-all cursor-pointer ${stateClass}`;
-  };
+  const actionButtonClass = isScreen ? "min-h-11 min-w-[88px] px-4" : "";
 
   const trackChoices = (
     <TradeTrackChoices
@@ -384,12 +401,19 @@ function ColonyCard({ colony, controls, density, getPlayerColor, getPlayerName }
   return (
     <GamePopoverItem
       state={dimmed ? "disabled" : "available"}
-      borderColor={colony.style.color}
+      borderColor="#142c58"
       className="popover-list-item"
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-white text-sm font-bold font-orbitron m-0">{colony.name}</h3>
+          <h3 className="text-white text-sm font-bold font-orbitron m-0">
+            <GameIcon iconType={colony.style.icon} size="small" /> {colony.name}
+          </h3>
+          {!colony.active && (
+            <span className="border border-white/20 bg-white/10 px-2 py-0.5 font-orbitron text-[11px] text-white/60">
+              Inactive
+            </span>
+          )}
           {colony.tradedThisGen && colony.traderId && (
             <span
               className={`px-2 py-0.5 rounded-full ${labelText} font-orbitron text-white`}
@@ -404,8 +428,10 @@ function ColonyCard({ colony, controls, density, getPlayerColor, getPlayerName }
           <div>
             {mode === "trade" ? (
               <GameButton
-                emphasis="quiet"
-                className={actionButtonClass(canTrade)}
+                emphasis="primary"
+                shape="cut"
+                size="sm"
+                className={actionButtonClass}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (canTrade && tradeOption) {
@@ -418,8 +444,10 @@ function ColonyCard({ colony, controls, density, getPlayerColor, getPlayerName }
               </GameButton>
             ) : (
               <GameButton
-                emphasis="quiet"
-                className={actionButtonClass(canBuild)}
+                emphasis="primary"
+                shape="cut"
+                size="sm"
+                className={actionButtonClass}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (canBuild) {
@@ -439,7 +467,7 @@ function ColonyCard({ colony, controls, density, getPlayerColor, getPlayerName }
         <div className={SCREEN_TRACK_CHOICES_CLASS}>{trackChoices}</div>
       )}
       {mode === "trade" && !isScreen && trackChoices}
-      <div className="relative h-7">
+      <div className="relative h-7" hidden={!colony.active}>
         {PAYMENT_TYPES.map((pt) => {
           const config = tradeCosts[pt];
           return (

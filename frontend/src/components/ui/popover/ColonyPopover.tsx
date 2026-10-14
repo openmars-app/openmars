@@ -6,6 +6,7 @@ import ColonyList, {
   ColonyStorageWarning,
   TradePaymentSelector,
   useColonyControls,
+  type ColonyControls,
 } from "./content/ColonyList.tsx";
 
 interface ColonyPopoverProps {
@@ -22,6 +23,24 @@ const ColonyPopover: React.FC<ColonyPopoverProps> = ({
   anchorRef,
 }) => {
   const controls = useColonyControls(gameState);
+  return (
+    <ColonyPopoverView
+      isVisible={isVisible}
+      onClose={onClose}
+      gameState={gameState}
+      anchorRef={anchorRef}
+      controls={controls}
+    />
+  );
+};
+
+export const ColonyPopoverView: React.FC<ColonyPopoverProps & { controls: ColonyControls }> = ({
+  isVisible,
+  onClose,
+  gameState,
+  anchorRef,
+  controls,
+}) => {
   const toggleButton = <ColonyModeToggle controls={controls} density="popover" />;
 
   return (
