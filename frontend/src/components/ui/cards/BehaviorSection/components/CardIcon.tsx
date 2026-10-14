@@ -30,6 +30,7 @@ export function TaggedCardIcon({
 
 interface CardIconProps {
   amount: number;
+  iconType?: string;
   label?: string;
   badgeType: "peek" | "take" | "buy" | "discard" | "none";
   isAffordable?: boolean;
@@ -70,6 +71,7 @@ const cardActionBadges = {
 
 const CardIcon: React.FC<CardIconProps> = ({
   amount,
+  iconType = "card-draw",
   label,
   badgeType,
   isAffordable = true,
@@ -79,7 +81,7 @@ const CardIcon: React.FC<CardIconProps> = ({
   forceNumber = false,
 }) => {
   const { compact } = useBehaviorLayout();
-  const cardIcon = getIconPath("card-draw");
+  const cardIcon = getIconPath(iconType);
 
   if (!cardIcon) {
     return null;

@@ -1,15 +1,16 @@
+import BadgedGameIcon from "../../../display/BadgedGameIcon";
 import { useCardResourceStorage } from "../../CardStateVisuals.tsx";
 import StateOperationVisual from "./StateOperationVisual.tsx";
 import { hasSemanticIcon } from "../../../display/SemanticIcon.tsx";
 import PerConditionIcons from "./PerConditionIcons";
-import React from "react";
+import React, { createContext, useContext } from "react";
 import GameIcon from "../../../display/GameIcon.tsx";
 import { getIconPath, getTagIconPath } from "@/utils/iconStore.ts";
-import BehaviorIcon, { BehaviorSign } from "./BehaviorIcon.tsx";
+import BehaviorIcon, { BehaviorArrow, BehaviorSign } from "./BehaviorIcon.tsx";
 import CardIcon from "./CardIcon.tsx";
 import { useBehaviorLayout, BehaviorBorderLabel } from "./BehaviorContainer";
 import Slash from "./Slash.tsx";
-import { CalculatedOutputDto } from "@/types/generated/api-types.ts";
+import { CalculatedOutputDto, PerConditionDto } from "@/types/generated/api-types.ts";
 import {
   type ResourceCondition,
   isProduction as isProductionType,
@@ -20,6 +21,10 @@ import {
   getTileType,
   isCardOperation,
 } from "@/types/resourceConditions.ts";
+
+export const ComputedPerAmountsContext = createContext<ReadonlyMap<PerConditionDto, number>>(
+  new Map(),
+);
 
 interface IconDisplayInfo {
   resourceType: string;
@@ -33,6 +38,20 @@ interface TileScaleInfo {
   scale: 1 | 1.25 | 1.5 | 2;
   tileType: string | null;
 }
+
+const TILE_ICONS: Record<string, string> = {
+  "nuclear-zone": "nuclear",
+  "natural-preserve": "preserve",
+  mining: "mine",
+  "commercial-district": "commerce",
+  "industrial-center": "industry",
+  "ecological-zone": "ecozone",
+  mohole: "mohole",
+  restricted: "restricted",
+  "land-claim": "land-claim",
+  "world-tree": "tree",
+  volcano: "volcano-placement",
+};
 
 interface ResourceDisplayProps {
   displayInfo: IconDisplayInfo;
@@ -83,7 +102,7 @@ const ComputedValueDisplay: React.FC<{
     : "text-[22px] font-bold text-white/70 [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]";
 
   return (
-    <span className="flex items-center gap-[2px] opacity-80 ml-1">
+    <span data-computed-amount={amount} className="flex items-center gap-[2px] opacity-80 ml-1">
       <span className={parenClasses}>(</span>
       {isCredits ? (
         <GameIcon iconType={resourceType} amount={amount} size="behavior" />
@@ -114,8 +133,9 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   computedOutputs,
   productionLabel,
 }) => {
-  const { compact, cardId } = useBehaviorLayout();
+  const { compact, adjacentScoring } = useBehaviorLayout();
   const storage = useCardResourceStorage();
+  const computedPerAmounts = useContext(ComputedPerAmountsContext);
   const { resourceType, amount } = displayInfo;
   const storageIcon =
     storage?.icon && resource?.target === "self-card" && resource.type === storage.type
@@ -136,10 +156,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
     resource?.target?.startsWith("steal-");
 
   const resolvedComputedAmount =
-    computedAmount ??
-    (hasPer && computedOutputs
-      ? computedOutputs.find((o) => o.resourceType === resourceType)?.amount
-      : undefined);
+    computedAmount ?? (hasPer ? computedPerAmounts.get(hasPer) : undefined);
 
   const allSelectors = resource ? getSelectors(resource) : undefined;
   const selectorTags: string[] = [];
@@ -169,6 +186,31 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
     });
   };
 
+  if (resource?.type === "card-play") {
+    return (
+      <span className="inline-flex items-center gap-2" data-card-play-discount>
+        <GameIcon iconType="card" size="behavior" />
+        <span className="font-bold text-white">:</span>
+        <GameIcon iconType="credit" amount={-(resource.costReduction ?? 0)} size="behavior" />
+      </span>
+    );
+  }
+  if (resourceType === "card-resource") {
+    const count = Math.abs(amount);
+    const repeat = count > 0 && count <= 3;
+    return (
+      <span className="inline-flex items-center gap-1" data-stored-resources>
+        {!repeat && count > 1 && <span>{count}</span>}
+        {Array.from({ length: repeat ? count : 1 }, (_, index) => (
+          <BadgedGameIcon
+            key={index}
+            icon="card-resource"
+            badges={selectorTags.map((tag) => `${tag}-tag`)}
+          />
+        ))}
+      </span>
+    );
+  }
   if (resource && isCardOperation(resource) && !hasPer) {
     let badgeType: "none" | "peek" | "take" | "buy" | "discard" = "none";
     if (resource.type === "card-peek") {
@@ -187,6 +229,11 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
       <span className="inline-flex items-center gap-px shrink-0">
         <CardIcon
           amount={Math.abs(amount)}
+          iconType={
+            allSelectors?.some((selector) => selector.cardTypes?.includes("prelude"))
+              ? "prelude-card"
+              : "card-draw"
+          }
           badgeType={badgeType}
           isAffordable={isAffordable}
           isAttack={isAttack}
@@ -212,35 +259,31 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   }
   if (resource?.type === "copy") {
     return (
-      <span
-        className="relative inline-flex w-12 h-10"
-        role="img"
-        aria-label="Copy a building production box"
-      >
-        <span className="absolute left-0 top-0 w-8 h-7 border border-[#a06e3c] bg-[#684726]" />
-        <span className="absolute left-2 top-2 w-8 h-7 border border-[#a06e3c] bg-[#80582f]" />
-        {resource.selectors
-          ?.flatMap((selector) => selector.tags ?? [])
-          .map((tag) => (
-            <img
-              key={tag}
-              src={getTagIconPath(tag) ?? undefined}
-              alt={tag}
-              className="absolute right-0 bottom-0 w-5 h-5 object-contain"
-            />
-          ))}
-      </span>
+      <BadgedGameIcon icon="copy" badges={selectorTags.map((tag) => `${tag}-tag`)}>
+        <BehaviorIcon
+          resourceType="copy"
+          context={context}
+          tileScaleInfo={tileScaleInfo}
+          isAffordable={isAffordable}
+        />
+      </BadgedGameIcon>
     );
   }
   if (resource?.type === "colony-track-step" || resource?.type === "trade-fleet") {
+    const fleet = resource.type === "trade-fleet";
     return (
-      <span className="inline-flex items-center gap-1 font-orbitron text-white">
-        <span className="font-orbitron font-bold leading-none translate-y-[2px]">
-          {amount > 0 ? "+" : "−"}
-          {Math.abs(amount)}
-        </span>
-        <GameIcon iconType={resource.type === "trade-fleet" ? "trade" : "colony"} size="behavior" />
-        {resource.selectionGroup && <span>*</span>}
+      <span
+        className="inline-flex items-center gap-1 font-orbitron text-white"
+        data-colony-action={fleet ? "fleet" : "track"}
+      >
+        {fleet && <span>{amount > 0 ? "+" : "−"}</span>}
+        {Math.abs(amount) > 1 && <span>{Math.abs(amount)}</span>}
+        <GameIcon
+          iconType={
+            fleet ? "trade-fleet" : amount < 0 ? "colony-track-decrease" : "colony-track-step"
+          }
+          size="behavior"
+        />
       </span>
     );
   }
@@ -255,6 +298,21 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   }
   if (resourceType === "bonus-tags") {
     return <GameIcon iconType="wild-tag" amount={amount} size="behavior" />;
+  }
+  if (resource?.type === "tile-replacement") {
+    return (
+      <span className="inline-flex items-center gap-2" data-tile-replacement>
+        <GameIcon iconType="tile" size="behavior" />
+        <BehaviorArrow />
+        <BehaviorIcon
+          resourceType={TILE_ICONS[getTileType(resource) ?? ""] ?? "tile-placement"}
+          sizingType="tile-placement"
+          context={context}
+          tileScaleInfo={tileScaleInfo}
+          isAffordable={isAffordable}
+        />
+      </span>
+    );
   }
   if (hasSemanticIcon(resourceType)) {
     return <GameIcon iconType={resourceType} amount={amount} size="behavior" />;
@@ -445,8 +503,18 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
                     {Math.abs(amount)}
                   </span>
                 )}
-                {iconElement}
-                {renderSelectorBadges()}
+                {selectorTags.length ? (
+                  <span className="mr-1">
+                    <BadgedGameIcon
+                      icon={resourceType}
+                      badges={selectorTags.map((tag) => `${tag}-tag`)}
+                    >
+                      {iconElement}
+                    </BadgedGameIcon>
+                  </span>
+                ) : (
+                  iconElement
+                )}
               </div>
               <Slash />
               <PerConditionIcons per={hasPer} />
@@ -577,7 +645,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
           Bonus
         </span>
         {hasContext && (
-          <span className="flex items-center gap-[2px] opacity-80 ml-0.5">
+          <span data-colony-bonus-preview className="flex items-center gap-[2px] opacity-80 ml-0.5">
             <span className="text-[22px] font-bold leading-none text-white/70 [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
               (
             </span>
@@ -640,22 +708,71 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
       resourceTileRestrictions.minAdjacentOfType !== undefined ||
       resourceTileRestrictions.adjacentToOwned ||
       (resourceTileRestrictions.onBonusType?.length ?? 0) > 0 ||
-      (resourceTileRestrictions.boardTags?.length ?? 0) > 0);
+      resourceTileRestrictions.boardTags?.some(
+        (tag) => tag !== "volcanic" || resourceType !== "volcano-placement",
+      ));
 
-  const isWorldTree = resource && getTileType(resource) === "world-tree";
-  const specialRestriction = isWorldTree || (cardId === "149" && resourceType === "card-resource");
-  const iconType = isWorldTree ? "greenery-placement" : resourceType;
-  const iconTileScale = isWorldTree ? { ...tileScaleInfo, tileType: iconType } : tileScaleInfo;
-  const baseIconElement = storageIcon ? (
+  const tileType = resource ? getTileType(resource) : undefined;
+  const iconType = tileType && TILE_ICONS[tileType] ? TILE_ICONS[tileType] : resourceType;
+  const locationBadges: Record<string, string> = {
+    phobos: "mars-tag",
+    ganymede: "jovian-tag",
+    luna: "moon-tag",
+    venus: "venus-tag",
+    mars: "mars-tag",
+  };
+  const location = resourceTileRestrictions?.placementLocation;
+  const badges: string[] = resourceType === "city-placement" ? [...adjacentScoring] : [];
+  badges.push(...selectorTags.map((tag) => `${tag}-tag`));
+  if (resourceTileRestrictions?.boardTags?.includes("volcanic")) {
+    if (resourceType !== "volcano-placement") badges.push("volcano-placement");
+  } else if (location && locationBadges[location]) {
+    badges.push(locationBadges[location]);
+  }
+  if (resourceTileRestrictions?.area === "ocean" && resourceType !== "ocean-placement") {
+    badges.push("ocean-tile");
+  }
+  if (resourceTileRestrictions?.adjacentToType && !tileType) {
+    const count = resourceTileRestrictions.minAdjacentOfType ?? 1;
+    badges.push(
+      ...Array.from(
+        { length: Math.min(count, 2) },
+        () => `${resourceTileRestrictions.adjacentToType}-tile`,
+      ),
+    );
+  }
+  if (resourceTileRestrictions?.adjacency === "none") {
+    badges.push("adjacency");
+  }
+  const remainingTileRestrictions =
+    hasTileRestrictions &&
+    (badges.length === 0 ||
+      location === "mars" ||
+      !!resourceTileRestrictions?.adjacentToOwned ||
+      !!resourceTileRestrictions?.onBonusType?.length);
+  const baseIconElement = badges.length ? (
+    <BadgedGameIcon icon={iconType} badges={badges}>
+      <BehaviorIcon
+        resourceType={iconType}
+        sizingType={resourceType}
+        isProduction={false}
+        isAttack={isAttack}
+        context={iconContext}
+        isAffordable={isAffordable}
+        tileScaleInfo={tileScaleInfo}
+      />
+    </BadgedGameIcon>
+  ) : storageIcon ? (
     <GameIcon iconType={storageIcon} size="behavior" />
   ) : (
     <BehaviorIcon
       resourceType={iconType}
+      sizingType={resourceType}
       isProduction={false}
       isAttack={isAttack}
       context={iconContext}
       isAffordable={isAffordable}
-      tileScaleInfo={iconTileScale}
+      tileScaleInfo={tileScaleInfo}
     />
   );
 
@@ -678,10 +795,8 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
         {Array.from({ length: absoluteAmount }, (_, i) => (
           <React.Fragment key={i}>{baseIconElement}</React.Fragment>
         ))}
-        {renderSelectorBadges()}
-        {(specialRestriction ||
-          resource?.type === "colony-tile-add" ||
-          hasTileRestrictions ||
+        {(resource?.type === "colony-tile-add" ||
+          remainingTileRestrictions ||
           (resource && "targetRestriction" in resource && !!resource.targetRestriction) ||
           resource?.target === "triggering-card") && (
           <span className="text-white font-bold text-sm ml-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
@@ -704,10 +819,8 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
           ))}
         </span>
         {baseIconElement}
-        {renderSelectorBadges()}
-        {(specialRestriction ||
-          resource?.type === "colony-tile-add" ||
-          hasTileRestrictions ||
+        {(resource?.type === "colony-tile-add" ||
+          remainingTileRestrictions ||
           (resource && "targetRestriction" in resource && !!resource.targetRestriction) ||
           resource?.target === "triggering-card") && (
           <span className="text-white font-bold text-sm ml-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">

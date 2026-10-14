@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useLayoutEffect, useState } from "react";
+import { useOverlayPortalRoot } from "@/contexts/OverlayEnvironment";
+import React, { createContext, useContext, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FormattedDescription } from "../../../display/FormattedDescription.tsx";
 import { ClassifiedBehavior } from "../types.ts";
@@ -7,6 +8,7 @@ import { useTapReveal } from "@/hooks/useTapReveal.ts";
 
 const BehaviorLayoutContext = createContext({
   compact: false,
+  adjacentScoring: [] as string[],
   cardId: undefined as string | undefined,
 });
 export const useBehaviorLayout = () => useContext(BehaviorLayoutContext);
@@ -19,6 +21,7 @@ interface BehaviorContainerProps {
   noContainer?: boolean;
   borderLabel?: React.ReactNode;
   cardId?: string;
+  adjacentScoring?: string[];
   children: React.ReactNode;
 }
 
@@ -26,7 +29,9 @@ const DescriptionPortal: React.FC<{
   description: string;
   anchorRef: React.RefObject<HTMLDivElement | null>;
 }> = ({ description, anchorRef }) => {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const portalRoot = useOverlayPortalRoot();
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number; aboveY: number } | null>(null);
 
   useLayoutEffect(() => {
     const anchor = anchorRef.current;
@@ -36,12 +41,15 @@ const DescriptionPortal: React.FC<{
     const updatePosition = () => {
       const rect = anchor.getBoundingClientRect();
       let bottom = rect.bottom;
+      let top = rect.top;
       for (let parent = anchor.parentElement; parent; parent = parent.parentElement) {
         if (getComputedStyle(parent).overflowY !== "visible") {
-          bottom = Math.min(bottom, parent.getBoundingClientRect().bottom);
+          const bounds = parent.getBoundingClientRect();
+          bottom = Math.min(bottom, bounds.bottom);
+          top = Math.max(top, bounds.top);
         }
       }
-      setPos({ x: rect.left + rect.width / 2, y: bottom });
+      setPos({ x: rect.left + rect.width / 2, y: bottom, aboveY: top });
     };
     updatePosition();
     const observer = new ResizeObserver(updatePosition);
@@ -57,12 +65,27 @@ const DescriptionPortal: React.FC<{
     };
   }, [anchorRef]);
 
+  useLayoutEffect(() => {
+    const tooltip = tooltipRef.current;
+    if (!tooltip || !pos) {
+      return;
+    }
+    // Match DecorBoxTooltip's measured flip and viewport clamp.
+    const { width, height } = tooltip.getBoundingClientRect();
+    const left = Math.max(12, Math.min(pos.x - width / 2, window.innerWidth - width - 12));
+    const preferredTop = pos.y + height > window.innerHeight - 12 ? pos.aboveY - height : pos.y;
+    const top = Math.max(12, Math.min(preferredTop, window.innerHeight - height - 12));
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }, [pos, description]);
+
   if (!pos) return null;
 
   return createPortal(
     <div
+      ref={tooltipRef}
       role="tooltip"
-      className="font-sans fixed w-[184px] -translate-x-1/2 pt-1 pointer-events-none animate-[fadeIn_150ms_ease-in]"
+      className="font-sans fixed w-[184px] max-w-[calc(100vw-24px)] pt-1 pointer-events-none animate-[fadeIn_150ms_ease-in]"
       style={{ left: pos.x, top: pos.y, zIndex: Z_INDEX.FLOATING_TOOLTIP }}
     >
       <div
@@ -87,7 +110,7 @@ const DescriptionPortal: React.FC<{
         </svg>
       </div>
     </div>,
-    document.body,
+    portalRoot,
   );
 };
 
@@ -99,6 +122,7 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
   noContainer = false,
   borderLabel,
   cardId,
+  adjacentScoring = [],
   children,
 }) => {
   const { type: rawType } = classifiedBehavior;
@@ -148,7 +172,7 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
   }, [children, compact]);
 
   const content = (
-    <BehaviorLayoutContext.Provider value={{ compact, cardId }}>
+    <BehaviorLayoutContext.Provider value={{ compact, cardId, adjacentScoring }}>
       {children}
     </BehaviorLayoutContext.Provider>
   );
@@ -190,12 +214,20 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
       type === "defense"
         ? "w-fit"
         : "w-[calc(100%-20px)]";
+    const { behavior } = classifiedBehavior;
+    const compactOptionalExchange =
+      type === "immediate-effect" &&
+      behavior.optional &&
+      behavior.inputs?.length === 1 &&
+      behavior.outputs?.length === 1 &&
+      behavior.outputs[0].type === "state-change";
+    const spacingClass = compactOptionalExchange ? "py-0 min-h-0 my-0" : "py-1 min-h-8 my-px";
 
     return (
       <div
         {...triggerProps}
         key={index}
-        className={`behavior-fitting relative px-2 py-1 min-h-8 my-px border border-white/10 backdrop-blur-[2px] flex items-center max-w-full min-w-0 font-orbitron ${widthClass} ${typeStyles[type] || ""} ${borderLabel ? "mt-2.5 pt-3" : ""}`}
+        className={`behavior-fitting relative px-2 ${spacingClass} border border-white/10 backdrop-blur-[2px] flex items-center max-w-full min-w-0 font-orbitron ${widthClass} ${typeStyles[type] || ""} ${borderLabel ? "mt-2.5 pt-3" : ""}`}
         data-compact={compact}
       >
         {borderLabel && <BehaviorBorderLabel>{borderLabel}</BehaviorBorderLabel>}

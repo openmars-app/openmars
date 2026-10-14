@@ -43,7 +43,14 @@ const DefenseLayout: React.FC<DefenseLayoutProps> = ({ behavior }) => {
 
   return (
     <div className="flex gap-[6px] items-center">
-      <GameIcon iconType="defense" size="behavior" />
+      <GameIcon
+        iconType={
+          affectedResources.length === 1 && affectedResources[0] === "animal"
+            ? "animal-protection"
+            : "protection"
+        }
+        size="behavior"
+      />
 
       <div className="flex gap-[3px] items-center">
         {affectedResources.map((resourceType: string, index: number) => (
