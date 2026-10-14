@@ -16,6 +16,107 @@ import (
 	"openmars/test/testutil"
 )
 
+func TestGreeneryPlacement_OceansDoNotCountAsOwnedTiles(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		ownedType    shared.ResourceType
+		onOceanSpace bool
+		surrounded   bool
+	}{
+		{name: "only oceans"},
+		{name: "city", ownedType: shared.ResourceCityTile},
+		{name: "greenery", ownedType: shared.ResourceGreeneryTile},
+		{name: "special tile", ownedType: shared.ResourceIndustrialCenterTile},
+		{name: "greenery on ocean space", ownedType: shared.ResourceGreeneryTile, onOceanSpace: true},
+		{name: "no space beside owned tile", ownedType: shared.ResourceCityTile, surrounded: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ownedType := tc.ownedType
+			ctx := context.Background()
+			g, repo := testutil.CreateTestGameWithPlayers(t, 2)
+			testutil.StartTestGame(t, g)
+			id := g.TurnOrder()[0]
+			var ocean shared.HexPosition
+			for _, tile := range g.Board().Tiles() {
+				if tile.Type == shared.ResourceOceanSpace {
+					ocean = tile.Coordinates
+					break
+				}
+			}
+			testutil.AssertNoError(t, g.Board().UpdateTileOccupancy(ctx, ocean, board.TileOccupant{Type: shared.ResourceOceanTile}, id), "place player's ocean")
+			land := g.CalculateAvailableHexesForTile("greenery", id, nil)
+			var owned shared.HexPosition
+			if ownedType != "" {
+				// Choose a separate owned tile with room for greenery.
+				found := false
+				for _, tile := range g.Board().Tiles() {
+					eligible := slices.Contains(land, tile.Coordinates.String()) && !slices.Contains(ocean.GetNeighbors(), tile.Coordinates)
+					if tc.onOceanSpace {
+						eligible = tile.Type == shared.ResourceOceanSpace && tile.OccupiedBy == nil
+					}
+					if !eligible {
+						continue
+					}
+					for _, neighbor := range tile.Coordinates.GetNeighbors() {
+						if slices.Contains(land, neighbor.String()) {
+							owned, found = tile.Coordinates, true
+							break
+						}
+					}
+					if found {
+						break
+					}
+				}
+				testutil.AssertTrue(t, found, "fixture has land with available neighbors")
+				testutil.AssertNoError(t, g.Board().UpdateTileOccupancy(ctx, owned, board.TileOccupant{Type: ownedType}, id), "place owned tile")
+			}
+			if tc.surrounded {
+				for _, tile := range g.Board().Tiles() {
+					if tile.OccupiedBy == nil && slices.Contains(owned.GetNeighbors(), tile.Coordinates) {
+						testutil.AssertNoError(t, g.Board().UpdateTileOccupancy(ctx, tile.Coordinates, board.TileOccupant{Type: shared.ResourceCityTile}, g.TurnOrder()[1]), "block owned tile with opponent tiles")
+					}
+				}
+			}
+			restrictions := &shared.TileRestrictions{AdjacentToOwned: true}
+			available := g.CalculateAvailableHexesForTile("greenery", id, restrictions)
+			unrestricted := g.CalculateAvailableHexesForTile("greenery", id, nil)
+			expected := []string{}
+			var oceanOnly string
+			for _, tile := range g.Board().Tiles() {
+				if !slices.Contains(unrestricted, tile.Coordinates.String()) {
+					continue
+				}
+				adjacentOwned := slices.Contains(owned.GetNeighbors(), tile.Coordinates)
+				if ownedType == "" || tc.surrounded || adjacentOwned {
+					expected = append(expected, tile.Coordinates.String())
+				}
+				if !adjacentOwned && slices.Contains(ocean.GetNeighbors(), tile.Coordinates) {
+					oceanOnly = tile.Coordinates.String()
+				}
+			}
+			if !slices.Equal(expected, available) {
+				t.Fatalf("only non-ocean ownership should restrict greenery placement: want %v, got %v", expected, available)
+			}
+			testutil.AssertTrue(t, len(available) > 0, "valid greenery placements remain")
+			selection := &shared.PendingTileSelection{TileType: "greenery", AvailableHexes: available, TileRestrictions: restrictions, Source: "test"}
+			selectTile := tileAction.NewSelectTileAction(repo, testutil.CreateTestCardRegistry(), game.NewInMemoryGameStateRepository(), testutil.TestLogger())
+			if ownedType != "" && !tc.surrounded {
+				testutil.AssertTrue(t, oceanOnly != "", "fixture includes land next to only the ocean")
+				// Even a stale pre-fix offer must be rejected by execution validation.
+				selection.AvailableHexes = append(slices.Clone(available), oceanOnly)
+				testutil.AssertNoError(t, g.SetPendingTileSelection(ctx, id, selection), "set stale placement offer")
+				before := g.GlobalParameters().Oxygen()
+				_, err := selectTile.Execute(ctx, g.ID(), id, oceanOnly)
+				testutil.AssertErrorContains(t, err, "no longer valid", "reject ocean-only adjacency")
+				testutil.AssertEqual(t, before, g.GlobalParameters().Oxygen(), "rejection does not raise oxygen")
+			}
+			testutil.AssertNoError(t, g.SetPendingTileSelection(ctx, id, selection), "set greenery placement offer")
+			_, err := selectTile.Execute(ctx, g.ID(), id, available[0])
+			testutil.AssertNoError(t, err, "accept valid greenery placement")
+		})
+	}
+}
+
 func TestSelectTileAction_BonusesRemovedAfterClaim(t *testing.T) {
 	ctx := context.Background()
 	testGame, repo := testutil.CreateTestGameWithPlayers(t, 2)
