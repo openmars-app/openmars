@@ -3,6 +3,7 @@ import { create } from "zustand";
 interface UIOverlayState {
   showCardsPlayedModal: boolean;
   showDebugDropdown: boolean;
+  showUIDebug: boolean;
   showPerformanceWindow: boolean;
   showFeedbackWindow: boolean;
   showCorporationOverlay: boolean;
@@ -29,6 +30,7 @@ interface UIOverlayState {
 
   setShowCardsPlayedModal: (show: boolean) => void;
   setShowDebugDropdown: (show: boolean) => void;
+  setShowUIDebug: (show: boolean) => void;
   setShowPerformanceWindow: (show: boolean) => void;
   setShowFeedbackWindow: (show: boolean) => void;
   setShowCorporationOverlay: (show: boolean) => void;
@@ -62,6 +64,7 @@ interface UIOverlayState {
 export const useUIOverlayStore = create<UIOverlayState>((set) => ({
   showCardsPlayedModal: false,
   showDebugDropdown: false,
+  showUIDebug: false,
   showPerformanceWindow: false,
   showFeedbackWindow: false,
   showCorporationOverlay: false,
@@ -88,6 +91,7 @@ export const useUIOverlayStore = create<UIOverlayState>((set) => ({
 
   setShowCardsPlayedModal: (show) => set({ showCardsPlayedModal: show }),
   setShowDebugDropdown: (show) => set({ showDebugDropdown: show }),
+  setShowUIDebug: (show) => set({ showUIDebug: show }),
   setShowPerformanceWindow: (show) => set({ showPerformanceWindow: show }),
   setShowFeedbackWindow: (show) => set({ showFeedbackWindow: show }),
   setShowCorporationOverlay: (show) => set({ showCorporationOverlay: show }),

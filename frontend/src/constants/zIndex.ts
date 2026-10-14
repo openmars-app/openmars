@@ -90,6 +90,8 @@ export const Z_INDEX = {
 
   // Debug Windows Layer (20000-20099)
   DEBUG_WINDOWS: 20000,
+  UI_DEBUG_PREVIEW: 99999,
+  UI_DEBUG_CONTROLS: 99999,
 
   // Always-on-top UI (above debug windows)
   TOP_MENU_ALWAYS_ON_TOP: 20100,
