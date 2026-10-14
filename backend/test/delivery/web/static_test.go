@@ -21,7 +21,11 @@ var appJS = strings.Repeat("console.log('terraforming');\n", 50)
 
 func newHandler(t *testing.T) http.Handler {
 	t.Helper()
-	root := t.TempDir()
+	return newHandlerIn(t, t.TempDir())
+}
+
+func newHandlerIn(t *testing.T, root string) http.Handler {
+	t.Helper()
 	write := func(name string, body []byte) {
 		full := filepath.Join(root, filepath.FromSlash(name))
 		testutil.AssertNoError(t, os.MkdirAll(filepath.Dir(full), 0o755), "mkdir")
@@ -152,4 +156,60 @@ func TestStatic_StaysInsideTheDirectory(t *testing.T) {
 func TestStatic_RequiresIndexHTML(t *testing.T) {
 	_, err := web.NewStaticHandler(t.TempDir())
 	testutil.AssertErrorContains(t, err, "has no index.html", "missing index.html")
+}
+
+func TestStatic_ServesRebuiltFrontendWithoutRestart(t *testing.T) {
+	root := t.TempDir()
+	handler := newHandlerIn(t, root)
+	initial := serve(handler, http.MethodGet, "/cards?cId=097", nil)
+	testutil.AssertEqual(t, shellBody, initial.Body.String(), "initial shell")
+
+	newShell := `<!doctype html><script src="/assets/index-rebuilt.js"></script>`
+	newJS := "console.log('rebuilt');"
+	testutil.AssertNoError(t, os.RemoveAll(filepath.Join(root, "assets")), "remove old build assets")
+	testutil.AssertNoError(t, os.Mkdir(filepath.Join(root, "assets"), 0o755), "recreate assets")
+	testutil.AssertNoError(t, os.WriteFile(filepath.Join(root, "assets/index-rebuilt.js"), []byte(newJS), 0o644), "write rebuilt script")
+	testutil.AssertNoError(t, os.WriteFile(filepath.Join(root, "index.html"), []byte(newShell), 0o644), "replace shell")
+
+	updated := serve(handler, http.MethodGet, "/cards?cId=097", map[string]string{"If-None-Match": initial.Header().Get("ETag")})
+	testutil.AssertEqual(t, http.StatusOK, updated.Code, "updated shell is not cached as unchanged")
+	testutil.AssertEqual(t, newShell, updated.Body.String(), "rebuilt shell")
+	testutil.AssertNotEqual(t, initial.Header().Get("ETag"), updated.Header().Get("ETag"), "updated shell etag")
+
+	script := serve(handler, http.MethodGet, "/assets/index-rebuilt.js", nil)
+	testutil.AssertEqual(t, http.StatusOK, script.Code, "new script status")
+	testutil.AssertEqual(t, newJS, script.Body.String(), "new script body")
+	testutil.AssertEqual(t, http.StatusNotFound, serve(handler, http.MethodGet, "/assets/index-abc.js", nil).Code, "removed script status")
+}
+
+func TestStatic_RefreshesCompressedSiblings(t *testing.T) {
+	root := t.TempDir()
+	handler := newHandlerIn(t, root)
+	headers := map[string]string{"Accept-Encoding": "gzip"}
+	initial := serve(handler, http.MethodGet, "/assets/index-abc.js", headers)
+	testutil.AssertEqual(t, "gzip", initial.Header().Get("Content-Encoding"), "initial gzip")
+	testutil.AssertNoError(t, os.Remove(filepath.Join(root, "assets/index-abc.js.gz")), "remove gzip")
+	plain := serve(handler, http.MethodGet, "/assets/index-abc.js", headers)
+	testutil.AssertEqual(t, http.StatusOK, plain.Code, "uncompressed status after removal")
+	testutil.AssertEqual(t, "", plain.Header().Get("Content-Encoding"), "uncompressed after removal")
+	testutil.AssertEqual(t, appJS, plain.Body.String(), "uncompressed body")
+
+	var compressed bytes.Buffer
+	writer := gzip.NewWriter(&compressed)
+	_, err := writer.Write([]byte(shellBody))
+	testutil.AssertNoError(t, err, "compress shell")
+	testutil.AssertNoError(t, writer.Close(), "finish compression")
+	testutil.AssertNoError(t, os.WriteFile(filepath.Join(root, "index.html.gz"), compressed.Bytes(), 0o644), "add gzip after startup")
+	updated := serve(handler, http.MethodGet, "/cards", headers)
+	testutil.AssertEqual(t, "gzip", updated.Header().Get("Content-Encoding"), "new compressed sibling")
+	testutil.AssertEqual(t, compressed.String(), updated.Body.String(), "compressed body")
+}
+
+func TestStatic_DoesNotFollowSymlinksOutsideBuild(t *testing.T) {
+	root := t.TempDir()
+	handler := newHandlerIn(t, root)
+	secret := filepath.Join(filepath.Dir(root), "secret.txt")
+	testutil.AssertNoError(t, os.Symlink(secret, filepath.Join(root, "assets/leak.txt")), "symlink outside build")
+	response := serve(handler, http.MethodGet, "/assets/leak.txt", nil)
+	testutil.AssertEqual(t, http.StatusNotFound, response.Code, "outside symlink status")
 }
