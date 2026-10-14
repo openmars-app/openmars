@@ -291,7 +291,7 @@ const VirtualCardGrid = memo(function VirtualCardGrid({
             ref={virtualizer.measureElement}
             data-index={row.index}
             data-card-row
-            className="absolute left-0 top-0 grid w-full gap-x-6 px-1"
+            className="absolute left-0 top-0 grid w-full gap-x-6 px-1 will-change-transform"
             style={{
               transform: `translateY(${row.start}px)`,
               gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
