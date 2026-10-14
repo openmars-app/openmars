@@ -86,7 +86,7 @@ func validateRequirement(cardID string, index int, req Requirement) error {
 		return fmt.Errorf("card %s: requirement[%d] has invalid type: %s", cardID, index, req.Type)
 	}
 
-	if req.Target != "" && (req.Target != "self-player" || req.Type != RequirementCities) {
+	if req.Target != "" && !((req.Type == RequirementCities && req.Target == "self-player") || (req.Type == RequirementColony && (req.Target == "self-player" || req.Target == "any-player"))) {
 		return fmt.Errorf("card %s: requirement[%d] has invalid target: %s", cardID, index, req.Target)
 	}
 
