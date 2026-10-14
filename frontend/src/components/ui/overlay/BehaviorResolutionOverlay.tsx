@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type {
   CardDto,
-  ErrorPayload,
   PendingBehaviorResolutionDto,
   PlayerCardDto,
 } from "@/types/generated/api-types";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager";
-import { webSocketService } from "@/services/webSocketService";
+import { useResolutionFailure, type ResolutionFailure } from "@/hooks/useResolutionFailure";
 import { useLayoutMode } from "@/hooks/useLayoutMode";
 import { useElementSize } from "@/hooks/useElementSize";
 import BehaviorSection from "../cards/BehaviorSection";
@@ -56,12 +55,38 @@ interface Props {
   corporation?: CardDto;
 }
 
-export default function BehaviorResolutionOverlay({
+interface ViewProps extends Props {
+  failure?: ResolutionFailure | null;
+  onOptional: (id: string, accept: boolean) => Promise<unknown>;
+  onDiscard: (id: string, cards: string[]) => Promise<unknown>;
+  onChoice: (id: string, index: number, targets: string[]) => Promise<unknown>;
+}
+
+export default function BehaviorResolutionOverlay(props: Props) {
+  const failure = useResolutionFailure();
+  return (
+    <BehaviorResolutionView
+      {...props}
+      failure={failure}
+      onOptional={(id, accept) => globalWebSocketManager.confirmOptionalBehavior(id, accept)}
+      onDiscard={(id, cards) => globalWebSocketManager.confirmCardDiscard(id, cards)}
+      onChoice={(id, index, targets) =>
+        globalWebSocketManager.confirmBehaviorChoice(id, index, targets)
+      }
+    />
+  );
+}
+
+export function BehaviorResolutionView({
   resolutions,
   handCards,
   playedCards,
   corporation,
-}: Props) {
+  failure,
+  onOptional,
+  onDiscard,
+  onChoice,
+}: ViewProps) {
   const [activeId, setActiveId] = useState(resolutions[0]?.id);
   const active = resolutions.find((item) => item.id === activeId) ?? resolutions[0];
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
@@ -83,28 +108,15 @@ export default function BehaviorResolutionOverlay({
   }, [active?.id]);
 
   useEffect(() => {
-    const failed = (payload: unknown) => {
-      const result = payload as Partial<ErrorPayload>;
-      if (submission.current && result.resolutionId === submission.current) {
-        setError(result.message ?? "Could not resolve effect");
-        submission.current = null;
-        setSubmitting(false);
-      }
-    };
-    const disconnected = () => {
-      if (submission.current) {
-        setError("Connection lost. Reconnect to check whether this effect was resolved.");
-        submission.current = null;
-        setSubmitting(false);
-      }
-    };
-    webSocketService.on("error", failed);
-    webSocketService.on("disconnect", disconnected);
-    return () => {
-      webSocketService.off("error", failed);
-      webSocketService.off("disconnect", disconnected);
-    };
-  }, []);
+    if (!submission.current || !failure) {
+      return;
+    }
+    if (failure.disconnected || failure.resolutionId === submission.current) {
+      setError(failure.message);
+      submission.current = null;
+      setSubmitting(false);
+    }
+  }, [failure]);
 
   if (!active) {
     return null;
@@ -151,15 +163,11 @@ export default function BehaviorResolutionOverlay({
     setError(null);
     try {
       if (active.kind === "optional") {
-        await globalWebSocketManager.confirmOptionalBehavior(active.id, !skip);
+        await onOptional(active.id, !skip);
       } else if (active.kind === "card-discard") {
-        await globalWebSocketManager.confirmCardDiscard(active.id, skip ? [] : validCards);
+        await onDiscard(active.id, skip ? [] : validCards);
       } else if (choice && canConfirmChoice) {
-        await globalWebSocketManager.confirmBehaviorChoice(
-          active.id,
-          choice.originalIndex,
-          targets,
-        );
+        await onChoice(active.id, choice.originalIndex, targets);
       }
     } catch (reason) {
       submission.current = null;
@@ -168,7 +176,10 @@ export default function BehaviorResolutionOverlay({
     }
   };
 
-  let panelClass = "w-[min(920px,95vw)]! max-h-[90dvh]! text-white";
+  let panelClass = "w-[min(360px,95vw)]! max-h-[90dvh]! text-white";
+  if (active.kind === "card-discard" && handCards.length > 0) {
+    panelClass = "w-[min(920px,95vw)]! max-h-[90dvh]! text-white";
+  }
   if (optional) {
     panelClass = "w-[min(480px,95vw)]! max-h-[90dvh]! text-white";
   }
@@ -282,7 +293,7 @@ export default function BehaviorResolutionOverlay({
                     <GameButton
                       emphasis="secondary"
                       aria-pressed={choiceIndex === item.originalIndex}
-                      className="w-full p-3"
+                      className="relative w-full p-3"
                       selected={choiceIndex === item.originalIndex}
                       disabled={!item.available || submitting}
                       onClick={() => {
