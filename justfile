@@ -16,6 +16,11 @@ default:
 deps: backend::deps frontend::deps proxy::deps
 
 [group('dev')]
+[doc('Build once and run the app on :3001 without hot reload, serving the built frontend from the backend')]
+run: frontend::build
+    {{ just_executable() }} backend serve
+
+[group('dev')]
 [doc('Run the backend (:3001, hot reload) and frontend (:3000) together; --proxy also runs the gateway (:4000) in front of them. Ctrl-C or any one exiting stops all')]
 [arg("proxy", long="proxy", value="true")]
 dev proxy="false":
