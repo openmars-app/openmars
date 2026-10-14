@@ -1,3 +1,4 @@
+import { useOverlayPortalRoot } from "@/contexts/OverlayEnvironment";
 import { formatRequirementDescription } from "@/utils/cardDescription.ts";
 import { StateSymbol, visibleStateRequirements } from "./CardStateVisuals.tsx";
 import React, { useState, useRef, useEffect } from "react";
@@ -14,6 +15,7 @@ interface RequirementsBoxProps {
 }
 
 const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow = false }) => {
+  const portalRoot = useOverlayPortalRoot();
   const [isHovered, setIsHovered] = useState(false);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
   const badgeRef = useRef<HTMLDivElement>(null);
@@ -85,6 +87,8 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
     } else if (type === "resource" && resource) {
       // Named resource requirements (e.g., floater, microbe)
       resourceType = resource;
+    } else if (type === "city") {
+      resourceType = "city-tile";
     } else {
       // Regular resource/parameter requirements
       resourceType = type;
@@ -153,6 +157,9 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
         // Regular resources
         if (min !== undefined && min > 0) {
           displayText = `${min}+`;
+          if ((type === "city" || type === "colony") && min === 1) {
+            displayText = "";
+          }
         } else if (max !== undefined) {
           displayText = `≤${max}`;
         } else if (amount !== undefined) {
@@ -301,7 +308,7 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements, inFlow 
               </svg>
             </div>
           </div>,
-          document.body,
+          portalRoot,
         )}
     </>
   );

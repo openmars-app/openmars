@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useOverlayEventTarget, isPreviewEvent } from "@/contexts/OverlayEnvironment";
 import { CardDto, ResourceType, ResourceRemovalTargetDto } from "@/types/generated/api-types.ts";
 import { getResourceName } from "@/utils/resourceColors.ts";
 import GameIcon from "../display/GameIcon.tsx";
@@ -46,6 +47,7 @@ const CardResourceSelectionPopover: React.FC<CardResourceSelectionPopoverProps> 
   onCancel,
   isVisible,
 }) => {
+  const eventTarget = useOverlayEventTarget();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [hoveredCard, setHoveredCard] = useState<CardDto | null>(null);
   const [previewCard, setPreviewCard] = useState<CardDto | null>(null);
@@ -81,7 +83,13 @@ const CardResourceSelectionPopover: React.FC<CardResourceSelectionPopoverProps> 
       return;
     }
 
-    const handleEscape = (event: KeyboardEvent) => {
+    const handleEscape = (event: Event) => {
+      if (
+        !(event instanceof KeyboardEvent) ||
+        (eventTarget === document && isPreviewEvent(event))
+      ) {
+        return;
+      }
       if (event.key === "Escape") {
         if (selection.kind === "remove" && selectedPlayerId) {
           setSelectedPlayerId(null);
@@ -92,11 +100,11 @@ const CardResourceSelectionPopover: React.FC<CardResourceSelectionPopoverProps> 
       }
     };
 
-    document.addEventListener("keydown", handleEscape);
+    eventTarget.addEventListener("keydown", handleEscape);
     return () => {
-      document.removeEventListener("keydown", handleEscape);
+      eventTarget.removeEventListener("keydown", handleEscape);
     };
-  }, [isVisible, selectedPlayerId, selection.kind, onCancel]);
+  }, [isVisible, selectedPlayerId, selection.kind, onCancel, eventTarget]);
 
   const getPlayerCardsWithResource = (player: CardResourcePlayer) =>
     player.playedCards.flatMap((card) => {

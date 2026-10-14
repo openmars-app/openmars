@@ -1,3 +1,4 @@
+import { useOverlayPortalRoot } from "@/contexts/OverlayEnvironment";
 import React, { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FormattedDescription } from "./FormattedDescription.tsx";
@@ -24,6 +25,7 @@ const DecorBoxTooltip: React.FC<DecorBoxTooltipProps> = ({
   cornerSize = 14,
   maxWidth,
 }) => {
+  const portalRoot = useOverlayPortalRoot();
   const tooltipRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const tooltip = tooltipRef.current;
@@ -97,7 +99,7 @@ const DecorBoxTooltip: React.FC<DecorBoxTooltipProps> = ({
         {children || <FormattedDescription text={description!} />}
       </div>
     </div>,
-    document.body,
+    portalRoot,
   );
 };
 

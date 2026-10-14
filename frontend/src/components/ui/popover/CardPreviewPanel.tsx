@@ -1,5 +1,9 @@
-import { useCardPlayFlowStore } from "@/stores/cardPlayFlowStore";
-import React, { useEffect } from "react";
+import {
+  useOverlayPortalRoot,
+  useOverlayEventTarget,
+  isPreviewEvent,
+} from "@/contexts/OverlayEnvironment";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CardDto } from "@/types/generated/api-types.ts";
 import { cardImage } from "@/assets";
@@ -34,12 +38,28 @@ const CardPreview: React.FC<{ card: CardDto }> = ({ card }) => {
 };
 
 const CardPreviewPanel: React.FC<{ card: CardDto | null }> = ({ card }) => {
-  const inPlayFlow = useCardPlayFlowStore((state) => state.playSession?.phase === "choosing");
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [fits, setFits] = useState(false);
+  useLayoutEffect(() => {
+    const element = previewRef.current;
+    if (!element) return;
+    const update = () => setFits(element.getBoundingClientRect().left >= 8);
+    update();
+    const observer = new ResizeObserver(update);
+    if (element.parentElement) observer.observe(element.parentElement);
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [card]);
 
   return (
     <div
+      ref={previewRef}
+      style={{ visibility: fits ? "visible" : "hidden" }}
       className={`
-        ${inPlayFlow ? "hidden lg:block absolute right-full top-0 mr-4" : "hidden md:block absolute left-full top-0 ml-4"}
+        compact:hidden absolute right-full top-0 mr-4
         transition-all duration-200 ease-out
         ${card ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2 pointer-events-none"}
       `}
@@ -89,20 +109,23 @@ export const CardPreviewOverlay: React.FC<{ card: CardDto | null; onClose: () =>
   card,
   onClose,
 }) => {
+  const portalRoot = useOverlayPortalRoot();
+  const eventTarget = useOverlayEventTarget();
   useEffect(() => {
     if (!card) {
       return;
     }
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (eventTarget === document && isPreviewEvent(event)) return;
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopImmediatePropagation();
         onClose();
       }
     };
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [card, onClose]);
+    eventTarget.addEventListener("keydown", handleKeyDown, true);
+    return () => eventTarget.removeEventListener("keydown", handleKeyDown, true);
+  }, [eventTarget, card, onClose]);
 
   if (!card) {
     return null;
@@ -139,7 +162,7 @@ export const CardPreviewOverlay: React.FC<{ card: CardDto | null; onClose: () =>
         )}
       </div>
     </div>,
-    document.body,
+    portalRoot,
   );
 };
 

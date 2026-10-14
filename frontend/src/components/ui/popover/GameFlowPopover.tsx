@@ -1,3 +1,9 @@
+import {
+  useOverlayPortalRoot,
+  useOverlayEventTarget,
+  useIsolatedOverlay,
+  isPreviewEvent,
+} from "@/contexts/OverlayEnvironment";
 import { useCardPlayFlowStore } from "@/stores/cardPlayFlowStore";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -32,15 +38,25 @@ export function GameFlowPopover({
   compactFill = false,
   children,
 }: GameFlowPopoverProps) {
+  const portalRoot = useOverlayPortalRoot();
+  const eventTarget = useOverlayEventTarget();
+  const isolated = useIsolatedOverlay();
   const { isCompact } = useLayoutMode();
   const host = useCardPlayFlowStore((state) => {
-    if (isCompact || state.playSession?.phase === "choosing") {
+    if (!isolated && (isCompact || state.playSession?.phase === "choosing")) {
       return state.playPromptHost;
     }
     return null;
   });
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isClosing, setIsClosing] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
 
   const isDismissible = type === "interactive" || (type === "immediate" && !!onClose);
 
@@ -48,14 +64,15 @@ export function GameFlowPopover({
     if (isVisible) {
       setIsClosing(false);
     }
-  }, [isVisible]);
+  }, [eventTarget, isolated, isVisible]);
 
   const requestClose = useCallback(() => {
     if (!onClose) {
       return;
     }
     setIsClosing(true);
-    setTimeout(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => {
       setIsClosing(false);
       onClose();
     }, 200);
@@ -63,6 +80,7 @@ export function GameFlowPopover({
 
   useEffect(() => {
     const preventScroll = (event: WheelEvent | TouchEvent) => {
+      if (eventTarget === document && isPreviewEvent(event)) return;
       if (
         (event.target instanceof Element &&
           event.target.closest("[data-card-play-stage], [data-overlay-layer]")) ||
@@ -74,18 +92,19 @@ export function GameFlowPopover({
       event.stopPropagation();
     };
 
+    const previousOverflow = document.body.style.overflow;
     if (isVisible) {
-      document.body.style.overflow = "hidden";
-      document.addEventListener("wheel", preventScroll, { passive: false });
-      document.addEventListener("touchmove", preventScroll, { passive: false });
+      if (!isolated) document.body.style.overflow = "hidden";
+      eventTarget.addEventListener("wheel", preventScroll, { passive: false });
+      eventTarget.addEventListener("touchmove", preventScroll, { passive: false });
     }
 
     return () => {
-      document.body.style.overflow = "";
-      document.removeEventListener("wheel", preventScroll);
-      document.removeEventListener("touchmove", preventScroll);
+      if (!isolated) document.body.style.overflow = previousOverflow;
+      eventTarget.removeEventListener("wheel", preventScroll);
+      eventTarget.removeEventListener("touchmove", preventScroll);
     };
-  }, [isVisible]);
+  }, [eventTarget, isolated, isVisible]);
 
   useEffect(() => {
     if (!isVisible || !isDismissible) {
@@ -93,12 +112,17 @@ export function GameFlowPopover({
     }
 
     const handleEscape = (event: KeyboardEvent) => {
+      if (isolated && event.target instanceof Node && !popoverRef.current?.contains(event.target))
+        return;
+      if (event.defaultPrevented || (eventTarget === document && isPreviewEvent(event))) return;
       if (event.key === "Escape") {
+        event.preventDefault();
         requestClose();
       }
     };
 
     const handlePointerOutside = (event: PointerEvent) => {
+      if (eventTarget === document && isPreviewEvent(event)) return;
       if ((event.target as HTMLElement).closest?.("[data-overlay-layer]")) {
         return;
       }
@@ -113,16 +137,16 @@ export function GameFlowPopover({
 
     if (type !== "immediate") {
       if (handleEscapeKey) {
-        document.addEventListener("keydown", handleEscape);
+        eventTarget.addEventListener("keydown", handleEscape);
       }
-      document.addEventListener("pointerdown", handlePointerOutside);
+      eventTarget.addEventListener("pointerdown", handlePointerOutside);
     }
 
     return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.removeEventListener("pointerdown", handlePointerOutside);
+      eventTarget.removeEventListener("keydown", handleEscape);
+      eventTarget.removeEventListener("pointerdown", handlePointerOutside);
     };
-  }, [isVisible, isDismissible, type, requestClose, handleEscapeKey]);
+  }, [eventTarget, isVisible, isDismissible, type, requestClose, handleEscapeKey]);
 
   if (!isVisible) {
     return null;
@@ -244,7 +268,7 @@ export function GameFlowPopover({
   );
 
   if (type === "immediate") {
-    return createPortal(rendered, document.body);
+    return createPortal(rendered, portalRoot);
   }
 
   return rendered;

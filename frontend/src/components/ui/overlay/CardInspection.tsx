@@ -1,3 +1,4 @@
+import { isPreviewEvent } from "@/contexts/OverlayEnvironment";
 import { useCardPlayFlowStore, type CardPlaySession } from "@/stores/cardPlayFlowStore";
 import { Profiler, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { coldStartTrace } from "@/services/performanceStore.ts";
@@ -344,6 +345,7 @@ function CardInspectionContent({
       onClose();
     };
     const dismissEscape = (event: KeyboardEvent) => {
+      if (isPreviewEvent(event)) return;
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopImmediatePropagation();

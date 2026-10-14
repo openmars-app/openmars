@@ -1,3 +1,4 @@
+import { useOverlayPortalRoot } from "@/contexts/OverlayEnvironment";
 import { Z_INDEX } from "@/constants/zIndex.ts";
 import React, { useRef } from "react";
 import { createPortal } from "react-dom";
@@ -28,6 +29,7 @@ const GameModal: React.FC<GameModalProps> = ({
   children,
   className = "",
 }) => {
+  const portalRoot = useOverlayPortalRoot();
   const modalRef = useRef<HTMLDivElement>(null);
   useModal({
     modalRef,
@@ -90,7 +92,7 @@ const GameModal: React.FC<GameModalProps> = ({
         modalBox
       )}
     </div>,
-    document.body,
+    portalRoot,
   );
 };
 

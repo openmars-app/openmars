@@ -1,3 +1,4 @@
+import { useOverlayEventTarget, isPreviewEvent } from "@/contexts/OverlayEnvironment";
 import { useEffect, useRef, type RefObject } from "react";
 
 interface UseModalOptions {
@@ -19,6 +20,7 @@ export function useModal({
   preventClose = false,
   onPreventedClose,
 }: UseModalOptions) {
+  const eventTarget = useOverlayEventTarget();
   const callbacks = useRef({ onClose, onPreventedClose });
   callbacks.current = { onClose, onPreventedClose };
   useEffect(() => {
@@ -34,7 +36,11 @@ export function useModal({
       ).filter((element) => element.getClientRects().length > 0);
     (focusable()[0] ?? modal)?.focus();
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Tab") {
+      if (eventTarget === document && isPreviewEvent(e)) return;
+      // A nested portal owns keyboard input until it is dismissed.
+      if (eventTarget !== document && e.target instanceof Node && !modal?.contains(e.target))
+        return;
+      if (e.key === "Tab" && eventTarget === document) {
         const elements = focusable();
         const first = elements[0];
         const last = elements[elements.length - 1];
@@ -52,7 +58,8 @@ export function useModal({
           first.focus();
         }
       }
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !e.defaultPrevented && (preventClose || closeOnEscape)) {
+        e.preventDefault();
         if (preventClose) {
           callbacks.current.onPreventedClose?.();
         } else if (closeOnEscape) {
@@ -61,21 +68,21 @@ export function useModal({
       }
     };
 
-    document.addEventListener("keydown", handleEscape);
+    eventTarget.addEventListener("keydown", handleEscape);
 
     const previousOverflow = document.body.style.overflow;
-    if (lockScroll) {
+    if (lockScroll && eventTarget === document) {
       document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener("keydown", handleEscape);
+      eventTarget.removeEventListener("keydown", handleEscape);
       if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
         previousFocus.focus();
       }
-      if (lockScroll) {
+      if (lockScroll && eventTarget === document) {
         document.body.style.overflow = previousOverflow;
       }
     };
-  }, [isVisible, modalRef, closeOnEscape, lockScroll, preventClose]);
+  }, [eventTarget, isVisible, modalRef, closeOnEscape, lockScroll, preventClose]);
 }

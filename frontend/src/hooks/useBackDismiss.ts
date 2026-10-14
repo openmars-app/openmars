@@ -1,3 +1,8 @@
+import {
+  useOverlayEventTarget,
+  useIsolatedOverlay,
+  isPreviewEvent,
+} from "@/contexts/OverlayEnvironment";
 import { useEffect, useRef } from "react";
 
 const HISTORY_KEY = "mobileOverlayDepth";
@@ -7,6 +12,7 @@ interface DismissEntry {
 }
 
 const stack: DismissEntry[] = [];
+const isolatedStacks = new WeakMap<object, DismissEntry[]>();
 let pushedEntries = 0;
 let ownPops = 0;
 let syncScheduled = false;
@@ -70,7 +76,7 @@ function handlePopState(event: PopStateEvent) {
 }
 
 function handleKeyDown(event: KeyboardEvent) {
-  if (event.key !== "Escape" || event.defaultPrevented) {
+  if (event.key !== "Escape" || event.defaultPrevented || isPreviewEvent(event)) {
     return;
   }
   const top = stack[stack.length - 1];
@@ -85,10 +91,33 @@ if (typeof window !== "undefined") {
 }
 
 export function useBackDismiss(onDismiss: () => void) {
+  const isolated = useIsolatedOverlay();
+  const eventTarget = useOverlayEventTarget();
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
 
   useEffect(() => {
+    if (isolated) {
+      let entries = isolatedStacks.get(eventTarget);
+      if (!entries) {
+        entries = [];
+        isolatedStacks.set(eventTarget, entries);
+      }
+      const entry: DismissEntry = { close: () => onDismissRef.current() };
+      entries.push(entry);
+      const dismiss = (event: KeyboardEvent) => {
+        if (event.key === "Escape" && !event.defaultPrevented && entries.at(-1) === entry) {
+          event.preventDefault();
+          onDismissRef.current();
+        }
+      };
+      eventTarget.addEventListener("keydown", dismiss);
+      return () => {
+        eventTarget.removeEventListener("keydown", dismiss);
+        const index = entries.indexOf(entry);
+        if (index !== -1) entries.splice(index, 1);
+      };
+    }
     const entry: DismissEntry = { close: () => onDismissRef.current() };
     stack.push(entry);
     scheduleSync();
@@ -99,5 +128,5 @@ export function useBackDismiss(onDismiss: () => void) {
       }
       scheduleSync();
     };
-  }, []);
+  }, [isolated, eventTarget]);
 }
