@@ -29,6 +29,18 @@ export default function GameConfirmDialogs() {
     void runConfirmedAction(pending);
   };
 
+  return <GameConfirmDialogView pending={pending} dismiss={dismiss} onConfirm={handleConfirm} />;
+}
+
+export function GameConfirmDialogView({
+  pending,
+  dismiss,
+  onConfirm,
+}: {
+  pending: ConfirmDialogRequest;
+  dismiss: () => void;
+  onConfirm: () => void;
+}) {
   if (pending.kind === "kick") {
     return (
       <GameMenuModal
@@ -45,7 +57,7 @@ export default function GameConfirmDialogs() {
           <GameButton emphasis="secondary" onClick={dismiss}>
             Cancel
           </GameButton>
-          <GameButton tone="error" onClick={handleConfirm}>
+          <GameButton tone="error" onClick={onConfirm}>
             Kick
           </GameButton>
         </div>
@@ -68,7 +80,7 @@ export default function GameConfirmDialogs() {
         <GameButton emphasis="secondary" onClick={dismiss}>
           Cancel
         </GameButton>
-        <GameButton tone="error" onClick={handleConfirm}>
+        <GameButton tone="error" onClick={onConfirm}>
           Convert
         </GameButton>
       </div>

@@ -1,3 +1,4 @@
+import { useIsolatedOverlay } from "@/contexts/OverlayEnvironment";
 import React, { useEffect, useRef, useState } from "react";
 import GameMenuModal from "./GameMenuModal.tsx";
 import GameButton from "../buttons/GameButton.tsx";
@@ -12,7 +13,7 @@ import { useVersionStore } from "@/stores/versionStore.ts";
 import type { ChangelogEntry, ChangelogSection } from "@/types/generated/api-types.ts";
 import { compareVersions, isLocalBuild } from "@/utils/version.ts";
 
-type ChangelogState =
+export type ChangelogState =
   | { status: "loading" }
   | { status: "error" }
   | { status: "ready"; entries: ChangelogEntry[] };
@@ -69,59 +70,58 @@ function MajorUpdate({ version, section }: { version: string; section: Changelog
   );
 }
 
-const EntrySection = React.forwardRef<HTMLElement, { entry: ChangelogEntry }>(function EntrySection(
-  { entry },
-  ref,
-) {
-  const notInstalled = isNotInstalled(entry.version);
-  const majorSections = entry.sections.filter((section) => section.major);
-  const otherSections = entry.sections.filter((section) => !section.major);
-  return (
-    <section
-      ref={ref}
-      className="grid scroll-mt-2 grid-cols-[120px_1fr] gap-x-6 border-t border-white/10 py-5 first:border-t-0 first:pt-0 compact:grid-cols-[72px_1fr] compact:gap-x-4 compact:py-4"
-    >
-      <div>
-        <h3 className="m-0 font-orbitron text-lg font-bold text-white compact:text-base">
-          {entry.version}
-        </h3>
-        {entry.version === APP_VERSION && (
-          <span className="font-orbitron text-xs text-white/40">Installed</span>
-        )}
-      </div>
-      <div className="min-w-0 space-y-4">
-        {notInstalled && (
-          <div className="flex items-center gap-4 text-sm text-white/70">
-            <span>Not installed yet</span>
-            <GameButton size="sm" height={36} onClick={() => window.location.reload()}>
-              Update
-            </GameButton>
-          </div>
-        )}
-        {entry.intro && (
-          <p className="m-0 text-sm text-white/70">
-            <InlineText text={entry.intro} />
-          </p>
-        )}
-        {majorSections.map((section) => (
-          <MajorUpdate key={section.title} version={entry.version} section={section} />
-        ))}
-        {otherSections.length > 0 && (
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-x-8 gap-y-4">
-            {otherSections.map((section) => (
-              <div key={section.title}>
-                <h4 className="m-0 mb-1 font-orbitron text-xs uppercase tracking-wider text-white/50">
-                  {section.title}
-                </h4>
-                <BulletList items={section.items} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-});
+const EntrySection = React.forwardRef<HTMLElement, { entry: ChangelogEntry; onUpdate: () => void }>(
+  function EntrySection({ entry, onUpdate }, ref) {
+    const notInstalled = isNotInstalled(entry.version);
+    const majorSections = entry.sections.filter((section) => section.major);
+    const otherSections = entry.sections.filter((section) => !section.major);
+    return (
+      <section
+        ref={ref}
+        className="grid scroll-mt-2 grid-cols-[120px_1fr] gap-x-6 border-t border-white/10 py-5 first:border-t-0 first:pt-0 compact:grid-cols-[72px_1fr] compact:gap-x-4 compact:py-4"
+      >
+        <div>
+          <h3 className="m-0 font-orbitron text-lg font-bold text-white compact:text-base">
+            {entry.version}
+          </h3>
+          {entry.version === APP_VERSION && (
+            <span className="font-orbitron text-xs text-white/40">Installed</span>
+          )}
+        </div>
+        <div className="min-w-0 space-y-4">
+          {notInstalled && (
+            <div className="flex items-center gap-4 text-sm text-white/70">
+              <span>Not installed yet</span>
+              <GameButton size="sm" height={36} onClick={onUpdate}>
+                Update
+              </GameButton>
+            </div>
+          )}
+          {entry.intro && (
+            <p className="m-0 text-sm text-white/70">
+              <InlineText text={entry.intro} />
+            </p>
+          )}
+          {majorSections.map((section) => (
+            <MajorUpdate key={section.title} version={entry.version} section={section} />
+          ))}
+          {otherSections.length > 0 && (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-x-8 gap-y-4">
+              {otherSections.map((section) => (
+                <div key={section.title}>
+                  <h4 className="m-0 mb-1 font-orbitron text-xs uppercase tracking-wider text-white/50">
+                    {section.title}
+                  </h4>
+                  <BulletList items={section.items} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  },
+);
 
 function useChangelog(): ChangelogState {
   const [state, setState] = useState<ChangelogState>({ status: "loading" });
@@ -140,7 +140,15 @@ function useChangelog(): ChangelogState {
   return state;
 }
 
-function ChangelogBody({ state, focus }: { state: ChangelogState; focus: string | null }) {
+function ChangelogBody({
+  state,
+  focus,
+  onUpdate,
+}: {
+  state: ChangelogState;
+  focus: string | null;
+  onUpdate: () => void;
+}) {
   const focusRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -165,6 +173,7 @@ function ChangelogBody({ state, focus }: { state: ChangelogState; focus: string 
           key={entry.version}
           ref={entry.version === focus ? focusRef : undefined}
           entry={entry}
+          onUpdate={onUpdate}
         />
       ))}
     </div>
@@ -178,7 +187,8 @@ function ChangelogScreen({
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  useRenderPause("changelog", true);
+  const isolated = useIsolatedOverlay();
+  useRenderPause("changelog", !isolated);
   return (
     <div
       className="fixed inset-0 flex flex-col bg-black text-white"
@@ -198,13 +208,33 @@ function ChangelogScreen({
 }
 
 function Changelog() {
-  const { isCompact } = useLayoutMode();
   const focus = useVersionStore((s) => s.changelogFocus);
   const closeChangelog = useVersionStore((s) => s.closeChangelog);
   const state = useChangelog();
   useBackDismiss(closeChangelog);
+  return (
+    <ChangelogModalView
+      state={state}
+      focus={focus}
+      onClose={closeChangelog}
+      onUpdate={() => window.location.reload()}
+    />
+  );
+}
 
-  const body = <ChangelogBody state={state} focus={focus} />;
+export function ChangelogModalView({
+  state,
+  focus = null,
+  onClose: closeChangelog,
+  onUpdate,
+}: {
+  state: ChangelogState;
+  focus?: string | null;
+  onClose: () => void;
+  onUpdate: () => void;
+}) {
+  const { isCompact } = useLayoutMode();
+  const body = <ChangelogBody state={state} focus={focus} onUpdate={onUpdate} />;
   if (isCompact) {
     return <ChangelogScreen onClose={closeChangelog}>{body}</ChangelogScreen>;
   }

@@ -21,13 +21,39 @@ export default function ServerList({
 }) {
   const probes = useServerProbes(SERVERS, active);
   return (
+    <ServerListView
+      servers={SERVERS}
+      probes={probes}
+      currentAlias={gatewayServer?.alias}
+      onSelect={switchServer}
+      rowClassName={rowClassName}
+    />
+  );
+}
+
+export function ServerListView({
+  servers,
+  probes,
+  currentAlias,
+  onSelect,
+  rowClassName,
+}: {
+  servers: GatewayServerEntry[];
+  probes: Record<string, ServerProbe>;
+  currentAlias?: string;
+  onSelect: (alias: string) => void;
+  rowClassName: string;
+}) {
+  return (
     <>
-      {SERVERS.map((server) => (
+      {servers.map((server) => (
         <ServerRow
           key={server.alias}
           server={server}
           probe={probes[server.alias]}
           className={rowClassName}
+          current={server.alias === currentAlias}
+          onSelect={onSelect}
         />
       ))}
     </>
@@ -38,7 +64,11 @@ function ServerRow({
   server,
   probe,
   className,
+  current,
+  onSelect,
 }: {
+  current: boolean;
+  onSelect: (alias: string) => void;
   server: GatewayServerEntry;
   probe?: ServerProbe;
   className: string;
@@ -46,7 +76,6 @@ function ServerRow({
   if (probe?.status === "invalid") {
     return null;
   }
-  const current = server.alias === gatewayServer?.alias;
   const online = probe?.status === "online";
   let status = "Checking…";
   if (probe?.status === "online") {
@@ -58,7 +87,7 @@ function ServerRow({
     <GameButton
       emphasis="quiet"
       disabled={!online || current}
-      onClick={() => switchServer(server.alias)}
+      onClick={() => onSelect(server.alias)}
       className={`w-full !justify-start gap-3 text-left hover:bg-white/10 transition-colors ${
         current ? "!opacity-100" : ""
       } ${className}`}

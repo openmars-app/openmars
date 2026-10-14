@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { GameDto, OtherPlayerDto, PlayerDto } from "../../../types/generated/api-types.ts";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
-import CopyLinkButton from "../buttons/CopyLinkButton.tsx";
+import { CopyLinkButtonView } from "../buttons/CopyLinkButton.tsx";
 import GameButton from "../buttons/GameButton.tsx";
 import GameMenuModal from "./GameMenuModal.tsx";
 import DemoSetupOverlay from "./DemoSetupOverlay.tsx";
@@ -92,14 +92,78 @@ const ColorPicker: React.FC<{
   </div>
 );
 
-const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
+const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = (props) => {
+  const navigate = useNavigate();
+  return (
+    <WaitingRoomOverlayView
+      {...props}
+      onStart={() => {
+        void globalWebSocketManager.startGame();
+      }}
+      onColor={(color, playerId) => {
+        void globalWebSocketManager.setPlayerColor(color, playerId);
+      }}
+      onKick={(id) => {
+        void globalWebSocketManager.kickPlayer(id);
+      }}
+      onKickSpectator={(id) => {
+        void globalWebSocketManager.kickSpectator(id);
+      }}
+      onAddBot={() => {
+        void globalWebSocketManager.addBot();
+      }}
+      onLeave={() => {
+        globalWebSocketManager.disconnect();
+        void navigate("/");
+      }}
+      onCopyInvite={(text) => navigator.clipboard.writeText(text)}
+      desktopMenu={<MainMenuHamburger gameId={props.game.id} />}
+      compactMenu={<MainMenuDrawerButton gameId={props.game.id} />}
+      mapPanel={(layout) => (
+        <LobbyMapInfoPanel game={props.game} playerId={props.playerId} layout={layout} />
+      )}
+      renderSettings={(close) => (
+        <LobbySettingsOverlay game={props.game} playerId={props.playerId} isOpen onClose={close} />
+      )}
+      renderDemo={(close) => (
+        <DemoSetupOverlay game={props.game} playerId={props.playerId} isOpen onClose={close} />
+      )}
+    />
+  );
+};
+
+export function WaitingRoomOverlayView({
   game,
   playerId,
   visible,
   onExited,
   chat,
-}) => {
-  const navigate = useNavigate();
+  onStart,
+  onColor,
+  onKick,
+  onKickSpectator,
+  onAddBot,
+  onLeave,
+  onCopyInvite,
+  desktopMenu,
+  compactMenu,
+  mapPanel,
+  renderSettings,
+  renderDemo,
+}: WaitingRoomOverlayProps & {
+  onStart: () => void;
+  onColor: (color: string, playerId?: string) => void;
+  onKick: (id: string) => void;
+  onKickSpectator: (id: string) => void;
+  onAddBot: () => void;
+  onLeave: () => void;
+  onCopyInvite: (text: string) => Promise<void>;
+  desktopMenu: React.ReactNode;
+  compactMenu: React.ReactNode;
+  mapPanel: (layout?: "stacked" | "split") => React.ReactNode;
+  renderSettings: (close: () => void) => React.ReactNode;
+  renderDemo: (close: () => void) => React.ReactNode;
+}) {
   const isHost = game.hostPlayerId === playerId;
   const joinUrl = serverLink(`/game/${game.id}?type=join`);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -122,7 +186,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 
   const handleStartGame = () => {
     if (!isHost) return;
-    void globalWebSocketManager.startGame();
+    onStart();
   };
 
   const hasCurrentPlayer = !!game.currentPlayer?.id;
@@ -213,13 +277,20 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
   const handleColorSelect = (color: string) => {
     if (colorPickerForPlayer) {
       const targetId = colorPickerForPlayer === playerId ? undefined : colorPickerForPlayer;
-      void globalWebSocketManager.setPlayerColor(color, targetId);
+      onColor(color, targetId);
     }
     setColorPickerForPlayer(null);
   };
 
   const currentPlayerIds = React.useMemo(() => new Set(allPlayers.map((p) => p.id)), [allPlayers]);
 
+  const leavingTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(
+    () => () => {
+      leavingTimers.current.forEach(clearTimeout);
+    },
+    [],
+  );
   const prevPlayerIdsRef = useRef<Set<string>>(new Set());
   const [newPlayerIds, setNewPlayerIds] = useState<Set<string>>(new Set());
   const [leavingPlayers, setLeavingPlayers] = useState<LeavingPlayer[]>([]);
@@ -252,9 +323,11 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 
     if (left.length > 0) {
       setLeavingPlayers((prev) => [...prev, ...left]);
-      setTimeout(() => {
-        setLeavingPlayers((prev) => prev.filter((p) => !left.some((l) => l.id === p.id)));
-      }, 300);
+      leavingTimers.current.push(
+        setTimeout(() => {
+          setLeavingPlayers((prev) => prev.filter((p) => !left.some((l) => l.id === p.id)));
+        }, 300),
+      );
     }
 
     prevPlayerIdsRef.current = new Set(currentPlayerIds);
@@ -278,8 +351,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
     setLeaveConfirmVisible(true);
     if (pendingLeave) {
       setPendingLeave(false);
-      globalWebSocketManager.disconnect();
-      void navigate("/");
+      onLeave();
     }
   };
 
@@ -433,7 +505,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
                   {isHost && player.id !== playerId && !player.isLeaving && (
                     <GameButton
                       emphasis="quiet"
-                      onClick={() => void globalWebSocketManager.kickPlayer(player.id)}
+                      onClick={() => onKick(player.id)}
                       className="ml-1 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
                       aria-label={`Kick ${player.name}`}
                     >
@@ -476,7 +548,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
                   {isHost && (
                     <GameButton
                       emphasis="quiet"
-                      onClick={() => void globalWebSocketManager.kickSpectator(spectator.id)}
+                      onClick={() => onKickSpectator(spectator.id)}
                       className="ml-1 text-red-400/60 hover:text-red-300 transition-colors cursor-pointer"
                     >
                       <svg
@@ -505,7 +577,8 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 
   const lobbyActions = (
     <>
-      <CopyLinkButton
+      <CopyLinkButtonView
+        onCopy={onCopyInvite}
         textToCopy={joinUrl}
         defaultText="Invite friends"
         copiedText="Link copied"
@@ -526,11 +599,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
         }
       />
       {isHost && game.settings.hasClaudeOAuthToken && (
-        <GameButton
-          emphasis="secondary"
-          size="md"
-          onClick={() => void globalWebSocketManager.addBot()}
-        >
+        <GameButton emphasis="secondary" size="md" onClick={() => onAddBot()}>
           <span className="inline-flex items-center gap-2">
             Bot
             <svg
@@ -661,12 +730,12 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 
           {chat}
         </div>
-        <LobbyMapInfoPanel game={game} playerId={playerId} />
+        {mapPanel()}
       </div>
     </GameMenuModal>
   );
 
-  let compactPane = (
+  let compactPane: React.ReactNode = (
     <div className="h-full min-h-0 flex flex-col gap-3">
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">{playerSection}</div>
       <div className="shrink-0 flex flex-wrap items-center justify-center gap-2">
@@ -681,7 +750,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
   if (lobbyTab === "chat") {
     compactPane = <div className="h-full min-h-0">{chat}</div>;
   } else if (lobbyTab === "map") {
-    compactPane = <LobbyMapInfoPanel game={game} playerId={playerId} layout="split" />;
+    compactPane = mapPanel("split");
   }
 
   const compactLobby = (
@@ -709,7 +778,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
         data-testid="mobile-lobby-top-bar"
         className="shrink-0 h-11 flex items-center gap-1 pr-2 border-b border-white/15"
       >
-        <MainMenuDrawerButton gameId={game.id} />
+        {compactMenu}
         <div
           role="tablist"
           aria-label="Lobby"
@@ -774,7 +843,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
         }
       `}</style>
 
-      {!isCompact && <MainMenuHamburger gameId={game.id} />}
+      {!isCompact && desktopMenu}
 
       {showLeaveConfirm && (
         <GameMenuModal
@@ -799,25 +868,10 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 
       {isCompact ? compactLobby : desktopLobby}
 
-      {isHost && showLobbySettings && (
-        <LobbySettingsOverlay
-          game={game}
-          playerId={playerId}
-          isOpen={true}
-          onClose={() => setShowLobbySettings(false)}
-        />
-      )}
-
-      {isDemoGame && showDemoSetup && game && playerId && (
-        <DemoSetupOverlay
-          game={game}
-          playerId={playerId}
-          isOpen={true}
-          onClose={() => setShowDemoSetup(false)}
-        />
-      )}
+      {isHost && showLobbySettings && renderSettings(() => setShowLobbySettings(false))}
+      {isDemoGame && showDemoSetup && renderDemo(() => setShowDemoSetup(false))}
     </>
   );
-};
+}
 
 export default WaitingRoomOverlay;

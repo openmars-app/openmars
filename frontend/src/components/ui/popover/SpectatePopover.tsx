@@ -17,7 +17,6 @@ const SpectatePopover: React.FC<SpectatePopoverProps> = ({
   gameId,
   anchorRef,
 }) => {
-  const position = useMenuPopoverPosition(anchorRef);
   const navigate = useNavigate();
   const [name, setName] = useState("");
 
@@ -27,6 +26,31 @@ const SpectatePopover: React.FC<SpectatePopoverProps> = ({
     navigate(`/game/${gameId}`, { state: { spectatorName: trimmed } });
   };
 
+  return (
+    <SpectatePopoverView
+      isVisible={isVisible}
+      onClose={onClose}
+      anchorRef={anchorRef}
+      name={name}
+      onNameChange={setName}
+      onSpectate={handleSpectate}
+    />
+  );
+};
+
+export function SpectatePopoverView({
+  isVisible,
+  onClose,
+  anchorRef,
+  name,
+  onNameChange: setName,
+  onSpectate: handleSpectate,
+}: Omit<SpectatePopoverProps, "gameId"> & {
+  name: string;
+  onNameChange: (name: string) => void;
+  onSpectate: () => void;
+}) {
+  const position = useMenuPopoverPosition(anchorRef);
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleSpectate();
@@ -64,6 +88,6 @@ const SpectatePopover: React.FC<SpectatePopoverProps> = ({
       </div>
     </GamePopover>
   );
-};
+}
 
 export default SpectatePopover;

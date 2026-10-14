@@ -23,16 +23,33 @@ const JoinGameOverlay: React.FC<JoinGameOverlayProps> = ({
   title = "Join game",
   subtitle,
 }) => {
-  const {
-    playerName,
-    setPlayerName,
-    isLoading,
-    handleJoin,
-    handleKeyDown,
-    loadingMessage,
-    errorMessage,
-  } = useJoinGame({ game });
+  const join = useJoinGame({ game });
+  return (
+    <JoinGameOverlayView
+      onCancel={onCancel}
+      visible={visible}
+      onExited={onExited}
+      title={title}
+      subtitle={subtitle}
+      {...join}
+    />
+  );
+};
 
+export function JoinGameOverlayView({
+  onCancel,
+  visible,
+  onExited,
+  title = "Join game",
+  subtitle,
+  playerName,
+  setPlayerName,
+  isLoading,
+  handleJoin,
+  handleKeyDown,
+  loadingMessage,
+  errorMessage,
+}: Omit<JoinGameOverlayProps, "game"> & ReturnType<typeof useJoinGame>) {
   return (
     <>
       <GameMenuModal
@@ -81,6 +98,6 @@ const JoinGameOverlay: React.FC<JoinGameOverlayProps> = ({
       {isLoading && <LoadingOverlay isLoaded={false} showDelayMs={0} message={loadingMessage} />}
     </>
   );
-};
+}
 
 export default JoinGameOverlay;

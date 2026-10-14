@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { RefObject, ReactNode } from "react";
 import { GamePopover } from "../GamePopover";
 import type { PopoverPosition } from "../GamePopover/types";
 import ServerList from "@/components/ui/servers/ServerList.tsx";
@@ -19,6 +19,19 @@ export default function ServerSwitchPopover({
   anchorRef,
 }: ServerSwitchPopoverProps) {
   return (
+    <ServerSwitchPopoverView isVisible={isVisible} onClose={onClose} anchorRef={anchorRef}>
+      <ServerList active={isVisible} rowClassName="px-4 py-3 text-sm" />
+    </ServerSwitchPopoverView>
+  );
+}
+
+export function ServerSwitchPopoverView({
+  isVisible,
+  onClose,
+  anchorRef,
+  children,
+}: ServerSwitchPopoverProps & { children: ReactNode }) {
+  return (
     <GamePopover
       className="game-popover-list"
       isVisible={isVisible}
@@ -31,9 +44,7 @@ export default function ServerSwitchPopover({
       animation="slideUp"
       excludeRef={anchorRef}
     >
-      <div className="py-1">
-        <ServerList active={isVisible} rowClassName="px-4 py-3 text-sm" />
-      </div>
+      <div className="py-1">{children}</div>
     </GamePopover>
   );
 }

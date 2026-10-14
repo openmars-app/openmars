@@ -24,7 +24,6 @@ const EnterCodePopover: React.FC<EnterCodePopoverProps> = ({
   initialCode,
   anchorRef,
 }) => {
-  const position = useMenuPopoverPosition(anchorRef);
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
   const [gameId, setGameId] = useState(initialCode || "");
@@ -104,6 +103,36 @@ const EnterCodePopover: React.FC<EnterCodePopoverProps> = ({
     }
   };
 
+  return (
+    <EnterCodePopoverView
+      isVisible={isVisible}
+      onClose={onClose}
+      anchorRef={anchorRef}
+      gameId={gameId}
+      onCodeChange={setGameId}
+      isLoading={isLoading}
+      onConnect={() => {
+        void handleConnect();
+      }}
+    />
+  );
+};
+
+export function EnterCodePopoverView({
+  isVisible,
+  onClose,
+  anchorRef,
+  gameId,
+  onCodeChange: setGameId,
+  isLoading,
+  onConnect: handleConnect,
+}: Pick<EnterCodePopoverProps, "isVisible" | "onClose" | "anchorRef"> & {
+  gameId: string;
+  onCodeChange: (code: string) => void;
+  isLoading: boolean;
+  onConnect: () => void;
+}) {
+  const position = useMenuPopoverPosition(anchorRef);
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       void handleConnect();
@@ -147,6 +176,6 @@ const EnterCodePopover: React.FC<EnterCodePopoverProps> = ({
       </div>
     </GamePopover>
   );
-};
+}
 
 export default EnterCodePopover;

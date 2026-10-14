@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import type { GameDto, UpdateGameSettingsRequest } from "@/types/generated/api-types.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import GameButton from "../buttons/GameButton.tsx";
@@ -22,19 +22,48 @@ interface LobbySettingsOverlayProps {
 
 type Tab = "general" | "ai";
 
-const LobbySettingsOverlay: React.FC<LobbySettingsOverlayProps> = ({
+const LobbySettingsOverlay: React.FC<LobbySettingsOverlayProps> = (props) => {
+  const showBotThoughts = useBotThoughtsPreferenceStore((s) => s.showBotThoughts);
+  const setShowBotThoughts = useBotThoughtsPreferenceStore((s) => s.setShowBotThoughts);
+  return (
+    <LobbySettingsOverlayView
+      {...props}
+      showBotThoughts={showBotThoughts}
+      onBotThoughtsChange={setShowBotThoughts}
+      onUpdateSettings={(patch) => {
+        void globalWebSocketManager.updateGameSettings(patch);
+      }}
+    />
+  );
+};
+
+export function LobbySettingsOverlayView({
   game,
   playerId,
   isOpen,
   onClose,
-}) => {
+  showBotThoughts,
+  onBotThoughtsChange: setShowBotThoughts,
+  onUpdateSettings: dispatch,
+}: LobbySettingsOverlayProps & {
+  showBotThoughts: boolean;
+  onBotThoughtsChange: (value: boolean) => void;
+  onUpdateSettings: (patch: UpdateGameSettingsRequest) => void;
+}) {
+  const tokenResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (tokenResetTimer.current) {
+        clearTimeout(tokenResetTimer.current);
+      }
+    },
+    [],
+  );
   const isHost = game.hostPlayerId === playerId;
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const [claudeToken, setClaudeToken] = useState("");
   const [tokenStatus, setTokenStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [spendCapDraft, setSpendCapDraft] = useState<string | null>(null);
-  const showBotThoughts = useBotThoughtsPreferenceStore((s) => s.showBotThoughts);
-  const setShowBotThoughts = useBotThoughtsPreferenceStore((s) => s.setShowBotThoughts);
 
   if (!isOpen || !isHost) {
     return null;
@@ -44,10 +73,6 @@ const LobbySettingsOverlay: React.FC<LobbySettingsOverlayProps> = ({
   const mode = settings.availableGameModes.find((item) => item.id === settings.gameModeId);
   const playerCount = (game.currentPlayer?.id ? 1 : 0) + (game.otherPlayers?.length || 0);
 
-  const dispatch = (patch: UpdateGameSettingsRequest) => {
-    void globalWebSocketManager.updateGameSettings(patch);
-  };
-
   const handleSubmitToken = () => {
     if (!claudeToken.trim()) {
       return;
@@ -56,7 +81,10 @@ const LobbySettingsOverlay: React.FC<LobbySettingsOverlayProps> = ({
     dispatch({ claudeOAuthToken: claudeToken.trim() });
     setClaudeToken("");
     setTokenStatus("saved");
-    window.setTimeout(() => setTokenStatus("idle"), 1500);
+    if (tokenResetTimer.current) {
+      clearTimeout(tokenResetTimer.current);
+    }
+    tokenResetTimer.current = setTimeout(() => setTokenStatus("idle"), 1500);
   };
 
   const handleClearToken = () => {
@@ -275,7 +303,7 @@ const LobbySettingsOverlay: React.FC<LobbySettingsOverlayProps> = ({
       </div>
     </div>
   );
-};
+}
 
 interface ToggleRowProps {
   label: string;

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import CloseButton from "@/components/ui/buttons/CloseButton.tsx";
 import { Z_INDEX } from "@/constants/zIndex.ts";
 import { useRenderPause } from "@/stores/renderPauseStore.ts";
@@ -16,6 +17,20 @@ export default function ServerSelectorScreen() {
     return null;
   }
   return (
+    <ServerSelectorScreenView onClose={() => setOpen(false)}>
+      <ServerList active={open} rowClassName="min-h-12 !px-1 border-b border-white/10" />
+    </ServerSelectorScreenView>
+  );
+}
+
+export function ServerSelectorScreenView({
+  onClose,
+  children,
+}: {
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
     <div
       className="fixed inset-0 overflow-y-auto bg-black text-white font-orbitron"
       style={{ zIndex: Z_INDEX.MOBILE_MENU_DRAWER }}
@@ -25,10 +40,10 @@ export default function ServerSelectorScreen() {
         <span className="flex-1 text-[0.7rem] font-medium uppercase tracking-[0.15em] text-white/45">
           Server selector
         </span>
-        <CloseButton onClick={() => setOpen(false)} label="Close server selector" />
+        <CloseButton onClick={onClose} label="Close server selector" />
       </header>
       <div className="flex flex-col pr-[calc(16px+var(--safe-right))] pb-[var(--safe-bottom)] pl-[calc(16px+var(--safe-left))]">
-        <ServerList active={open} rowClassName="min-h-12 !px-1 border-b border-white/10" />
+        {children}
       </div>
     </div>
   );

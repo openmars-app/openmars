@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useOverlayEventTarget, useOverlayPortalRoot } from "@/contexts/OverlayEnvironment";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Z_INDEX } from "@/constants/zIndex.ts";
 import {
   GameDto,
@@ -71,6 +72,10 @@ const Stepper: React.FC<StepperProps> = ({
   icon,
   iconLabel,
 }) => {
+  const eventTarget = useOverlayEventTarget();
+  const interactionRoot = useOverlayPortalRoot();
+  const dragCleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => dragCleanup.current?.(), []);
   const [inputValue, setInputValue] = useState(value.toString());
 
   useEffect(() => {
@@ -121,11 +126,12 @@ const Stepper: React.FC<StepperProps> = ({
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLInputElement>) => {
       e.preventDefault();
+      dragCleanup.current?.();
       const input = e.currentTarget;
       dragRef.current = { startX: e.clientX, startVal: value, dragging: false };
 
       const preventSelect = (ev: Event) => ev.preventDefault();
-      document.addEventListener("selectstart", preventSelect);
+      eventTarget.addEventListener("selectstart", preventSelect);
 
       const onMouseMove = (me: MouseEvent) => {
         if (!dragRef.current) {
@@ -137,8 +143,8 @@ const Stepper: React.FC<StepperProps> = ({
         }
         if (!dragRef.current.dragging) {
           dragRef.current.dragging = true;
-          document.body.style.cursor = "ew-resize";
-          document.body.style.userSelect = "none";
+          interactionRoot.style.cursor = "pointer";
+          interactionRoot.style.userSelect = "none";
           input.blur();
         }
         const steps = Math.round(dx / 8) * step;
@@ -152,17 +158,18 @@ const Stepper: React.FC<StepperProps> = ({
           input.select();
         }
         dragRef.current = null;
-        document.removeEventListener("mousemove", onMouseMove);
-        document.removeEventListener("mouseup", onMouseUp);
-        document.removeEventListener("selectstart", preventSelect);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
+        eventTarget.removeEventListener("mousemove", onMouseMove);
+        eventTarget.removeEventListener("mouseup", onMouseUp);
+        eventTarget.removeEventListener("selectstart", preventSelect);
+        interactionRoot.style.cursor = "";
+        interactionRoot.style.userSelect = "";
       };
 
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      dragCleanup.current = onMouseUp;
+      eventTarget.addEventListener("mousemove", onMouseMove);
+      eventTarget.addEventListener("mouseup", onMouseUp);
     },
-    [value, min, max, step, onChange],
+    [value, min, max, step, onChange, eventTarget, interactionRoot],
   );
 
   const isAtDefault = defaultValue !== undefined && value === defaultValue;
@@ -194,7 +201,7 @@ const Stepper: React.FC<StepperProps> = ({
           className={`w-10 h-6 text-center font-medium text-sm bg-black/60 border border-white/30 rounded outline-none focus:border-white/60 ${
             isAtDefault ? "text-white/40" : "text-white"
           }`}
-          style={{ cursor: "ew-resize" }}
+          style={{ cursor: "pointer" }}
         />
         <GameButton
           emphasis="quiet"
@@ -243,7 +250,68 @@ type SidebarTab = "cards" | "resources" | "global";
 
 type CardsColumn = "corporation" | "preludes" | "cards";
 
-const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId, isOpen, onClose }) => {
+const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = (props) => {
+  const [catalog, setCatalog] = useState<CardDto[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneAwardItemDto[]>([]);
+  const [awards, setAwards] = useState<MilestoneAwardItemDto[]>([]);
+  useEffect(() => {
+    if (!props.isOpen) {
+      return;
+    }
+    let active = true;
+    void apiService
+      .listCards(0, 1000)
+      .then((result) => {
+        if (active) {
+          setCatalog(result.cards);
+        }
+      })
+      .catch((error) => console.error("Failed to load cards:", error));
+    if (props.game.hostPlayerId === props.playerId) {
+      void apiService
+        .listMilestonesAndAwards()
+        .then((result) => {
+          if (active) {
+            setMilestones(result.milestones);
+            setAwards(result.awards);
+          }
+        })
+        .catch((error) => console.error("Failed to load milestones and awards:", error));
+    }
+    return () => {
+      active = false;
+    };
+  }, [props.isOpen, props.game.hostPlayerId, props.playerId]);
+  return (
+    <DemoSetupOverlayView
+      {...props}
+      catalog={catalog}
+      allMilestones={milestones}
+      allAwards={awards}
+      onSubmit={async (choices) => {
+        await globalWebSocketManager.selectDemoChoices(choices);
+      }}
+    />
+  );
+};
+
+export function DemoSetupOverlayView({
+  game,
+  playerId,
+  isOpen,
+  onClose,
+  catalog,
+  allMilestones,
+  allAwards,
+  onSubmit,
+}: DemoSetupOverlayProps & {
+  catalog: CardDto[];
+  allMilestones: MilestoneAwardItemDto[];
+  allAwards: MilestoneAwardItemDto[];
+  onSubmit: (
+    choices: Parameters<typeof globalWebSocketManager.selectDemoChoices>[0],
+  ) => Promise<void>;
+}) {
   const isHost = game.hostPlayerId === playerId;
   const hasPrelude = game.settings.features.includes("prelude") || false;
   const [activeTab, setActiveTab] = useState<SidebarTab>("cards");
@@ -262,9 +330,18 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId, isO
   const [generation, setGeneration] = useState(game.settings?.generation ?? 1);
 
   // Player setup
-  const [availableCorporations, setAvailableCorporations] = useState<CardDto[]>([]);
-  const [availablePreludes, setAvailablePreludes] = useState<CardDto[]>([]);
-  const [availableCards, setAvailableCards] = useState<CardDto[]>([]);
+  const availableCorporations = useMemo(
+    () => catalog.filter((card) => card.type === "corporation"),
+    [catalog],
+  );
+  const availablePreludes = useMemo(
+    () => catalog.filter((card) => card.type === "prelude"),
+    [catalog],
+  );
+  const availableCards = useMemo(
+    () => catalog.filter((card) => card.type !== "corporation" && card.type !== "prelude"),
+    [catalog],
+  );
   const [selectedCorporationId, setSelectedCorporationId] = useState<string>(
     game.currentPlayer?.pendingDemoChoices?.corporationId || "",
   );
@@ -308,54 +385,16 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId, isO
   );
 
   // Milestones & Awards
-  const [allMilestones, setAllMilestones] = useState<MilestoneAwardItemDto[]>([]);
-  const [allAwards, setAllAwards] = useState<MilestoneAwardItemDto[]>([]);
   const [selectedMilestones, setSelectedMilestones] = useState<string[]>([]);
   const [selectedAwards, setSelectedAwards] = useState<string[]>([]);
 
   // Loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load corporations, cards, and milestones/awards on mount
   useEffect(() => {
-    if (isHost) {
-      apiService.listMilestonesAndAwards().then((data) => {
-        setAllMilestones(data.milestones);
-        setAllAwards(data.awards);
-        setSelectedMilestones(data.milestones.map((m) => m.id));
-        setSelectedAwards(data.awards.map((a) => a.id));
-      });
-    }
-  }, [isHost]);
-
-  useEffect(() => {
-    const loadCardsData = async () => {
-      try {
-        const response = await apiService.listCards(0, 1000);
-        const corps: CardDto[] = [];
-        const prels: CardDto[] = [];
-        const projectCards: CardDto[] = [];
-        for (const card of response.cards) {
-          if (card.type === "corporation") {
-            corps.push(card);
-          } else if (card.type === "prelude") {
-            prels.push(card);
-          } else {
-            projectCards.push(card);
-          }
-        }
-        setAvailableCorporations(corps);
-        setAvailablePreludes(prels);
-        setAvailableCards(projectCards);
-      } catch (err) {
-        console.error("Failed to load cards:", err);
-      }
-    };
-
-    if (isOpen) {
-      void loadCardsData();
-    }
-  }, [isOpen]);
+    setSelectedMilestones(allMilestones.map((item) => item.id));
+    setSelectedAwards(allAwards.map((item) => item.id));
+  }, [allMilestones, allAwards]);
 
   // When a corporation is selected, apply its starting resources and production
   useEffect(() => {
@@ -434,7 +473,7 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId, isO
 
     setIsSubmitting(true);
     try {
-      await globalWebSocketManager.selectDemoChoices({
+      await onSubmit({
         corporationId: selectedCorporationId,
         preludeIds: selectedPreludeIds,
         cardIds: selectedCardIds,
@@ -886,6 +925,6 @@ const DemoSetupOverlay: React.FC<DemoSetupOverlayProps> = ({ game, playerId, isO
       </div>
     </div>
   );
-};
+}
 
 export default DemoSetupOverlay;
