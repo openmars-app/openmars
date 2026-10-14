@@ -152,6 +152,7 @@ var outputFieldProfiles = map[ResourceType]FieldProfile{
 	ResourceCardResource: cardStorageOutputProfile,
 
 	// Card operations
+	ResourceCardPlay:    {AllowTarget: true, AllowSelectors: true},
 	ResourceCardDraw:    {AllowTarget: true, AllowSelectors: true, AllowPer: true},
 	ResourceCardReveal:  {AllowTarget: true},
 	ResourceCardTake:    {AllowTarget: true, AllowSelectors: true, AllowOptional: true, AllowVariableAmount: true},
@@ -283,7 +284,7 @@ var AllResourceTypes = []ResourceType{
 	ResourceCopy,
 	ResourceCredit, ResourceSteel, ResourceTitanium, ResourcePlant, ResourceEnergy, ResourceHeat,
 	ResourceMicrobe, ResourceAnimal, ResourceFloater, ResourceScience, ResourceAsteroid, ResourceFighter, ResourceDisease, ResourceCamp,
-	ResourceCardReveal, ResourceCardDraw, ResourceCardTake, ResourceCardPeek, ResourceCardBuy, ResourceCardDiscard,
+	ResourceCardPlay, ResourceCardReveal, ResourceCardDraw, ResourceCardTake, ResourceCardPeek, ResourceCardBuy, ResourceCardDiscard,
 	ResourceCityPlacement, ResourceOceanPlacement, ResourceGreeneryPlacement, ResourceVolcanoPlacement, ResourceTilePlacement,
 	ResourceCityTile, ResourceOceanTile, ResourceGreeneryTile, ResourceVolcanoTile,
 	ResourceColonyTileAdd, ResourceColony, ResourceColonyCount, ResourceColonyBonus,
@@ -374,6 +375,13 @@ func ValidateResourceCondition(bc BehaviorCondition, isInput bool) []string {
 		return []string{fmt.Sprintf("resource type %q is not valid as %s", rc.ResourceType, direction)}
 	}
 
+	if rc.ResourceType == ResourceCardPlay {
+		if rc.Amount != 1 || rc.Target != "self-player" || rc.CostReduction < 0 {
+			violations = append(violations, "card-play requires amount 1, self-player target and nonnegative costReduction")
+		}
+	} else if rc.CostReduction != 0 {
+		violations = append(violations, "costReduction is only valid for card-play")
+	}
 	if rc.ResourceType == ResourceCardReveal {
 		if rc.Amount <= 0 || rc.Target != "self-player" || rc.Destination != "discard" {
 			violations = append(violations, "card-reveal requires positive amount, self-player target and discard destination")

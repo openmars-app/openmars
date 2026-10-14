@@ -318,6 +318,23 @@ func (c Catalog) validateState(s *datastore.GameState) error {
 		if p.PlayerType != "human" && p.PlayerType != "bot" {
 			return fmt.Errorf("players.%s.playerType: invalid", id)
 		}
+		if pending := p.PendingCardPlaySelection; pending != nil {
+			source, err := c.rawCard(pending.SourceCardID)
+			if err != nil || pending.CostReduction < 0 || !slices.Contains(p.PlayedCardIDs, pending.SourceCardID) {
+				return fmt.Errorf("players.%s.pendingCardPlaySelection: invalid source", id)
+			}
+			valid := false
+			for _, b := range source.Behaviors {
+				for _, output := range b.Outputs {
+					if op, ok := output.(*shared.CardOperationCondition); ok && op.ResourceType == shared.ResourceCardPlay && op.CostReduction == pending.CostReduction && reflect.DeepEqual(op.Selectors, pending.Selectors) {
+						valid = true
+					}
+				}
+			}
+			if !valid {
+				return fmt.Errorf("players.%s.pendingCardPlaySelection: invalid operation", id)
+			}
+		}
 		if pending := p.PendingCardDrawSelection; pending != nil {
 			if err := register(pending.AvailableCards, "pending draw "+id); err != nil {
 				return err

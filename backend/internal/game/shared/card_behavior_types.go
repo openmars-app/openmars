@@ -104,6 +104,7 @@ const (
 // It is only used internally for JSON unmarshaling, then converted to typed conditions
 // via categorizeCondition. All runtime code uses BehaviorCondition and typed category structs.
 type resourceConditionJSON struct {
+	CostReduction              int                  `json:"costReduction,omitempty"`
 	Description                string               `json:"description,omitempty"`
 	MinimumProduction          *ProductionThreshold `json:"minimumProduction,omitempty"`
 	DependencyGroup            *DependencyGroup     `json:"dependencyGroup,omitempty"`

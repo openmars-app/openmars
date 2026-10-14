@@ -2,7 +2,9 @@ package card_packs_test
 
 import (
 	"context"
+	"fmt"
 	"openmars/internal/action/admin"
+	"openmars/internal/action/turn_management"
 	gamecards "openmars/internal/game/cards"
 	"slices"
 	"testing"
@@ -373,33 +375,71 @@ func TestPrelude_EcologyExperts_PlayCardIgnoringRequirements(t *testing.T) {
 // =============================================================================
 // P11: Excentric Sponsor (prelude, cost 0, no tags)
 // "Play a card from hand, reducing its cost by 25 M€"
-// Behavior: auto trigger, outputs: credit +25
-// (Implemented as gaining 25 credits)
-// =============================================================================
-func TestPrelude_ExcentricSponsor_GainsCredits(t *testing.T) {
-	testGame, repo := testutil.CreateTestGameWithPlayers(t, 1)
-	logger := testutil.TestLogger()
+// The benefit is tied to a single immediate project play, not spendable credits.
+func TestPrelude_ExcentricSponsor_DiscountedPlay(t *testing.T) {
+	for _, cost := range []int{10, 25, 40} {
+		t.Run(fmt.Sprint(cost), func(t *testing.T) {
+			g, repo := testutil.CreateTestGameWithPlayers(t, 1)
+			ctx := context.Background()
+			p := g.GetAllPlayers()[0]
+			project := gamecards.Card{ID: "sponsored-project", Name: "Sponsored project", Type: gamecards.CardTypeAutomated, GameModes: []string{"classic"}, Cost: cost}
+			registry := testutil.CreateTestCardRegistryWithAdditionalCards([]gamecards.Card{project})
+			testutil.AssertNoError(t, g.UpdateStatus(ctx, shared.GameStatusActive), "active")
+			testutil.AssertNoError(t, g.UpdatePhase(ctx, shared.GamePhaseInitApplyPrelude), "phase")
+			testutil.AssertNoError(t, g.SetCurrentTurn(ctx, p.ID(), 2), "turn")
+			p.Resources().Add(map[shared.ResourceType]int{shared.ResourceCredit: 100})
+			testutil.AssertNoError(t, g.SetTurnOrder(ctx, []string{p.ID()}), "turn order")
+			p.Hand().AddCard(project.ID)
+			testutil.AssertNoError(t, turn_management.ApplyPreludeCard(ctx, g, p, testutil.CardID("Excentric Sponsor"), registry, nil, testutil.TestLogger()), "apply sponsor")
+			testutil.AssertEqual(t, 100, p.Resources().Get().Credits, "no cash grant")
+			testutil.AssertTrue(t, p.Selection().GetPendingCardPlaySelection() != nil, "pending play")
+			play := cardAction.NewPlayCardAction(repo, registry, nil, testutil.TestLogger())
+			payable := max(0, cost-25)
+			if payable > 0 {
+				err := play.Execute(ctx, g.ID(), p.ID(), project.ID, shared.NativePayment(shared.ResourceCredit, payable-1), nil, nil, nil, nil, nil)
+				testutil.AssertTrue(t, err != nil, "underpayment rejected")
+				testutil.AssertEqual(t, 100, p.Resources().Get().Credits, "failed payment spends nothing")
+				testutil.AssertTrue(t, p.Selection().GetPendingCardPlaySelection() != nil && p.Hand().HasCard(project.ID), "failed payment preserves selection and hand")
+			}
+			payment := shared.NativePayment(shared.ResourceCredit, payable)
+			testutil.AssertNoError(t, play.Execute(ctx, g.ID(), p.ID(), project.ID, payment, nil, nil, nil, nil, nil), "discounted play")
+			testutil.AssertEqual(t, 100-payable, p.Resources().Get().Credits, "discount clamps without remainder")
+			testutil.AssertTrue(t, p.Selection().GetPendingCardPlaySelection() == nil, "selection consumed")
+			testutil.AssertEqual(t, 2, g.CurrentTurn().ActionsRemaining(), "forced play does not consume action")
+			testutil.AssertTrue(t, play.Execute(ctx, g.ID(), p.ID(), project.ID, payment, nil, nil, nil, nil, nil) != nil, "duplicate rejected")
+		})
+	}
+}
+
+func TestPrelude_ExcentricSponsor_ProjectRetainsTileContinuation(t *testing.T) {
+	g, repo := testutil.CreateTestGameWithPlayers(t, 1)
 	ctx := context.Background()
-	card := testutil.GetCardByName("Excentric Sponsor")
-	cardRegistry := testutil.CreateTestCardRegistry()
-	players := testGame.GetAllPlayers()
-	p := players[0]
-	p.SetCorporationID(testutil.CardID("Tharsis Republic"))
-	testutil.AssertNoError(t, testGame.UpdateStatus(ctx, shared.GameStatusActive), "UpdateStatus failed")
-	testutil.AssertNoError(t, testGame.UpdatePhase(ctx, shared.GamePhaseAction), "UpdatePhase failed")
-	testutil.AssertNoError(t, testGame.SetCurrentTurn(ctx, p.ID(), 2), "SetCurrentTurn failed")
-	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredit: 100,
-	})
-	p.Hand().AddCard(card.ID)
-	creditsBefore := p.Resources().Get().Credits
-	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, nil, logger)
-	payment := shared.Payment{Allocations: []shared.PaymentAllocation{}}
-	err := playCardAction.Execute(ctx, testGame.ID(), p.ID(), card.ID, payment, nil, nil, nil, nil, nil)
-	testutil.AssertNoError(t, err, "Excentric Sponsor should play successfully")
-	testutil.AssertTrue(t, p.PlayedCards().Contains(card.ID), "Excentric Sponsor should be in played cards")
-	creditsAfter := p.Resources().Get().Credits
-	testutil.AssertEqual(t, creditsBefore+25, creditsAfter, "Credits should increase by 25")
+	p := g.GetAllPlayers()[0]
+	registry := testutil.CreateTestCardRegistry()
+	testutil.AssertNoError(t, g.UpdateStatus(ctx, shared.GameStatusActive), "active")
+	testutil.AssertNoError(t, g.UpdatePhase(ctx, shared.GamePhaseInitApplyPrelude), "phase")
+	testutil.AssertNoError(t, g.SetTurnOrder(ctx, []string{p.ID()}), "turn order")
+	testutil.AssertNoError(t, g.SetCurrentTurn(ctx, p.ID(), 2), "turn")
+	id := testutil.CardID("Ganymede Colony")
+	p.Hand().AddCard(id)
+	testutil.AssertNoError(t, turn_management.ApplyPreludeCard(ctx, g, p, testutil.CardID("Excentric Sponsor"), registry, nil, testutil.TestLogger()), "apply sponsor")
+	play := cardAction.NewPlayCardAction(repo, registry, nil, testutil.TestLogger())
+	testutil.AssertNoError(t, play.Execute(ctx, g.ID(), p.ID(), id, shared.Payment{}, nil, nil, nil, nil, nil), "play sponsored city")
+	testutil.AssertTrue(t, p.Selection().GetPendingCardPlaySelection() == nil, "sponsor play complete")
+	testutil.AssertTrue(t, g.GetPendingTileSelection(p.ID()) != nil, "normal city placement remains pending")
+	testutil.AssertEqual(t, shared.GamePhaseInitApplyPrelude, g.CurrentPhase(), "init waits for tile placement")
+	testutil.AssertEqual(t, 2, g.CurrentTurn().ActionsRemaining(), "no turn action consumed")
+}
+
+func TestPrelude_ExcentricSponsor_NoLegalProjectRefund(t *testing.T) {
+	g, _ := testutil.CreateTestGameWithPlayers(t, 1)
+	p := g.GetAllPlayers()[0]
+	before := p.Resources().Get().Credits
+	id := testutil.CardID("Excentric Sponsor")
+	testutil.AssertNoError(t, turn_management.ApplyPreludeCard(context.Background(), g, p, id, testutil.CreateTestCardRegistry(), nil, testutil.TestLogger()), "apply unplayable prelude")
+	testutil.AssertEqual(t, before+15, p.Resources().Get().Credits, "unplayable prelude refund")
+	testutil.AssertTrue(t, !p.PlayedCards().Contains(id), "unplayable prelude is not played")
+	testutil.AssertTrue(t, p.Selection().GetPendingCardPlaySelection() == nil, "no impossible prompt")
 }
 
 // =============================================================================

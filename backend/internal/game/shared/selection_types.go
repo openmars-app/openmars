@@ -71,6 +71,14 @@ type CardActionRef struct {
 	BehaviorIndex int
 }
 
+// PendingCardPlaySelection requires playing a project from hand before continuing.
+type PendingCardPlaySelection struct {
+	Source        string
+	SourceCardID  string
+	CostReduction int
+	Selectors     []Selector
+}
+
 // PendingCardDrawSelection represents a pending card draw/peek/take/buy action
 type PendingCardDrawSelection struct {
 	AvailableCards      []string

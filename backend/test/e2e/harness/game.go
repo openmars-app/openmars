@@ -55,8 +55,18 @@ func (s *Server) Play(t testing.TB, edit func(*dto.GameSetupDto), names ...strin
 		}
 		if preludes := state.CurrentPlayer.SelectPreludeCardsPhase; preludes != nil {
 			ids := make([]string, 0, preludes.MaxSelectable)
-			for _, p := range preludes.AvailablePreludes[:preludes.MaxSelectable] {
-				ids = append(ids, p.ID)
+			for _, p := range preludes.AvailablePreludes {
+				forcedHandPlay := false
+				for _, behavior := range p.Behaviors {
+					for _, output := range behavior.Outputs {
+						if op, ok := output.(map[string]any); ok && op["type"] == "card-play" {
+							forcedHandPlay = true
+						}
+					}
+				}
+				if !forcedHandPlay && len(ids) < preludes.MaxSelectable {
+					ids = append(ids, p.ID)
+				}
 			}
 			choice["preludeIds"] = ids
 		}

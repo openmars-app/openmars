@@ -2,6 +2,7 @@ package behavior_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -279,6 +280,10 @@ func TestConfirmCardDiscard_DiscardAndDraw(t *testing.T) {
 	// Verify pending selection was cleared
 	testutil.AssertTrue(t, len(owner.Selection().GetPendingBehaviorResolutions()) == 0,
 		"Pending discard selection should be cleared after confirmation")
+	receipts := owner.Selection().CardReceipts()
+	testutil.AssertEqual(t, 1, len(receipts), "Discard reward creates one receipt")
+	testutil.AssertEqual(t, "Mars University", receipts[0].Source, "Discard receipt preserves source")
+	testutil.AssertEqual(t, 1, len(receipts[0].Cards), "One replacement card shown")
 }
 
 func TestConfirmCardDiscard_SkipOptionalDiscard(t *testing.T) {
@@ -581,6 +586,12 @@ func TestCardOperation_DrawWithSelectors(t *testing.T) {
 
 	handAfter := p.Hand().CardCount()
 	testutil.AssertEqual(t, handBefore+1, handAfter, "Player should have drawn 1 card")
+	receipts := p.Selection().CardReceipts()
+	testutil.AssertEqual(t, 1, len(receipts), "Draw-until creates one receipt")
+	testutil.AssertEqual(t, 1, len(receipts[0].Cards), "Only the matched card is received")
+	matched, err := cardRegistry.GetByID(receipts[0].Cards[0])
+	testutil.AssertNoError(t, err, "Matched card")
+	testutil.AssertTrue(t, gamecards.MatchesAnySelector(matched, output.Selectors), "Receipt excludes rejected search cards")
 }
 
 func TestCardOperation_VariableAmountDiscard(t *testing.T) {
@@ -709,4 +720,24 @@ func TestPreludeDrawConfirmationPreservesNestedCardSelection(t *testing.T) {
 	testutil.AssertNoError(t, confirm.Execute(ctx, g.ID(), id, []string{pending.AvailableCards[0]}, nil, shared.Payment{}), "take nested card")
 	testutil.AssertTrue(t, g.GetForcedFirstAction(id) == nil, "first action resolved")
 	testutil.AssertEqual(t, 1, g.CurrentTurn().ActionsRemaining(), "consume exactly once")
+}
+
+func TestCardPlayCondition_RoundTripAndValidation(t *testing.T) {
+	original := &shared.CardOperationCondition{
+		ConditionBase: shared.ConditionBase{ResourceType: shared.ResourceCardPlay, Amount: 1, Target: "self-player"},
+		CostReduction: 25, Selectors: []shared.Selector{{Tags: []shared.CardTag{shared.TagScience}}},
+	}
+	data, err := json.Marshal(original)
+	testutil.AssertNoError(t, err, "marshal")
+	var behavior shared.CardBehavior
+	testutil.AssertNoError(t, json.Unmarshal([]byte(`{"outputs":[`+string(data)+`]}`), &behavior), "unmarshal categorized output")
+	got, ok := behavior.Outputs[0].(*shared.CardOperationCondition)
+	testutil.AssertTrue(t, ok, "card operation category")
+	testutil.AssertEqual(t, 25, got.CostReduction, "discount survives round trip")
+	testutil.AssertEqual(t, 0, len(shared.ValidateResourceCondition(got, false)), "valid output")
+	got.CostReduction = -1
+	testutil.AssertTrue(t, len(shared.ValidateResourceCondition(got, false)) > 0, "negative discount rejected")
+	got.CostReduction = 25
+	got.Amount = 2
+	testutil.AssertTrue(t, len(shared.ValidateResourceCondition(got, false)) > 0, "single play contract")
 }

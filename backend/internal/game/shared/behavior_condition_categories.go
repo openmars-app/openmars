@@ -107,6 +107,7 @@ func (c *GlobalParameterCondition) deepCopyCondition() BehaviorCondition {
 
 // CardOperationCondition covers card-draw, card-take, card-peek, card-buy, card-discard.
 type CardOperationCondition struct {
+	CostReduction int `json:"costReduction,omitempty"`
 	ConditionBase
 	Per            *PerCondition  `json:"per,omitempty"`
 	Selectors      []Selector     `json:"selectors,omitempty"`
@@ -272,7 +273,7 @@ func classifyResourceType(rt ResourceType) string {
 		return "tile-placement"
 	case ResourceTemperature, ResourceOxygen, ResourceOcean, ResourceVenus, ResourceTR, ResourceGlobalParameter:
 		return "global-parameter"
-	case ResourceCardDraw, ResourceCardTake, ResourceCardPeek, ResourceCardBuy, ResourceCardDiscard:
+	case ResourceCardPlay, ResourceCardDraw, ResourceCardTake, ResourceCardPeek, ResourceCardBuy, ResourceCardDiscard:
 		return "card-operation"
 	case ResourceMicrobe, ResourceAnimal, ResourceFloater, ResourceScience, ResourceAsteroid,
 		ResourceFighter, ResourceDisease, ResourceCamp, ResourceCardResource:
@@ -346,6 +347,7 @@ func categorizeCondition(rc resourceConditionJSON) BehaviorCondition {
 		}
 	case "card-operation":
 		return &CardOperationCondition{
+			CostReduction:  rc.CostReduction,
 			Per:            rc.Per,
 			ConditionBase:  base,
 			Selectors:      rc.Selectors,
@@ -439,6 +441,7 @@ func flattenCondition(bc BehaviorCondition) resourceConditionJSON {
 		}
 	case *CardOperationCondition:
 		return resourceConditionJSON{
+			CostReduction:  c.CostReduction,
 			Per:            c.Per,
 			ResourceType:   c.ResourceType,
 			Amount:         c.Amount,

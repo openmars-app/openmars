@@ -41,7 +41,7 @@ func QuoteActionPayment(g *game.Game, p *player.Player, registry cards.CardRegis
 		if err != nil {
 			return shared.PaymentQuote{}, err
 		}
-		credit(max(0, card.Cost-calc.CalculateCardDiscounts(p, card)))
+		credit(max(0, card.Cost-calc.CalculateCardDiscounts(p, card)-CardPlayCostReduction(p, card)))
 		context.Card = card
 		context.Action = shared.ActionCardPlaying
 		var inputs []shared.BehaviorCondition

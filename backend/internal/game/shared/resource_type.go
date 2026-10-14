@@ -21,6 +21,7 @@ const (
 	ResourceCamp     ResourceType = "camp"
 
 	ResourceCardReveal  ResourceType = "card-reveal"
+	ResourceCardPlay    ResourceType = "card-play"
 	ResourceCardDraw    ResourceType = "card-draw"
 	ResourceCardTake    ResourceType = "card-take"
 	ResourceCardPeek    ResourceType = "card-peek"
