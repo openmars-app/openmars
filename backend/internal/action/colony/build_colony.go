@@ -128,7 +128,7 @@ func (a *BuildColonyAction) Execute(ctx context.Context, gameID string, playerID
 		slot := definition.Colonies[slotIndex]
 		for _, reward := range slot.Reward {
 			if reward.Amount > 0 {
-				pending := applyOutput(ctx, g, player, reward.Type, reward.Amount, cards.ForGame(a.cardRegistry, g), log)
+				pending := applyOutput(ctx, g, player, reward.Type, reward.Amount, "Build Colony: "+definition.Name, cards.ForGame(a.cardRegistry, g), log)
 				if pending != nil {
 					setPendingColonyResource(player, pending, definition.Name, colonyID, "build", cards.ForGame(a.cardRegistry, g), log)
 				}
@@ -193,7 +193,7 @@ func PlaceColonyOnTile(
 		slot := definition.Colonies[slotIndex]
 		for _, reward := range slot.Reward {
 			if reward.Amount > 0 {
-				pending := applyOutput(ctx, g, player, reward.Type, reward.Amount, cardRegistry, log)
+				pending := applyOutput(ctx, g, player, reward.Type, reward.Amount, source+": "+definition.Name, cardRegistry, log)
 				if pending != nil {
 					setPendingColonyResource(player, pending, definition.Name, tileState.DefinitionID, "build", cardRegistry, log)
 				}

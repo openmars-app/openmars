@@ -159,7 +159,7 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 		step := definition.Steps[tileState.MarkerPosition]
 		for _, output := range step.Outputs {
 			if output.Amount > 0 {
-				pending := applyOutput(ctx, g, traderPlayer, output.Type, output.Amount, cards.ForGame(a.cardRegistry, g), log)
+				pending := applyOutput(ctx, g, traderPlayer, output.Type, output.Amount, "Trade: "+definition.Name, cards.ForGame(a.cardRegistry, g), log)
 				if pending != nil {
 					pendingByPlayer[playerID] = append(pendingByPlayer[playerID], pending)
 				}
@@ -179,7 +179,7 @@ func (a *TradeAction) Execute(ctx context.Context, gameID string, playerID strin
 		}
 		for _, bonus := range definition.ColonyBonus {
 			if bonus.Amount > 0 {
-				pending := applyOutput(ctx, g, colonyOwner, bonus.Type, bonus.Amount, cards.ForGame(a.cardRegistry, g), log)
+				pending := applyOutput(ctx, g, colonyOwner, bonus.Type, bonus.Amount, "Colony bonus: "+definition.Name, cards.ForGame(a.cardRegistry, g), log)
 				if pending != nil {
 					pendingByPlayer[colonyOwnerID] = append(pendingByPlayer[colonyOwnerID], pending)
 				}

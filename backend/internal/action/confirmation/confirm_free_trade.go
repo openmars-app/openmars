@@ -53,6 +53,10 @@ func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, pla
 		return err
 	}
 
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
+		return err
+	}
+
 	pendingSelection := p.Selection().GetPendingFreeTradeSelection()
 	if pendingSelection == nil {
 		return fmt.Errorf("no pending free trade selection")
@@ -95,7 +99,7 @@ func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, pla
 		step := definition.Steps[tileState.MarkerPosition]
 		for _, output := range step.Outputs {
 			if output.Amount > 0 {
-				pending := colonyaction.ApplyTradeOutput(ctx, g, p, output.Type, output.Amount, a.CardRegistryForGame(g), log)
+				pending := colonyaction.ApplyTradeOutput(ctx, g, p, output.Type, output.Amount, "Free Trade: "+definition.Name, a.CardRegistryForGame(g), log)
 				if pending != nil {
 					pendingResources = append(pendingResources, pending)
 				}
@@ -117,7 +121,7 @@ func (a *ConfirmFreeTradeAction) Execute(ctx context.Context, gameID string, pla
 		var ownerPendings []*colonyaction.PendingResource
 		for _, bonus := range definition.ColonyBonus {
 			if bonus.Amount > 0 {
-				pending := colonyaction.ApplyTradeOutput(ctx, g, colonyOwner, bonus.Type, bonus.Amount, a.CardRegistryForGame(g), log)
+				pending := colonyaction.ApplyTradeOutput(ctx, g, colonyOwner, bonus.Type, bonus.Amount, "Colony bonus: "+definition.Name, a.CardRegistryForGame(g), log)
 				if pending != nil {
 					ownerPendings = append(ownerPendings, pending)
 				}

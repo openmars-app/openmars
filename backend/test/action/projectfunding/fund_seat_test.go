@@ -308,6 +308,10 @@ func TestFundSeat_Completion_AllPlayersGetCompletionEffect(t *testing.T) {
 	// Player2 should receive the card-draw completion effect even though they have no seats
 	p2HandAfter := len(p2.Hand().Cards())
 	testutil.AssertTrue(t, p2HandAfter > p2HandBefore, "Player2 should receive cards from completion effect even without seats")
+	testutil.AssertEqual(t, 1, len(p1.Selection().CardReceipts()), "Contributor gets one completion receipt")
+	testutil.AssertEqual(t, 1, len(p2.Selection().CardReceipts()), "Other player gets their private completion receipt")
+	testutil.AssertEqual(t, def.Name, p2.Selection().CardReceipts()[0].Source, "Completion receipt names the project")
+	testutil.AssertEqual(t, p2HandAfter-p2HandBefore, len(p2.Selection().CardReceipts()[0].Cards), "Receipt matches the complete grant")
 }
 
 func TestFundSeat_NotCompleted_WhenSeatsRemain(t *testing.T) {

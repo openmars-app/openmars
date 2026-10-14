@@ -81,6 +81,7 @@ func TestCardReveal_GenericBatchAndMatchingOnce(t *testing.T) {
 	testutil.AssertEqual(t, 2, p.Resources().GetCardStorage(source), "retain source card context")
 	testutil.AssertEqual(t, 0, p.Resources().GetCardStorage(testutil.CardID("Research")), "do not store reward on revealed card")
 	testutil.AssertEqual(t, hand, p.Hand().CardCount(), "do not draw revealed cards to hand")
+	testutil.AssertEqual(t, 0, len(p.Selection().CardReceipts()), "temporary revealed cards are not acquisitions")
 	if !reflect.DeepEqual(expectedOrder, g.Deck().DiscardPile()) {
 		t.Fatal("reveal discarded out of deck order")
 	}

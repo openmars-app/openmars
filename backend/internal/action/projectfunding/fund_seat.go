@@ -309,9 +309,7 @@ func (a *FundSeatAction) applyGlobalEffects(ctx context.Context, g *game.Game, d
 					log.Error("Failed to draw cards for project completion", slog.Any("error", err))
 					break
 				}
-				for _, cardID := range cardIDs {
-					p.Hand().AddCard(cardID)
-				}
+				p.Hand().ReceiveCards(cardIDs, def.Name, "")
 				log.Debug("Cards drawn for player",
 					slog.String("player_id", p.ID()),
 					slog.Int("count", len(cardIDs)))
