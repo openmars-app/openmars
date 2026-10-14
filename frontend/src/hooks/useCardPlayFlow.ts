@@ -94,7 +94,7 @@ export function useCardPlayFlow() {
 
       if (card && selectedAmount === undefined) {
         const autoTriggerBehaviors = card.behaviors?.filter(
-          (b) => !b.optional && b.triggers?.some((t) => t.type === "auto"),
+          (b) => !b.optional && b.triggers?.some((t) => t.type === "auto" && !t.condition),
         );
         for (const behavior of autoTriggerBehaviors || []) {
           const matchedChoice =
@@ -129,8 +129,10 @@ export function useCardPlayFlow() {
       if (card) {
         const requiredSources =
           card.behaviors
-            ?.filter((behavior) =>
-              behavior.triggers?.some((trigger) => trigger.type === "auto" && !trigger.condition),
+            ?.filter(
+              (behavior) =>
+                !behavior.optional &&
+                behavior.triggers?.some((trigger) => trigger.type === "auto" && !trigger.condition),
             )
             .flatMap((behavior) => {
               const choice = behavior.choices?.find((c) => c.originalIndex === choiceIndex);
@@ -161,7 +163,7 @@ export function useCardPlayFlow() {
           return;
         }
         const autoTriggerBehaviors = card.behaviors?.filter(
-          (b) => !b.optional && b.triggers?.some((t) => t.type === "auto"),
+          (b) => !b.optional && b.triggers?.some((t) => t.type === "auto" && !t.condition),
         );
         for (const behavior of autoTriggerBehaviors || []) {
           const matchedChoice2 =
@@ -368,7 +370,7 @@ export function useCardPlayFlow() {
           throw new Error("Cannot play cards while spectating");
         }
 
-        if (g?.currentTurn !== g?.viewingPlayerId) {
+        if (g?.currentTurn !== g?.viewingPlayerId && !cp?.pendingCardPlaySelection) {
           throw new Error("Not your turn");
         }
 
@@ -385,7 +387,8 @@ export function useCardPlayFlow() {
           (b) =>
             b.choices &&
             b.choices.length > 0 &&
-            b.triggers?.some((t) => t.type === "auto") &&
+            !b.optional &&
+            b.triggers?.some((t) => t.type === "auto" && !t.condition) &&
             b.choicePolicy?.type !== "auto",
         );
 
@@ -399,7 +402,7 @@ export function useCardPlayFlow() {
           store.setShowChoiceSelection(true);
         } else {
           const autoTriggerBehaviors = card.behaviors?.filter(
-            (b) => !b.optional && b.triggers?.some((t) => t.type === "auto"),
+            (b) => !b.optional && b.triggers?.some((t) => t.type === "auto" && !t.condition),
           );
 
           const allStorageNeeds: Array<{

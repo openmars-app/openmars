@@ -75,6 +75,7 @@ const globalParameterTypes: Set<string> = new Set([
   "global-parameter",
 ]);
 const cardOperationTypes: Set<string> = new Set([
+  "card-play",
   "card-draw",
   "card-take",
   "card-peek",
