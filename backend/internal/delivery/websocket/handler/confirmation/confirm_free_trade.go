@@ -51,6 +51,18 @@ func (h *ConfirmFreeTradeHandler) HandleMessage(ctx context.Context, connection 
 		connection.SendError(message.Type, "Invalid payload format")
 		return
 	}
+	if payload.Skip {
+		if payload.ColonyID != "" || payload.TrackSteps != nil {
+			connection.SendError(message.Type, "skip cannot include a selection")
+			return
+		}
+		if err := h.action.Continue(ctx, connection.GameID(), connection.PlayerID()); err != nil {
+			connection.SendError(message.Type, err.Error())
+			return
+		}
+		h.broadcaster.BroadcastGameState(connection.GameID(), nil)
+		return
+	}
 	colonyID := payload.ColonyID
 	if colonyID == "" {
 		connection.SendError(message.Type, "Missing colonyId in payload")
