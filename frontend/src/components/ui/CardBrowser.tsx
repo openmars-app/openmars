@@ -51,35 +51,19 @@ function toFilters(tags: readonly string[], types: readonly string[]): BrowserFi
   return { tags: new Set(tags), types: new Set(types) };
 }
 
-export default function CardBrowser({
-  onBack,
-  backLabel = "Back to Home",
-  view: controlledView,
-  onViewChange,
-  headerStart,
-}: CardBrowserProps) {
-  const { isCompact } = useLayoutMode();
+export default function CardBrowser(props: CardBrowserProps) {
   const [localView, setLocalView] = useState(EMPTY_VIEW);
-  const view = controlledView ?? localView;
-  const updateView = useCallback(
-    (patch: Partial<CardBrowserView>) => {
-      if (onViewChange) {
-        onViewChange(patch);
-      } else {
-        setLocalView((previous) => ({ ...previous, ...patch }));
-      }
-    },
-    [onViewChange],
-  );
-  const { entries, status, error } = useCardCatalog();
+  const view = props.view ?? localView;
+  const updateView = (patch: Partial<CardBrowserView>) => {
+    if (props.onViewChange) {
+      props.onViewChange(patch);
+    } else {
+      setLocalView((previous) => ({ ...previous, ...patch }));
+    }
+  };
+  const catalog = useCardCatalog();
   const [modes, setModes] = useState<GameModeDto[]>([]);
   const [modeError, setModeError] = useState("");
-  const filters = useMemo(() => toFilters(view.tags, view.types), [view.tags, view.types]);
-  const [selected, setSelected] = useState<Set<string>>(() => new Set());
-  const [visitedFamilies, setVisitedFamilies] = useState<ReadonlySet<CardFamily>>(() => new Set());
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const query = useDeferredValue(view.query);
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   useEffect(() => {
     void loadCardCatalog(view.gameModeId, view.preview);
   }, [view.gameModeId, view.preview]);
@@ -99,6 +83,57 @@ export default function CardBrowser({
       });
     return () => controller.abort();
   }, []);
+  return (
+    <CardBrowserContent
+      {...props}
+      view={view}
+      onViewChange={updateView}
+      catalog={catalog}
+      modes={modes}
+      modeError={modeError}
+      onRetry={() => {
+        void loadCardCatalog(view.gameModeId, view.preview);
+      }}
+    />
+  );
+}
+
+export function CardBrowserContent({
+  onBack,
+  backLabel = "Back to Home",
+  view: controlledView,
+  onViewChange,
+  headerStart,
+  catalog,
+  modes,
+  modeError = "",
+  onRetry,
+}: CardBrowserProps & {
+  catalog: ReturnType<typeof useCardCatalog.getState>;
+  modes: GameModeDto[];
+  modeError?: string;
+  onRetry: () => void;
+}) {
+  const { isCompact } = useLayoutMode();
+  const [localView, setLocalView] = useState(EMPTY_VIEW);
+  const view = controlledView ?? localView;
+  const updateView = useCallback(
+    (patch: Partial<CardBrowserView>) => {
+      if (onViewChange) {
+        onViewChange(patch);
+      } else {
+        setLocalView((previous) => ({ ...previous, ...patch }));
+      }
+    },
+    [onViewChange],
+  );
+  const { entries, status, error } = catalog;
+  const filters = useMemo(() => toFilters(view.tags, view.types), [view.tags, view.types]);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [visitedFamilies, setVisitedFamilies] = useState<ReadonlySet<CardFamily>>(() => new Set());
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const query = useDeferredValue(view.query);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   useEffect(() => {
     const breakpoint = window.matchMedia("(min-width: 1024px)");
     const closeOnDesktop = () => {
@@ -310,10 +345,7 @@ export default function CardBrowser({
           {status === "error" && (
             <div role="alert" className="space-y-4 p-8 text-left">
               <p>{error}</p>
-              <GameButton
-                emphasis="secondary"
-                onClick={() => void loadCardCatalog(view.gameModeId, view.preview)}
-              >
+              <GameButton emphasis="secondary" onClick={onRetry}>
                 Retry
               </GameButton>
             </div>

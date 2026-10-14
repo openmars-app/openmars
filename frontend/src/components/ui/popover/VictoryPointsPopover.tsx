@@ -8,7 +8,7 @@ interface VictoryPointsPopoverProps {
   onClose: () => void;
   vpGranters: VPGranterDto[];
   totalVP: number;
-  anchorRef: React.RefObject<HTMLElement>;
+  anchorRef: React.RefObject<HTMLElement | null>;
 }
 
 const VictoryPointsPopover: React.FC<VictoryPointsPopoverProps> = ({

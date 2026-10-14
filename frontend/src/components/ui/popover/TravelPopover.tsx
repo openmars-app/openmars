@@ -31,6 +31,24 @@ export default function TravelPopover({ isVisible, onClose, anchorRef }: TravelP
   const { activePlanet, setActivePlanet } = usePlanetFocus();
 
   return (
+    <TravelPopoverView
+      isVisible={isVisible}
+      onClose={onClose}
+      anchorRef={anchorRef}
+      activePlanet={activePlanet}
+      onTravel={setActivePlanet}
+    />
+  );
+}
+
+export function TravelPopoverView({
+  isVisible,
+  onClose,
+  anchorRef,
+  activePlanet,
+  onTravel,
+}: TravelPopoverProps & { activePlanet: PlanetTarget; onTravel: (planet: PlanetTarget) => void }) {
+  return (
     <GamePopover
       isVisible={isVisible}
       onClose={onClose}
@@ -57,7 +75,7 @@ export default function TravelPopover({ isVisible, onClose, anchorRef }: TravelP
               }
               onClick={() => {
                 if (!isCurrent) {
-                  setActivePlanet(dest.id);
+                  onTravel(dest.id);
                 }
                 onClose();
               }}

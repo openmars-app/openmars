@@ -84,7 +84,13 @@ function PlayedCardsRow({
   );
 }
 
-function PlayedTab({ cards, onCardTap }: { cards: CardDto[]; onCardTap: (card: CardDto) => void }) {
+export function PlayedCardsTab({
+  cards,
+  onCardTap,
+}: {
+  cards: CardDto[];
+  onCardTap: (card: CardDto) => void;
+}) {
   const [searchQuery, setSearchQuery] = useState("");
   const totalCost = cards.reduce((sum, card) => sum + card.cost, 0);
 
@@ -181,7 +187,7 @@ export default function MobileTableauScreen() {
       body = <TableauOverview player={shown} totalVP={totalVP} onCardTap={setDetailCard} />;
       break;
     case "played":
-      body = <PlayedTab cards={playedCards} onCardTap={setDetailCard} />;
+      body = <PlayedCardsTab cards={playedCards} onCardTap={setDetailCard} />;
       break;
     case "effects":
       body = <EffectsList effects={shown.effects ?? []} density="screen" />;

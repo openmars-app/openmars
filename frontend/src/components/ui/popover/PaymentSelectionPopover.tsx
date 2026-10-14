@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type {
+  CardDto,
   PaymentDto,
   PaymentOptionDto,
   PaymentQuoteDto,
@@ -52,6 +53,10 @@ export default function PaymentSelectionPopover() {
   return (
     <PaymentPicker
       quote={quote}
+      sourceCards={[
+        ...(player?.playedCards ?? []),
+        ...(player?.corporation ? [player.corporation] : []),
+      ]}
       loading={loading}
       error={error}
       onConfirm={pending.resolve}
@@ -62,18 +67,19 @@ export default function PaymentSelectionPopover() {
 
 export function PaymentPicker({
   quote,
+  sourceCards = [],
   loading = false,
   error = "",
   onConfirm,
   onCancel,
 }: {
   quote: PaymentQuoteDto;
+  sourceCards?: CardDto[];
   loading?: boolean;
   error?: string;
   onConfirm: (payment: PaymentDto) => void;
   onCancel: () => void;
 }) {
-  const player = useGameStore((s) => s.currentPlayer);
   const [counts, setCounts] = useState<Record<string, number>>({});
   useEffect(() => {
     setCounts((previous) => {
@@ -110,11 +116,7 @@ export function PaymentPicker({
     );
   }
   for (const [rt, cost] of Object.entries(quote.costs)) if ((totals[rt] ?? 0) < cost) valid = false;
-  const names = new Map(
-    [...(player?.playedCards ?? []), ...(player?.corporation ? [player.corporation] : [])].map(
-      (c) => [c.id, c.name],
-    ),
-  );
+  const names = new Map(sourceCards.map((card) => [card.id, card.name]));
   return (
     <GameFlowPopover
       isVisible

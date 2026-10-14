@@ -4,6 +4,7 @@ import { GamePopover } from "../GamePopover";
 import ProjectFundingList, {
   ProjectSeatPaymentPicker,
   useProjectSeatPurchase,
+  type ProjectSeatPurchase,
 } from "./content/ProjectFundingList.tsx";
 
 interface ProjectFundingPopoverProps {
@@ -21,6 +22,20 @@ const ProjectFundingPopover: React.FC<ProjectFundingPopoverProps> = ({
 }) => {
   const purchase = useProjectSeatPurchase(gameState);
 
+  return (
+    <ProjectFundingPopoverView
+      isVisible={isVisible}
+      onClose={onClose}
+      gameState={gameState}
+      anchorRef={anchorRef}
+      purchase={purchase}
+    />
+  );
+};
+
+export const ProjectFundingPopoverView: React.FC<
+  ProjectFundingPopoverProps & { purchase: ProjectSeatPurchase }
+> = ({ isVisible, onClose, gameState, anchorRef, purchase }) => {
   return (
     <>
       <GamePopover

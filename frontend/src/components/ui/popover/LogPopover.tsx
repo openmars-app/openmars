@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { GameDto } from "@/types/generated/api-types.ts";
+import { GameDto, StateDiffDto } from "@/types/generated/api-types.ts";
 import { useGameLogs } from "@/hooks/useGameLogs.ts";
 import { GamePopover } from "../GamePopover";
 import GameLogList from "./content/GameLogList.tsx";
@@ -7,7 +7,7 @@ import GameLogList from "./content/GameLogList.tsx";
 interface LogPopoverProps {
   isVisible: boolean;
   onClose: () => void;
-  anchorRef: React.RefObject<HTMLElement>;
+  anchorRef: React.RefObject<HTMLElement | null>;
   gameId: string;
   gameState?: GameDto;
 }
@@ -20,6 +20,20 @@ const LogPopover: React.FC<LogPopoverProps> = ({
   gameState,
 }) => {
   const logs = useGameLogs(gameId);
+  return (
+    <LogPopoverView
+      isVisible={isVisible}
+      onClose={onClose}
+      anchorRef={anchorRef}
+      gameState={gameState}
+      logs={logs}
+    />
+  );
+};
+
+export const LogPopoverView: React.FC<
+  Omit<LogPopoverProps, "gameId"> & { logs: StateDiffDto[] }
+> = ({ isVisible, onClose, anchorRef, gameState, logs }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   return (

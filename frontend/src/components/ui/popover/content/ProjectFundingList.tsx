@@ -34,6 +34,20 @@ export function useProjectSeatPurchase(
   gameState: GameDto | undefined,
   onFlowStart?: () => void,
 ): ProjectSeatPurchase {
+  return useProjectSeatPurchaseState(
+    gameState,
+    (id, credits, steel, titanium) => {
+      void webSocketService.buyProjectSeat(id, credits, steel, titanium);
+    },
+    onFlowStart,
+  );
+}
+
+export function useProjectSeatPurchaseState(
+  gameState: GameDto | undefined,
+  onPurchase: (id: string, credits: number, steel: number, titanium: number) => void,
+  onFlowStart?: () => void,
+): ProjectSeatPurchase {
   const [pendingProject, setPendingProject] = useState<ProjectFundingDto | null>(null);
   const resources = gameState?.currentPlayer?.resources;
 
@@ -64,7 +78,7 @@ export function useProjectSeatPurchase(
     }
     setPendingProject(null);
     onFlowStart?.();
-    void webSocketService.buyProjectSeat(
+    onPurchase(
       pendingProject.id,
       allocatedAmount(payment, "credit"),
       allocatedAmount(payment, "steel"),
@@ -78,7 +92,7 @@ export function useProjectSeatPurchase(
       return;
     }
     onFlowStart?.();
-    void webSocketService.buyProjectSeat(project.id, project.nextSeatCost, 0, 0);
+    onPurchase(project.id, project.nextSeatCost, 0, 0);
   };
 
   return { buySeat, quote, confirm, cancel: () => setPendingProject(null) };
@@ -150,9 +164,6 @@ function ProjectCard({ project, canAct, onBuySeat, isScreen }: ProjectCardProps)
 
   const labelText = isScreen ? "text-[11px]" : "text-[10px]";
   const bodyText = isScreen ? "text-[13px]" : "text-xs";
-  const buttonState = canBuy
-    ? "bg-white/15 hover:bg-white/25 text-white"
-    : "bg-gray-600/30 text-gray-500";
 
   return (
     <GamePopoverItem
@@ -179,8 +190,10 @@ function ProjectCard({ project, canAct, onBuySeat, isScreen }: ProjectCardProps)
 
         {canAct && !project.isCompleted && (
           <GameButton
-            emphasis="quiet"
-            className={`${isScreen ? "!min-h-11 min-w-[96px] px-4 text-[13px]" : "px-3 py-1 text-xs"} rounded-none font-semibold font-orbitron transition-all cursor-pointer ${buttonState}`}
+            emphasis="primary"
+            shape="cut"
+            size="sm"
+            className={`${isScreen ? "!min-h-11 min-w-[96px] px-4 text-[13px]" : "px-3 py-1 text-xs"} rounded-none font-semibold font-orbitron transition-all cursor-pointer `}
             onClick={(e) => {
               e.stopPropagation();
               if (canBuy) {

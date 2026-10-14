@@ -6,7 +6,7 @@ interface TagsPopoverProps {
   isVisible: boolean;
   onClose: () => void;
   tagCounts: TagCount[];
-  anchorRef: React.RefObject<HTMLElement>;
+  anchorRef: React.RefObject<HTMLElement | null>;
 }
 
 const TagsPopover: React.FC<TagsPopoverProps> = ({ isVisible, onClose, tagCounts, anchorRef }) => {
