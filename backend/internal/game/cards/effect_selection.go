@@ -54,6 +54,9 @@ func EffectSelectionOptions(outputs []shared.BehaviorCondition, p *player.Player
 		}
 		step := steps[len(ids)]
 		for _, state := range g.Colonies().States() {
+			if state.AwaitingResource != "" {
+				continue
+			}
 			duplicate := false
 			for j, id := range ids {
 				if id == state.DefinitionID && step.SelectionGroup != "" && steps[j].SelectionGroup == step.SelectionGroup {
