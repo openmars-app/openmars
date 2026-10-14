@@ -3392,8 +3392,398 @@
       }
     },
     {
+      "id": "icons/awards/banker",
+      "source": "icons/awards/banker.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/benefactor",
+      "source": "icons/awards/benefactor.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/celebrity",
+      "source": "icons/awards/celebrity.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/contractor",
+      "source": "icons/awards/contractor.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/cultivator",
+      "source": "icons/awards/cultivator.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/desert-settler",
+      "source": "icons/awards/desert-settler.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/estate-dealer",
+      "source": "icons/awards/estate-dealer.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/excentric",
+      "source": "icons/awards/excentric.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/industrialist",
+      "source": "icons/awards/industrialist.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/landlord",
+      "source": "icons/awards/landlord.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/magnate",
+      "source": "icons/awards/magnate.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/miner",
+      "source": "icons/awards/miner.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/scientist",
+      "source": "icons/awards/scientist.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/space-baron",
+      "source": "icons/awards/space-baron.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/thermalist",
+      "source": "icons/awards/thermalist.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/awards/venuphile",
+      "source": "icons/awards/venuphile.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/action",
+      "source": "icons/behaviors/action.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/actions",
+      "source": "icons/behaviors/actions.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/adjacency",
+      "source": "icons/behaviors/adjacency.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/award",
+      "source": "icons/behaviors/award.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/claim",
+      "source": "icons/behaviors/claim.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/colony",
+      "source": "icons/behaviors/colony.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/colony-track",
+      "source": "icons/behaviors/colony-track.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/colony-track-decrease",
+      "source": "icons/behaviors/colony-track-decrease.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/commerce",
+      "source": "icons/behaviors/commerce.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/copy",
+      "source": "icons/behaviors/copy.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/copy-effect",
+      "source": "icons/behaviors/copy-effect.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/corporation-badge",
+      "source": "icons/behaviors/corporation-badge.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/crater",
+      "source": "icons/behaviors/crater.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/dam",
+      "source": "icons/behaviors/dam.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/ecozone",
+      "source": "icons/behaviors/ecozone.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/fleet",
+      "source": "icons/behaviors/fleet.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/generation",
+      "source": "icons/behaviors/generation.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/industry",
+      "source": "icons/behaviors/industry.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/magnetic",
+      "source": "icons/behaviors/magnetic.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/mine",
+      "source": "icons/behaviors/mine.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/mohole",
+      "source": "icons/behaviors/mohole.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/nuclear",
+      "source": "icons/behaviors/nuclear.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/prelude-card",
+      "source": "icons/behaviors/prelude-card.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/preserve",
+      "source": "icons/behaviors/preserve.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/project-paper",
+      "source": "icons/behaviors/project-paper.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/requirements",
+      "source": "icons/behaviors/requirements.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/resources",
+      "source": "icons/behaviors/resources.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/restricted",
+      "source": "icons/behaviors/restricted.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/reuse",
+      "source": "icons/behaviors/reuse.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/shield",
+      "source": "icons/behaviors/shield.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/shield-animal",
+      "source": "icons/behaviors/shield-animal.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/standard-project",
+      "source": "icons/behaviors/standard-project.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/stored",
+      "source": "icons/behaviors/stored.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/trade",
+      "source": "icons/behaviors/trade.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/behaviors/tree",
+      "source": "icons/behaviors/tree.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/callisto",
+      "source": "icons/colonies/callisto.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/ceres",
+      "source": "icons/colonies/ceres.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/enceladus",
+      "source": "icons/colonies/enceladus.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/europa",
+      "source": "icons/colonies/europa.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/ganymede",
+      "source": "icons/colonies/ganymede.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/io",
+      "source": "icons/colonies/io.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/luna",
+      "source": "icons/colonies/luna.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/miranda",
+      "source": "icons/colonies/miranda.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/pluto",
+      "source": "icons/colonies/pluto.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/titan",
+      "source": "icons/colonies/titan.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/colonies/triton",
+      "source": "icons/colonies/triton.png",
+      "profile": "icon"
+    },
+    {
       "id": "icons/earth-connected",
       "source": "icons/earth-connected.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/builder",
+      "source": "icons/milestones/builder.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/diversifier",
+      "source": "icons/milestones/diversifier.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/ecologist",
+      "source": "icons/milestones/ecologist.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/energizer",
+      "source": "icons/milestones/energizer.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/gardener",
+      "source": "icons/milestones/gardener.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/generalist",
+      "source": "icons/milestones/generalist.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/hoverlord",
+      "source": "icons/milestones/hoverlord.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/legend",
+      "source": "icons/milestones/legend.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/mayor",
+      "source": "icons/milestones/mayor.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/planner",
+      "source": "icons/milestones/planner.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/polar-explorer",
+      "source": "icons/milestones/polar-explorer.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/rim-settler",
+      "source": "icons/milestones/rim-settler.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/specialist",
+      "source": "icons/milestones/specialist.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/tactician",
+      "source": "icons/milestones/tactician.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/terraformer",
+      "source": "icons/milestones/terraformer.png",
+      "profile": "icon"
+    },
+    {
+      "id": "icons/milestones/tycoon",
+      "source": "icons/milestones/tycoon.png",
       "profile": "icon"
     },
     {
