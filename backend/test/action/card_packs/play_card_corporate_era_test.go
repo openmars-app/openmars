@@ -1325,7 +1325,16 @@ func TestInteractiveEffects_TriggerOnTheirOwnTags(t *testing.T) {
 			play := cardAction.NewPlayCardAction(repo, registry, nil, testutil.TestLogger())
 			testutil.AssertNoError(t, play.Execute(context.Background(), g.ID(), playerID, c.ID, shared.NativePayment(shared.
 				ResourceCredit, c.Cost), nil, nil, nil, nil, nil), "Play source card")
-			testutil.AssertTrue(t, len(p.Selection().GetPendingBehaviorResolutions()) == 1, "Own tag must create a decision")
+			if name == "Mars University" {
+				testutil.AssertEqual(t, 1, len(p.Selection().GetPendingBehaviorResolutions()), "optional discard remains a decision")
+			} else {
+				testutil.AssertEqual(t, 0, len(p.Selection().GetPendingBehaviorResolutions()), "forced self trigger resolves automatically")
+				if name == "Olympus Conference" {
+					testutil.AssertEqual(t, 1, p.Resources().GetCardStorage(c.ID), "self trigger adds science once")
+				} else {
+					testutil.AssertEqual(t, 1, p.Resources().Get().Plants, "self trigger gains one plant")
+				}
+			}
 		})
 	}
 }
@@ -1352,6 +1361,10 @@ func TestInteractiveEffects_ResearchResolutionsCanBeOrdered(t *testing.T) {
 			testutil.AssertNoError(t, discard.Execute(ctx, g.ID(), id, p.Selection().GetPendingBehaviorResolutions()[0].ID, nil), "skip own Mars trigger")
 			playName("Olympus Conference")
 			for _, r := range p.Selection().GetPendingBehaviorResolutions() {
+				if p.Selection().GetPendingBehaviorResolution(r.ID) == nil {
+					testutil.AssertEqual(t, 1, p.Resources().GetCardStorage(testutil.CardID("Olympus Conference")), "sole forced science choice resolves after discard")
+					continue
+				}
 				if r.Kind == "choice" {
 					testutil.AssertNoError(t, choose.Execute(ctx, g.ID(), id, r.ID, 0, nil), "add own science")
 				} else {
@@ -1384,7 +1397,7 @@ func TestInteractiveEffects_ResearchResolutionsCanBeOrdered(t *testing.T) {
 			}
 			testutil.AssertEqual(t, 2, len(mars), "two Mars decisions")
 			testutil.AssertEqual(t, 2, len(olympus), "two Olympus decisions")
-			snapshot := dto.ToPlayerDto(p, g, registry, nil, nil, nil)
+			snapshot := dto.ToPlayerDto(p, g, registry, nil, nil, nil, nil)
 			testutil.AssertEqual(t, 4, len(snapshot.PendingBehaviorResolutions), "reconnect retains all decisions")
 			for _, r := range snapshot.PendingBehaviorResolutions {
 				testutil.AssertTrue(t, seen[r.ID], "snapshot preserves identity")
@@ -1405,7 +1418,7 @@ func TestInteractiveEffects_ResearchResolutionsCanBeOrdered(t *testing.T) {
 			}
 			g.InitDeck([]string{testutil.CardID("Mine"), testutil.CardID("Power Plant"), testutil.CardID("Asteroid")}, nil, nil)
 			testutil.AssertNoError(t, choose.Execute(ctx, g.ID(), id, olympus[1], 0, nil), "resolve second Olympus first")
-			snapshot = dto.ToPlayerDto(p, g, registry, nil, nil, nil)
+			snapshot = dto.ToPlayerDto(p, g, registry, nil, nil, nil, nil)
 			for _, r := range snapshot.PendingBehaviorResolutions {
 				if r.ID == olympus[0] {
 					testutil.AssertTrue(t, r.Choices[1].Available, "science becomes spendable")
@@ -1466,14 +1479,8 @@ func TestViralEnhancers_OnlyRewardsTheTriggeringCard(t *testing.T) {
 			p.Hand().AddCard(source.ID)
 			testutil.AssertNoError(t, play.Execute(ctx, g.ID(), id, source.ID, shared.NativePayment(shared.
 				ResourceCredit, source.Cost), nil, nil, nil, nil, nil), "play Viral Enhancers")
-			own := p.Selection().GetPendingBehaviorResolutions()[0]
-			snap := dto.ToPlayerDto(p, g, registry, nil, nil, nil).PendingBehaviorResolutions[0]
-			testutil.AssertTrue(t, snap.Choices[0].Available, "self trigger allows plant")
-			testutil.AssertTrue(t, !snap.Choices[1].Available && !snap.Choices[2].Available, "source cannot store microbe or animal")
-			plants := p.Resources().Get().Plants
-			testutil.AssertErrorContains(t, choose.Execute(ctx, g.ID(), id, own.ID, 1, nil), "Viral Enhancers cannot store resources", "no storage on source")
-			testutil.AssertNoError(t, choose.Execute(ctx, g.ID(), id, own.ID, 0, nil), "self trigger plant")
-			testutil.AssertEqual(t, plants+1, p.Resources().Get().Plants, "one plant on self play")
+			testutil.AssertEqual(t, 0, len(p.Selection().GetPendingBehaviorResolutions()), "source cannot store resources, so self trigger is forced")
+			testutil.AssertEqual(t, 1, p.Resources().Get().Plants, "one plant on self play")
 			if tc.name == "Fish" {
 				testutil.AssertNoError(t, g.GlobalParameters().SetTemperature(ctx, 2), "Fish requirement")
 				opponent.Resources().AddProduction(map[shared.ResourceType]int{shared.ResourcePlantProduction: 1})

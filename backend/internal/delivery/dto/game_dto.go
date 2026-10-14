@@ -91,6 +91,7 @@ const (
 	ResourceTypeDisease  ResourceType = "disease"
 	ResourceTypeCamp     ResourceType = "camp"
 
+	ResourceTypeCardPlay   ResourceType = "card-play"
 	ResourceTypeCardDraw   ResourceType = "card-draw"
 	ResourceTypeCardReveal ResourceType = "card-reveal"
 	ResourceTypeCardTake   ResourceType = "card-take"
@@ -211,6 +212,7 @@ type ResourceSet struct {
 
 // TileRestrictionsDto represents tile placement restrictions for client consumption
 type TileRestrictionsDto struct {
+	PlacementLocation string   `json:"placementLocation,omitempty"`
 	BoardTags         []string `json:"boardTags,omitempty"`
 	Adjacency         string   `json:"adjacency,omitempty"` // "none" = no adjacent occupied tiles
 	Area              string   `json:"area,omitempty" tstype:"'land' | 'ocean'"`
@@ -295,9 +297,10 @@ func (d GlobalParameterConditionDto) GetConditionAmount() int  { return d.Amount
 
 // CardOperationConditionDto covers card-draw, card-take, card-peek, card-buy, card-discard.
 type CardOperationConditionDto struct {
+	CostReduction  int              `json:"costReduction,omitempty"`
 	Optional       bool             `json:"optional,omitempty"`
 	Per            *PerConditionDto `json:"per,omitempty"`
-	Type           string           `json:"type" tstype:"'card-draw' | 'card-take' | 'card-peek' | 'card-buy' | 'card-discard'"`
+	Type           string           `json:"type" tstype:"'card-play' | 'card-draw' | 'card-take' | 'card-peek' | 'card-buy' | 'card-discard'"`
 	Amount         int              `json:"amount"`
 	Target         TargetType       `json:"target"`
 	Selectors      []SelectorDto    `json:"selectors,omitempty"`
@@ -500,7 +503,7 @@ type CardRequirementsDto struct {
 
 // RequirementDto represents a card requirement for client consumption
 type RequirementDto struct {
-	Target    string             `json:"target,omitempty" tstype:"'self-player'"`
+	Target    string             `json:"target,omitempty" tstype:"'self-player' | 'any-player'"`
 	Permanent bool               `json:"permanent,omitempty"`
 	State     string             `json:"state,omitempty"`
 	Equals    *int               `json:"equals,omitempty"`
@@ -924,6 +927,13 @@ type PendingCardSelectionDto struct {
 }
 
 // PendingCardDrawSelectionDto represents a pending card draw/peek/take/buy action from card effects
+type PendingCardPlaySelectionDto struct {
+	Source         string          `json:"source"`
+	SourceCardID   string          `json:"sourceCardId"`
+	CostReduction  int             `json:"costReduction"`
+	AvailableCards []PlayerCardDto `json:"availableCards"`
+}
+
 type PendingCardDrawSelectionDto struct {
 	MinFreeTakeCount int             `json:"minFreeTakeCount"`
 	AvailableCards   []PlayerCardDto `json:"availableCards"` // Cards with playability state
@@ -989,25 +999,28 @@ type PendingColonyResourceSelectionDto struct {
 
 // PendingAwardFundSelectionDto represents a pending award fund selection for client consumption
 type PendingAwardFundSelectionDto struct {
-	AvailableAwards []string `json:"availableAwards"`
-	Source          string   `json:"source"`
+	CanContinueWithoutSelection bool     `json:"canContinueWithoutSelection"`
+	AvailableAwards             []string `json:"availableAwards"`
+	Source                      string   `json:"source"`
 }
 
 // PendingColonySelectionDto represents a pending colony selection from a card effect
 type PendingColonySelectionDto struct {
-	AddTile                    bool        `json:"addTile"`
-	TileOptions                []ColonyDto `json:"tileOptions,omitempty"`
-	AvailableColonyIDs         []string    `json:"availableColonyIds"`
-	AllowDuplicatePlayerColony bool        `json:"allowDuplicatePlayerColony"`
-	Source                     string      `json:"source"`
-	SourceCardID               string      `json:"sourceCardId"`
+	CanContinueWithoutSelection bool        `json:"canContinueWithoutSelection"`
+	AddTile                     bool        `json:"addTile"`
+	TileOptions                 []ColonyDto `json:"tileOptions,omitempty"`
+	AvailableColonyIDs          []string    `json:"availableColonyIds"`
+	AllowDuplicatePlayerColony  bool        `json:"allowDuplicatePlayerColony"`
+	Source                      string      `json:"source"`
+	SourceCardID                string      `json:"sourceCardId"`
 }
 
 // PendingFreeTradeSelectionDto represents a pending free trade colony selection
 type PendingFreeTradeSelectionDto struct {
-	AvailableColonyIDs []string `json:"availableColonyIds"`
-	Source             string   `json:"source"`
-	SourceCardID       string   `json:"sourceCardId"`
+	CanContinueWithoutSelection bool     `json:"canContinueWithoutSelection"`
+	AvailableColonyIDs          []string `json:"availableColonyIds"`
+	Source                      string   `json:"source"`
+	SourceCardID                string   `json:"sourceCardId"`
 }
 
 // PlayerStatus represents the current status of a player in the game
@@ -1086,6 +1099,7 @@ type PlayerDto struct {
 	StartingCards                   []CardDto                           `json:"startingCards"`
 	PendingTileSelection            *PendingTileSelectionDto            `json:"pendingTileSelection"`
 	PendingCardSelection            *PendingCardSelectionDto            `json:"pendingCardSelection"`
+	PendingCardPlaySelection        *PendingCardPlaySelectionDto        `json:"pendingCardPlaySelection"`
 	PendingCardDrawSelection        *PendingCardDrawSelectionDto        `json:"pendingCardDrawSelection"`
 	PendingBehaviorResolutions      []PendingBehaviorResolutionDto      `json:"pendingBehaviorResolutions"`
 	PendingResourceRemovalSelection *PendingResourceRemovalSelectionDto `json:"pendingResourceRemovalSelection"`
@@ -1604,10 +1618,11 @@ func (d CopyConditionDto) GetConditionType() string { return d.Type }
 func (d CopyConditionDto) GetConditionAmount() int  { return d.Amount }
 
 type PendingEffectSelectionDto struct {
-	Source       string                     `json:"source"`
-	SourceCardID string                     `json:"sourceCardId"`
-	Outputs      []any                      `json:"outputs" tstype:"ResourceCondition[]"`
-	Options      []EffectSelectionOptionDto `json:"options"`
+	CanContinueWithoutSelection bool                       `json:"canContinueWithoutSelection"`
+	Source                      string                     `json:"source"`
+	SourceCardID                string                     `json:"sourceCardId"`
+	Outputs                     []any                      `json:"outputs" tstype:"ResourceCondition[]"`
+	Options                     []EffectSelectionOptionDto `json:"options"`
 }
 type EffectSelectionOptionDto struct {
 	CardID         string   `json:"cardId,omitempty"`
@@ -1672,6 +1687,7 @@ type ColonyTradeRequest struct {
 
 // FreeTradeRequest supplies an explicit track choice for a pending free trade.
 type FreeTradeRequest struct {
+	Skip       bool   `json:"skip,omitempty"`
 	ColonyID   string `json:"colonyId"`
 	TrackSteps *int   `json:"trackSteps" tstype:"number"`
 }

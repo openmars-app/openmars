@@ -1506,7 +1506,7 @@ func TestModeProductionPreviewIncludesImportsUpkeepAndLeaseExpiry(t *testing.T) 
 	lease := shared.DependencyGroup{ID: "lease", State: "withdrawal-occurred", Equals: 0, RetireOnState: &shared.StateRequirement{State: "withdrawal-occurred", Equals: 1}}
 	addSupply(p, "lease", lease, shared.ResourceCreditProduction, -2)
 	before := p.Resources().Production()
-	preview := dto.ToPlayerDto(p, g, registry, nil, nil, nil).ModeProduction
+	preview := dto.ToPlayerDto(p, g, registry, nil, nil, nil, nil).ModeProduction
 	if preview == nil || preview.Connected.Credits != 2 || preview.Disconnected.Credits != 5 || preview.Connected.Steel != 4 || preview.Disconnected.Steel != 1 || preview.Disconnected.Titanium != 2 {
 		t.Fatalf("incorrect preview: %+v", preview)
 	}
@@ -1515,7 +1515,7 @@ func TestModeProductionPreviewIncludesImportsUpkeepAndLeaseExpiry(t *testing.T) 
 	}
 	mustGeneration(t, g, 6)
 	g.ResolveModeBoundary(ctx, "production-end", false)
-	preview = dto.ToPlayerDto(p, g, registry, nil, nil, nil).ModeProduction
+	preview = dto.ToPlayerDto(p, g, registry, nil, nil, nil, nil).ModeProduction
 	if preview.Connected.Credits != 4 {
 		t.Fatal("reconnection preview restored expired lease payments")
 	}

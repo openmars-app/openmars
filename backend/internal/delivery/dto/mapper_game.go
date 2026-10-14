@@ -60,7 +60,7 @@ func ToGameDtoFull(g *game.Game, cardRegistry gamecards.CardRegistry, playerID s
 	for _, p := range players {
 		if p.ID() == playerID {
 			viewingPlayer = p
-			currentPlayer = ToPlayerDto(p, g, cardRegistry, registries.StandardProjectRegistry, registries.AwardRegistry, registries.MilestoneRegistry)
+			currentPlayer = ToPlayerDto(p, g, cardRegistry, registries.StandardProjectRegistry, registries.AwardRegistry, registries.MilestoneRegistry, registries.ColonyRegistry)
 		} else {
 			otherPlayers = append(otherPlayers, ToOtherPlayerDto(p, g, cardRegistry))
 		}

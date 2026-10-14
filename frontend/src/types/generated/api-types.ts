@@ -531,6 +531,7 @@ export const ResourceTypeAsteroid: ResourceType = "asteroid";
 export const ResourceTypeFighter: ResourceType = "fighter";
 export const ResourceTypeDisease: ResourceType = "disease";
 export const ResourceTypeCamp: ResourceType = "camp";
+export const ResourceTypeCardPlay: ResourceType = "card-play";
 export const ResourceTypeCardDraw: ResourceType = "card-draw";
 export const ResourceTypeCardReveal: ResourceType = "card-reveal";
 export const ResourceTypeCardTake: ResourceType = "card-take";
@@ -635,6 +636,7 @@ export interface ResourceSet {
  * TileRestrictionsDto represents tile placement restrictions for client consumption
  */
 export interface TileRestrictionsDto {
+  placementLocation?: string;
   boardTags?: string[];
   adjacency?: string; // "none" = no adjacent occupied tiles
   area?: "land" | "ocean";
@@ -740,9 +742,10 @@ export interface GlobalParameterConditionDto {
  * CardOperationConditionDto covers card-draw, card-take, card-peek, card-buy, card-discard.
  */
 export interface CardOperationConditionDto {
+  costReduction?: number /* int */;
   optional?: boolean;
   per?: PerConditionDto;
-  type: "card-draw" | "card-take" | "card-peek" | "card-buy" | "card-discard";
+  type: "card-play" | "card-draw" | "card-take" | "card-peek" | "card-buy" | "card-discard";
   amount: number /* int */;
   target: TargetType;
   selectors?: SelectorDto[];
@@ -965,7 +968,7 @@ export interface CardRequirementsDto {
  * RequirementDto represents a card requirement for client consumption
  */
 export interface RequirementDto {
-  target?: "self-player";
+  target?: "self-player" | "any-player";
   permanent?: boolean;
   state?: string;
   equals?: number /* int */;
@@ -1391,6 +1394,12 @@ export interface PendingCardSelectionDto {
 /**
  * PendingCardDrawSelectionDto represents a pending card draw/peek/take/buy action from card effects
  */
+export interface PendingCardPlaySelectionDto {
+  source: string;
+  sourceCardId: string;
+  costReduction: number /* int */;
+  availableCards: PlayerCardDto[];
+}
 export interface PendingCardDrawSelectionDto {
   minFreeTakeCount: number /* int */;
   availableCards: PlayerCardDto[]; // Cards with playability state
@@ -1457,6 +1466,7 @@ export interface PendingColonyResourceSelectionDto {
  * PendingAwardFundSelectionDto represents a pending award fund selection for client consumption
  */
 export interface PendingAwardFundSelectionDto {
+  canContinueWithoutSelection: boolean;
   availableAwards: string[];
   source: string;
 }
@@ -1464,6 +1474,7 @@ export interface PendingAwardFundSelectionDto {
  * PendingColonySelectionDto represents a pending colony selection from a card effect
  */
 export interface PendingColonySelectionDto {
+  canContinueWithoutSelection: boolean;
   addTile: boolean;
   tileOptions?: ColonyDto[];
   availableColonyIds: string[];
@@ -1475,6 +1486,7 @@ export interface PendingColonySelectionDto {
  * PendingFreeTradeSelectionDto represents a pending free trade colony selection
  */
 export interface PendingFreeTradeSelectionDto {
+  canContinueWithoutSelection: boolean;
   availableColonyIds: string[];
   source: string;
   sourceCardId: string;
@@ -1550,6 +1562,7 @@ export interface PlayerDto {
   startingCards: CardDto[];
   pendingTileSelection?: PendingTileSelectionDto;
   pendingCardSelection?: PendingCardSelectionDto;
+  pendingCardPlaySelection?: PendingCardPlaySelectionDto;
   pendingCardDrawSelection?: PendingCardDrawSelectionDto;
   pendingBehaviorResolutions: PendingBehaviorResolutionDto[];
   pendingResourceRemovalSelection?: PendingResourceRemovalSelectionDto;
@@ -2097,6 +2110,7 @@ export interface CopyConditionDto {
   selectors?: SelectorDto[];
 }
 export interface PendingEffectSelectionDto {
+  canContinueWithoutSelection: boolean;
   source: string;
   sourceCardId: string;
   outputs: ResourceCondition[];
@@ -2168,6 +2182,7 @@ export interface ColonyTradeRequest {
  * FreeTradeRequest supplies an explicit track choice for a pending free trade.
  */
 export interface FreeTradeRequest {
+  skip?: boolean;
   colonyId: string;
   trackSteps?: number;
 }

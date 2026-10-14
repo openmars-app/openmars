@@ -97,6 +97,9 @@ func formatPendingActions(player *dto.PlayerDto) string {
 	if player.PendingCardSelection != nil {
 		parts = append(parts, formatPendingCardSelection(player.PendingCardSelection))
 	}
+	if player.PendingCardPlaySelection != nil {
+		parts = append(parts, fmt.Sprintf("Play one card from hand now with %d M€ cost reduction using play_card.", player.PendingCardPlaySelection.CostReduction))
+	}
 	if player.PendingCardDrawSelection != nil {
 		parts = append(parts, formatPendingCardDraw(player.PendingCardDrawSelection))
 	}

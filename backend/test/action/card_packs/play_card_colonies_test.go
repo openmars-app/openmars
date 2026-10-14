@@ -919,7 +919,7 @@ func TestAirRaid_RequiresOwnedFloaterPayment(t *testing.T) {
 			state := baseaction.CalculatePlayerCardState(&raid, p, g, registry)
 			testutil.AssertEqual(t, tc.valid, state.Available(), "Card availability requires owned floaters")
 			p.CardStateStore().SetState(raid.ID, state)
-			playerDto := dto.ToPlayerDto(p, g, registry, nil, nil, nil)
+			playerDto := dto.ToPlayerDto(p, g, registry, nil, nil, nil, nil)
 			for _, c := range playerDto.Cards {
 				if c.ID == raid.ID {
 					if c.Behaviors[0].InputOptions == nil {
@@ -977,7 +977,7 @@ func TestTitanShuttles_ConvertsSelectedFloaters(t *testing.T) {
 			p.Resources().AddToStorage(card.ID, stored)
 			before := p.Resources().Get().Titanium
 			choice := 1
-			playerDto := dto.ToPlayerDto(p, g, registry, nil, nil, nil)
+			playerDto := dto.ToPlayerDto(p, g, registry, nil, nil, nil, nil)
 			found := false
 			for _, a := range playerDto.Actions {
 				if a.CardID == card.ID {
@@ -1168,6 +1168,75 @@ func TestJupiterFloatingStation_AddsOnlyToJovianStorage(t *testing.T) {
 			} else {
 				testutil.AssertNoError(t, err, "Add floater to Jovian storage")
 				testutil.AssertEqual(t, 1, p.Resources().GetCardStorage(target), "Add exactly one floater")
+			}
+		})
+	}
+}
+
+func TestMarketManipulation_ExcludesInactiveColoniesAndTrackBounds(t *testing.T) {
+	g, repo, colonies, id, _ := setupColoniesGame(t)
+	p, _ := g.GetPlayer(id)
+	p.Resources().Add(map[shared.ResourceType]int{shared.ResourceCredit: 100})
+	miranda, err := colonies.GetByID("miranda")
+	testutil.AssertNoError(t, err, "Load Miranda")
+	luna, err := colonies.GetByID("luna")
+	testutil.AssertNoError(t, err, "Load Luna")
+	g.Colonies().SetStates([]*colony.ColonyState{
+		colony.NewTileState(*miranda, false),
+		{DefinitionID: "luna", MarkerPosition: len(luna.Steps) - 1},
+		{DefinitionID: "ceres", MarkerPosition: 1, PlayerColonies: []string{id}},
+	})
+	playColonyTestCard(t, g, repo, id, "Market Manipulation")
+	pending := p.Selection().GetPendingEffectSelection()
+	if pending == nil {
+		t.Fatal("Expected track selection")
+	}
+	testutil.AssertEqual(t, 1, len(pending.Options), "Only increase Ceres and decrease Luna is legal")
+	testutil.AssertEqual(t, "ceres", pending.Options[0].ColonyIDs[0], "Cannot raise an inactive or maximum track")
+	testutil.AssertEqual(t, "luna", pending.Options[0].ColonyIDs[1], "Cannot lower an inactive track or cross the colony floor")
+	confirm := confirmAction.NewConfirmEffectSelectionAction(repo, testutil.CreateTestCardRegistry(), colonies, nil)
+	testutil.AssertNoError(t, confirm.Execute(context.Background(), g.ID(), id, 0), "Confirm legal pair")
+	testutil.AssertEqual(t, -1, g.Colonies().GetState("miranda").MarkerPosition, "Inactive colony marker stays absent")
+	testutil.AssertEqual(t, "animal", g.Colonies().GetState("miranda").AwaitingResource, "Card does not activate a colony")
+	testutil.AssertEqual(t, 2, g.Colonies().GetState("ceres").MarkerPosition, "Increase applies")
+	testutil.AssertEqual(t, len(luna.Steps)-2, g.Colonies().GetState("luna").MarkerPosition, "Decrease applies")
+}
+
+func TestUrbanDecomposers_RequiresCityAndAnyPlayersColony(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		city, colony bool
+	}{
+		{"both absent", false, false}, {"no city", false, true}, {"no colony", true, false}, {"opponent owns both", true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, repo, _, id, opponent := setupColoniesGame(t)
+			ctx := context.Background()
+			registry := testutil.CreateTestCardRegistry()
+			p, _ := g.GetPlayer(id)
+			if tc.city {
+				testutil.PlaceTileForPlayer(ctx, t, g, repo, opponent, "city", testutil.FindUnoccupiedLandHex(t, g))
+			}
+			if tc.colony {
+				g.Colonies().SetStates([]*colony.ColonyState{{DefinitionID: "luna", MarkerPosition: 1, PlayerColonies: []string{opponent}}})
+			}
+			testutil.AssertNoError(t, g.SetCurrentTurn(ctx, id, 2), "restore player turn")
+			p.Resources().Set(shared.Resources{Credits: 6})
+			// A legal destination for the two microbes.
+			p.PlayedCards().AddCard(testutil.CardID("Regolith Eaters"), "Regolith Eaters", "active", []string{"microbe", "science"})
+			idCard := testutil.CardID("Urban Decomposers")
+			card, _ := registry.GetByID(idCard)
+			p.Hand().AddCard(idCard)
+			state := baseaction.CalculatePlayerCardState(card, p, g, registry)
+			testutil.AssertEqual(t, tc.city && tc.colony, state.Available(), "playability agrees with requirements")
+			play := cardAction.NewPlayCardAction(repo, registry, nil, testutil.TestLogger())
+			err := play.Execute(ctx, g.ID(), id, idCard, shared.NativePayment(shared.ResourceCredit, 6), nil, []string{testutil.CardID("Regolith Eaters")}, nil, nil, nil)
+			if tc.city && tc.colony {
+				testutil.AssertNoError(t, err, "opponent's city and colony satisfy requirements")
+				testutil.AssertEqual(t, 1, p.Resources().Production().Plants, "plant production reward")
+			} else {
+				testutil.AssertTrue(t, err != nil, "execution rejects missing requirement")
+				testutil.AssertEqual(t, 6, p.Resources().Get().Credits, "no spending on rejection")
 			}
 		})
 	}
