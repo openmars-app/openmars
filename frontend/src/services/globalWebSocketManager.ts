@@ -360,6 +360,13 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.confirmColonyResource(cardId);
   }
 
+  async continueSelection(
+    requestType: Parameters<typeof webSocketService.continueSelection>[0],
+  ): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.continueSelection(requestType);
+  }
+
   async confirmColonyPlacement(colonyId: string): Promise<string> {
     await this.ensureConnected();
     return webSocketService.confirmColonyPlacement(colonyId);
