@@ -8,11 +8,7 @@ export type ActiveItem =
   | "place-tile"
   | "game-commands"
   | "turn-commands"
-  | "bots"
-  | "3d-camera"
-  | "3d-sun"
-  | "3d-skybox"
-  | "3d-climate";
+  | "bots";
 
 interface SidebarNavProps {
   activeItem: ActiveItem;
@@ -117,30 +113,6 @@ const SidebarNav: React.FC<SidebarNavProps> = ({ activeItem, onSelectItem, devel
           </div>
         </>
       )}
-
-      <div style={headerStyle}>3D World</div>
-
-      <div
-        onClick={() => handleSelectItem("3d-camera")}
-        style={subItemStyle(activeItem === "3d-camera")}
-      >
-        Camera
-      </div>
-      <div onClick={() => handleSelectItem("3d-sun")} style={subItemStyle(activeItem === "3d-sun")}>
-        Sun & Ocean
-      </div>
-      <div
-        onClick={() => handleSelectItem("3d-skybox")}
-        style={subItemStyle(activeItem === "3d-skybox")}
-      >
-        Skybox
-      </div>
-      <div
-        onClick={() => handleSelectItem("3d-climate")}
-        style={subItemStyle(activeItem === "3d-climate")}
-      >
-        Climate
-      </div>
     </div>
   );
 };

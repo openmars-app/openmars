@@ -1,3 +1,5 @@
+import EngineBackground from "./engine/EngineBackground";
+import { useEngineStore } from "./stores/engineStore";
 import LoadGamePage from "./components/pages/LoadGamePage.tsx";
 import ResumeGamePage from "./components/pages/ResumeGamePage.tsx";
 import GameButton from "@/components/ui/buttons/GameButton.tsx";
@@ -10,17 +12,14 @@ import CardsPage from "./components/pages/CardsPage.tsx";
 import GameLandingPage from "./components/pages/GameLandingPage.tsx";
 import ReconnectingPage from "./components/pages/ReconnectingPage.tsx";
 import { globalWebSocketManager } from "./services/globalWebSocketManager.ts";
-import { SpaceBackgroundProvider, useSpaceBackground } from "./contexts/SpaceBackgroundContext.tsx";
 import { SoundProvider } from "./contexts/SoundContext.tsx";
 import { NotificationProvider } from "./contexts/NotificationContext.tsx";
-import { World3DSettingsProvider } from "./contexts/World3DSettingsContext.tsx";
 import NotificationContainer from "./components/ui/notifications/NotificationContainer.tsx";
 import { audioService } from "./services/audioService.ts";
 import MainMenuHamburger from "./components/ui/buttons/MainMenuHamburger.tsx";
 import { useLayoutMode } from "./hooks/useLayoutMode.ts";
-import SpaceBackground from "./components/3d/SpaceBackground.tsx";
 import LoadingOverlay from "./components/game/view/LoadingOverlay.tsx";
-import { useAppPhaseStore, showsSpaceBackground, showsMenuChrome } from "./stores/appPhaseStore.ts";
+import { useAppPhaseStore, showsMenuBackground, showsMenuChrome } from "./stores/appPhaseStore.ts";
 import FeedbackWindow from "./components/ui/debug/FeedbackWindow.tsx";
 import { WindowManagerProvider } from "./components/ui/debug/WindowManager.tsx";
 import { useUIOverlayStore } from "./stores/uiOverlayStore.ts";
@@ -29,7 +28,7 @@ import { Z_INDEX } from "./constants/zIndex.ts";
 import { APP_VERSION } from "./config.ts";
 import { changeServer, gatewayServer } from "./utils/gateway.ts";
 import ServerSwitchPopover from "./components/ui/popover/ServerSwitchPopover.tsx";
-import { useKeepTestingParams } from "./utils/quickMode.ts";
+import { useKeepLayoutParams } from "./utils/layoutParams.ts";
 import LayoutModeAttribute from "./components/LayoutModeAttribute.tsx";
 import LayoutDebugReadout from "./components/LayoutDebugReadout.tsx";
 import RotateDeviceOverlay from "./components/ui/overlay/RotateDeviceOverlay.tsx";
@@ -61,21 +60,17 @@ function App() {
 
   return (
     <SoundProvider>
-      <SpaceBackgroundProvider>
-        <World3DSettingsProvider>
-          <div className="App" style={{ margin: 0, padding: 0 }}>
-            <LayoutModeAttribute />
-            <LayoutDebugReadout />
-            <RotateDeviceOverlay />
-            <Router>
-              <NotificationProvider>
-                <AppWithBackground connectionReady={isWebSocketReady} />
-                <NotificationContainer />
-              </NotificationProvider>
-            </Router>
-          </div>
-        </World3DSettingsProvider>
-      </SpaceBackgroundProvider>
+      <div className="App" style={{ margin: 0, padding: 0 }}>
+        <LayoutModeAttribute />
+        <LayoutDebugReadout />
+        <RotateDeviceOverlay />
+        <Router>
+          <NotificationProvider>
+            <AppWithBackground connectionReady={isWebSocketReady} />
+            <NotificationContainer />
+          </NotificationProvider>
+        </Router>
+      </div>
     </SoundProvider>
   );
 }
@@ -111,15 +106,11 @@ function routeForPathname(pathname) {
 }
 
 function AppWithBackground({ connectionReady }) {
-  useKeepTestingParams();
-  useEffect(() => {
-    document.documentElement.style.setProperty(
-      "--surface-layer",
-      String(Z_INDEX.CONTROL_DECORATION),
-    );
-  }, []);
+  useKeepLayoutParams();
   const location = useLocation();
-  const { isLoaded, error } = useSpaceBackground();
+  const engineStatus = useEngineStore((s) => s.status);
+  const isLoaded = engineStatus.phase === "ready";
+  const error = engineStatus.phase === "error";
   const [overlayVisible, setOverlayVisible] = useState(false);
   const finishBackgroundLoading = useCallback(() => setOverlayVisible(false), []);
   const phase = useAppPhaseStore((s) => s.phase);
@@ -141,7 +132,7 @@ function AppWithBackground({ connectionReady }) {
   const browserOpen = useUIOverlayStore((s) => s.showCardBrowser);
   useRenderPause("card-browser", browserOpen);
   const renderPaused = useRenderPauseStore(isRenderPaused);
-  const showSpaceBackgroundLayer = !isCardsPage && showsSpaceBackground(phase);
+  const showMenuBackgroundLayer = !isCardsPage && showsMenuBackground(phase);
   const showMenuChrome = inMenuRoute && showsMenuChrome(phase);
 
   useEffect(() => {
@@ -154,46 +145,44 @@ function AppWithBackground({ connectionReady }) {
     }
   }, [inMenuRoute, location.pathname, phase, setPhase]);
 
-  const skyboxReady = isLoaded || !!error;
+  const engineReady = isLoaded || !!error;
 
-  const backgroundPending = inMenuRoute && showSpaceBackgroundLayer && !skyboxReady;
+  const backgroundPending = inMenuRoute && showMenuBackgroundLayer && !engineReady;
   const showBackgroundLoading =
-    backgroundPending || (inMenuRoute && showSpaceBackgroundLayer && overlayVisible);
+    backgroundPending || (inMenuRoute && showMenuBackgroundLayer && overlayVisible);
   // The chrome mounts under the fading overlay, so it is revealed together with the page
   const showMenuChromeNow = showMenuChrome && !backgroundPending && !ownsMenuChrome;
 
   useEffect(() => {
-    if (!inMenuRoute || !showSpaceBackgroundLayer) {
+    if (!inMenuRoute || !showMenuBackgroundLayer) {
       setOverlayVisible(false);
-    } else if (!skyboxReady) {
+    } else if (!engineReady) {
       setOverlayVisible(true);
     }
-  }, [inMenuRoute, showSpaceBackgroundLayer, skyboxReady]);
+  }, [inMenuRoute, showMenuBackgroundLayer, engineReady]);
 
   useEffect(() => {
-    if (showSpaceBackgroundLayer && isLoaded) {
+    if (showMenuBackgroundLayer && isLoaded) {
       audioService.playAmbient();
     }
-  }, [showSpaceBackgroundLayer, isLoaded]);
+  }, [showMenuBackgroundLayer, isLoaded]);
 
   return (
     <>
-      <div
-        style={{
-          opacity: showSpaceBackgroundLayer ? 1 : 0,
-          transition: `opacity ${phase.kind === "fadeOutLobby" ? 2500 : 1500}ms ease-out`,
-          pointerEvents: showSpaceBackgroundLayer ? "auto" : "none",
-        }}
-      >
-        <SpaceBackground active={showSpaceBackgroundLayer && !renderPaused} />
-      </div>
+      <EngineBackground paused={renderPaused} />
       {showBackgroundLoading && (
         <LoadingOverlay
-          isLoaded={skyboxReady}
+          isLoaded={engineReady}
           onTransitionEnd={finishBackgroundLoading}
           showDelayMs={0}
           minDurationMs={500}
           showProgress
+          message={engineStatus.message}
+          progress={
+            engineStatus.phase === "loading" && engineStatus.total
+              ? engineStatus.loaded / engineStatus.total
+              : undefined
+          }
         />
       )}
       {showMenuChromeNow && <MainMenuHamburger />}

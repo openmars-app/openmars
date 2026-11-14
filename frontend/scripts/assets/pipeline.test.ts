@@ -5,7 +5,8 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
-import { buildAssets, safePath } from "./pipeline.ts";
+import { inflateSync } from "node:zlib";
+import { buildAssets, loadCatalog, safePath, type Variant } from "./pipeline.ts";
 
 const roots: string[] = [];
 async function fixture() {
@@ -45,6 +46,137 @@ afterEach(async () => {
   for (const root of roots.splice(0)) {
     await fs.rm(root, { recursive: true, force: true });
   }
+});
+
+test("graphics tiers publish smaller cube and array variants with real memory reductions", async () => {
+  const root = await fixture();
+  await fs.copyFile(
+    path.join(import.meta.dirname, "fixtures/environment.exr"),
+    path.join(root, "assets/original/tiny.exr"),
+  );
+  const profiles = {
+    icon: { sizes: [32], lossless: true },
+    array: { textureArray: { size: 32, sizes: [16, 32], srgb: true } },
+    sky: {
+      environment: {
+        encoding: "rgb9e5-ufloat",
+        faceSize: 4,
+        faceSizes: [2, 4],
+        recipe: "ordinary-linear",
+        samples: 16,
+      },
+    },
+  };
+  await fs.writeFile(path.join(root, "assets/profiles.json"), JSON.stringify(profiles));
+  const catalog = {
+    version: 1,
+    assets: [
+      { id: "icons/test", source: "test.png", profile: "icon" },
+      { id: "textures/array", layers: ["icons/test"], profile: "array" },
+      { id: "textures/sky", source: "tiny.exr", profile: "sky" },
+    ],
+  };
+  await fs.writeFile(path.join(root, "assets/catalog.json"), JSON.stringify(catalog));
+  await buildAssets(root);
+  const result = await state(root);
+  for (const [id, sizes] of [
+    ["textures/array", [16, 32]],
+    ["textures/sky", [2, 4]],
+  ] as const) {
+    const variants = result.entries[id].asset.variants;
+    expect(variants.map((v: Variant) => v.width)).toEqual(sizes);
+    const memory = [];
+    for (const variant of variants) {
+      const bytes = await fs.readFile(path.join(root, "frontend/public", variant.url));
+      expect(bytes.readUInt32LE(20)).toBe(variant.width);
+      expect(bytes.readUInt32LE(40)).toBe(Math.log2(variant.width) + 1);
+      memory.push(Number(bytes.readBigUInt64LE(96)));
+    }
+    expect(memory[1] / memory[0]).toBe(4);
+  }
+  expect((await buildAssets(root)).built).toBe(0);
+  profiles.sky.environment.faceSizes = [3, 4];
+  await fs.writeFile(path.join(root, "assets/profiles.json"), JSON.stringify(profiles));
+  await expect(loadCatalog(root)).rejects.toThrow("Invalid environment profile");
+});
+
+test("prepared texture arrays preserve order and alpha, cache dependencies and prune replaced outputs", async () => {
+  const root = await fixture();
+  const original = path.join(root, "assets/original/second.png");
+  const writeColor = async (r: number, g: number, b: number) => {
+    await sharp({
+      create: { width: 16, height: 16, channels: 4, background: { r, g, b, alpha: 1 } },
+    })
+      .png()
+      .toFile(original);
+  };
+  await writeColor(20, 40, 220);
+  const catalogPath = path.join(root, "assets/catalog.json");
+  const catalog = JSON.parse(await fs.readFile(catalogPath, "utf8"));
+  catalog.assets.push(
+    { id: "textures/second", source: "second.png", profile: "copy" },
+    { id: "textures/array", layers: ["icons/test", "textures/second"], profile: "array" },
+  );
+  await fs.writeFile(catalogPath, JSON.stringify(catalog));
+  const profilesPath = path.join(root, "assets/profiles.json");
+  const profiles = JSON.parse(await fs.readFile(profilesPath, "utf8"));
+  profiles.copy = { copy: true };
+  profiles.array = { textureArray: { size: 16, srgb: true } };
+  await fs.writeFile(profilesPath, JSON.stringify(profiles));
+  expect((await buildAssets(root)).built).toBe(3);
+  const getArray = async () => {
+    const current = await state(root);
+    const url = current.entries["textures/array"].asset.variants[0].url;
+    const file = path.join(root, "frontend/public", url);
+    const bytes = await fs.readFile(file);
+    expect(bytes.readUInt32LE(12)).toBe(43); // VK_FORMAT_R8G8B8A8_SRGB
+    expect(bytes.readUInt32LE(32)).toBe(2);
+    expect(bytes.readUInt32LE(40)).toBe(5);
+    expect(bytes.readUInt32LE(44)).toBe(3); // lossless KTX2 zlib
+    const offset = Number(bytes.readBigUInt64LE(80));
+    const length = Number(bytes.readBigUInt64LE(88));
+    return { file, pixels: inflateSync(bytes.subarray(offset, offset + length)) };
+  };
+  const first = await getArray();
+  expect([...first.pixels.subarray(0, 4)]).toEqual([220, 20, 30, 128]);
+  expect([...first.pixels.subarray(16 * 16 * 4, 16 * 16 * 4 + 4)]).toEqual([20, 40, 220, 255]);
+  expect((await buildAssets(root)).built).toBe(0);
+  await writeColor(50, 60, 70);
+  await expect(buildAssets(root, true)).rejects.toThrow("needs generation");
+  expect((await buildAssets(root)).built).toBe(2);
+  const second = await getArray();
+  expect(second.file).not.toBe(first.file);
+  expect(await fs.stat(first.file).catch(() => null)).toBeNull();
+  catalog.assets.at(-1).layers.reverse();
+  await fs.writeFile(catalogPath, JSON.stringify(catalog));
+  expect((await buildAssets(root)).built).toBe(1);
+  const reordered = await getArray();
+  expect([...reordered.pixels.subarray(0, 4)]).toEqual([50, 60, 70, 255]);
+});
+
+test("texture arrays reject invalid dependency graphs and dimensions", async () => {
+  const root = await fixture();
+  const catalogPath = path.join(root, "assets/catalog.json");
+  const catalog = JSON.parse(await fs.readFile(catalogPath, "utf8"));
+  const profilesPath = path.join(root, "assets/profiles.json");
+  const profiles = JSON.parse(await fs.readFile(profilesPath, "utf8"));
+  profiles.array = { textureArray: { size: 16, srgb: false } };
+  await fs.writeFile(profilesPath, JSON.stringify(profiles));
+  const array = { id: "textures/array", layers: ["missing/source"], profile: "array" };
+  catalog.assets.push(array);
+  await fs.writeFile(catalogPath, JSON.stringify(catalog));
+  await expect(loadCatalog(root)).rejects.toThrow("requires an unprepared raster");
+  array.layers = [array.id];
+  await fs.writeFile(catalogPath, JSON.stringify(catalog));
+  await expect(loadCatalog(root)).rejects.toThrow("requires an unprepared raster");
+  array.layers = Array(33).fill("icons/test");
+  await fs.writeFile(catalogPath, JSON.stringify(catalog));
+  await expect(loadCatalog(root)).rejects.toThrow("Invalid texture array profile");
+  array.layers = ["icons/test"];
+  await fs.writeFile(catalogPath, JSON.stringify(catalog));
+  profiles.array.textureArray.size = 15;
+  await fs.writeFile(profilesPath, JSON.stringify(profiles));
+  await expect(loadCatalog(root)).rejects.toThrow("Invalid texture array profile");
 });
 
 test("exports retain transparency and aspect ratio without upscaling; unchanged runs are no-ops", async () => {
@@ -272,7 +404,10 @@ test("model profiles shrink GLB textures and keep the scene graph and geometry",
   expect(optimized.listNodes().map((n) => n.getName())).toEqual(["Tree-01-1", "Marker"]);
   expect(optimized.listNodes()[0].getTranslation()).toEqual([1, 2, 3]);
   const [optimizedTexture] = optimized.listTextures();
-  expect(optimizedTexture.getMimeType()).toBe("image/webp");
+  expect(optimizedTexture.getMimeType()).toBe("image/png");
+  expect(
+    optimized.listExtensionsRequired().map((extension) => extension.extensionName),
+  ).not.toContain("EXT_texture_webp");
   expect(optimizedTexture.getSize()).toEqual([64, 64]);
   const optimizedPosition = optimized.listMeshes()[0].listPrimitives()[0].getAttribute("POSITION")!;
   expect(optimizedPosition.getComponentType()).toBe(5126);
@@ -285,4 +420,91 @@ test("model profiles shrink GLB textures and keep the scene graph and geometry",
     }),
   );
   await expect(buildAssets(root)).rejects.toThrow("Invalid model profile");
+});
+
+test("environment recipes build linear HDR maps, cache their policy and prune replaced specular maps", async () => {
+  const root = await fixture();
+  await fs.copyFile(
+    path.join(import.meta.dirname, "fixtures/environment.exr"),
+    path.join(root, "assets/original/tiny.exr"),
+  );
+  const profiles = {
+    background: {
+      environment: {
+        encoding: "rgb9e5-ufloat",
+        faceSize: 4,
+        recipe: "ordinary-linear",
+        samples: 16,
+      },
+    },
+    diffuse: {
+      environment: {
+        encoding: "rgba16-float",
+        faceSize: 2,
+        recipe: "normalized-irradiance",
+        samples: 0,
+        diffuseGrid: { width: 4, height: 2 },
+      },
+    },
+    specular: {
+      environment: { encoding: "rgba16-float", faceSize: 4, recipe: "ggx", samples: 16 },
+    },
+  };
+  await fs.writeFile(path.join(root, "assets/profiles.json"), JSON.stringify(profiles));
+  await fs.writeFile(
+    path.join(root, "assets/catalog.json"),
+    JSON.stringify({
+      version: 1,
+      assets: Object.keys(profiles).map((profile) => ({
+        id: `environment/${profile}`,
+        source: "tiny.exr",
+        profile,
+      })),
+    }),
+  );
+  expect((await buildAssets(root)).built).toBe(3);
+  const current = await state(root);
+  for (const [name, levels] of [
+    ["background", 3],
+    ["diffuse", 1],
+    ["specular", 3],
+  ] as const) {
+    const url = current.entries[`environment/${name}`].asset.variants[0].url;
+    const bytes = await fs.readFile(path.join(root, "frontend/public", url));
+    expect(bytes.readUInt32LE(12)).toBe(name === "background" ? 123 : 97); // RGB9E5 background; binary16 lighting
+    expect(bytes.readUInt32LE(36)).toBe(6);
+    expect(bytes.readUInt32LE(40)).toBe(levels);
+    const offset = Number(bytes.readBigUInt64LE(80));
+    if (name === "background") {
+      expect(bytes.readUInt32LE(44)).toBe(3); // lossless KTX2 zlib
+      const length = Number(bytes.readBigUInt64LE(88));
+      const raw = inflateSync(bytes.subarray(offset, offset + length));
+      expect(raw.length).toBe(4 * 4 * 6 * 4);
+      const word = raw.readUInt32LE(0),
+        scale = 2 ** ((word >>> 27) - 24);
+      expect([word & 511, (word >>> 9) & 511, (word >>> 18) & 511].map((m) => m * scale)).toEqual([
+        0.125, 0.25, 2,
+      ]);
+    } else {
+      expect([
+        bytes.readUInt16LE(offset),
+        bytes.readUInt16LE(offset + 2),
+        bytes.readUInt16LE(offset + 4),
+      ]).toEqual([0x3000, 0x3400, 0x4000]);
+    }
+  }
+  expect((await buildAssets(root)).built).toBe(0);
+  const previous = current.entries["environment/specular"].asset.variants[0].url;
+  profiles.specular.environment.faceSize = 8;
+  await fs.writeFile(path.join(root, "assets/profiles.json"), JSON.stringify(profiles));
+  expect((await buildAssets(root)).built).toBe(1);
+  expect(
+    await fs
+      .stat(path.join(root, "frontend/public", previous))
+      .then(() => true)
+      .catch(() => false),
+  ).toBe(false);
+  profiles.diffuse.environment.samples = 16;
+  await fs.writeFile(path.join(root, "assets/profiles.json"), JSON.stringify(profiles));
+  await expect(loadCatalog(root)).rejects.toThrow("Invalid environment profile");
 });

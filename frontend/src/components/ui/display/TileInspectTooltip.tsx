@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from "react";
 import TileTooltip from "./TileTooltip.tsx";
 import { useLayoutMode } from "@/hooks/useLayoutMode.ts";
 import { useTileInspectStore, type ScreenPoint } from "@/stores/tileInspectStore.ts";
-import { usePlanetFocus } from "@/contexts/PlanetFocusContext.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
 
 interface TileInspectTooltipProps {
@@ -13,7 +12,6 @@ interface TileInspectTooltipProps {
 /** On touch, a tapped hex shows the same tooltip desktop shows on hover, next to the tap. */
 const TileInspectTooltip: React.FC<TileInspectTooltipProps> = ({ gameState, visible }) => {
   const { isCompact } = useLayoutMode();
-  const { activePlanet } = usePlanetFocus();
   const info = useTileInspectStore((s) => s.info);
   const position = useTileInspectStore((s) => s.position);
   const clear = useTileInspectStore((s) => s.clear);
@@ -22,13 +20,13 @@ const TileInspectTooltip: React.FC<TileInspectTooltipProps> = ({ gameState, visi
 
   useEffect(() => {
     clear();
-  }, [activePlanet, hasPendingPlacement, gameState.currentPhase, gameState.id, isCompact, clear]);
+  }, [hasPendingPlacement, gameState.currentPhase, gameState.id, isCompact, clear]);
 
   if (position) {
     positionRef.current = position;
   }
 
-  if (!visible || !isCompact) {
+  if (!visible) {
     return null;
   }
 

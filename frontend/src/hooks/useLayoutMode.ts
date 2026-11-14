@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { FORCE_COMPACT } from "@/utils/quickMode.ts";
+import { FORCE_COMPACT } from "@/utils/layoutParams.ts";
 
 export type LayoutMode = "desktop" | "compact";
 

@@ -1,4 +1,4 @@
-import { chromiumDevice } from "./scripts/inspect/devices";
+import { chromiumDevice } from "./tests/devices";
 import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.E2E_PORT ?? 3100);
@@ -13,10 +13,38 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
+    headless: true,
     trace: "on",
   },
 
   projects: [
+    ...["engine", "engine-webgl2"].map((name) => ({
+      name,
+      testMatch: [
+        /engine(?:-sessions|-refinements|-endgame|-pacing|-profiling|-feedback|-graphics)?\.spec\.ts/,
+        /mobile-lobby\.spec\.ts/,
+      ],
+      use: {
+        browserName: "chromium" as const,
+        launchOptions: {
+          args: [
+            "--enable-unsafe-webgpu",
+            "--enable-gpu",
+            "--mute-audio",
+            // Select native Vulkan in Linux headless mode rather than SwiftShader.
+            ...(process.platform === "linux"
+              ? [
+                  "--use-vulkan=native",
+                  "--use-webgpu-adapter=default",
+                  "--use-angle=vulkan",
+                  "--enable-features=Vulkan",
+                  "--disable-vulkan-surface",
+                ]
+              : []),
+          ],
+        },
+      },
+    })),
     {
       name: "firefox",
       use: {
@@ -40,10 +68,10 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `bun run assets && bun x vite --port ${port} --strictPort`,
+    command: `bun run engine && bun run assets && bun x --bun vite --port ${port} --strictPort`,
     url: baseURL,
-    env: { BROWSER: "none" },
+    env: { BROWSER: "none", E2E_DISABLE_HMR: "1" },
     reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
-    timeout: 120_000,
+    timeout: 300_000,
   },
 });

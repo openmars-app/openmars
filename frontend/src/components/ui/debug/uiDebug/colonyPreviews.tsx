@@ -45,8 +45,6 @@ import { StoragesPopoverView } from "../../popover/StoragesPopover";
 import VictoryPointsPopover from "../../popover/VictoryPointsPopover";
 import { LogPopoverView } from "../../popover/LogPopover";
 import StandardProjectPopover from "../../popover/StandardProjectPopover";
-import { TravelPopoverView } from "../../popover/TravelPopover";
-import type { PlanetTarget } from "@/contexts/PlanetFocusContext";
 import { ChatOverlayView } from "../../overlay/ChatOverlay";
 import { CardBrowserContent } from "../../CardBrowser";
 import { CardBrowserOverlayView } from "../../overlay/CardBrowserOverlay";
@@ -611,7 +609,6 @@ function InformationPreview({
 }: PreviewProps & { kind: string }) {
   const { isCompact } = useLayoutMode();
   const game = useMemo(() => createPreviewGame(cards), [cards]);
-  const [planet, setPlanet] = useState<PlanetTarget>("mars");
   const scroll = useRef<HTMLDivElement>(null);
   const screenAnchor = useRef<HTMLButtonElement>(null);
   const closed = () => onComplete(`Closed ${kind}.`);
@@ -773,19 +770,10 @@ function InformationPreview({
         );
       }
       default:
-        return (
-          <TravelPopoverView
-            {...props}
-            activePlanet={planet}
-            onTravel={(destination) => {
-              setPlanet(destination);
-              onComplete(`Travelled to ${destination}.`);
-            }}
-          />
-        );
+        return null;
     }
   };
-  if (isCompact && kind !== "travel") {
+  if (isCompact) {
     return (
       <CompactPanel title={kind.replaceAll("-", " ")} onClose={closed}>
         {renderContent(screenAnchor)}
@@ -1020,7 +1008,6 @@ export const colonyPreviews: PreviewDefinition[] = [
     ["victory-points", "Victory points", "VictoryPointsPopover", "VictoryPointsBreakdown"],
     ["game-log", "Game log", "LogPopover", "GameLogList"],
     ["standard-projects", "Standard projects", "StandardProjectPopover", "StandardProjectList"],
-    ["travel", "Travel", "TravelPopover", ""],
   ].map(([id, name, popover, list]) =>
     definition(
       id,
@@ -1028,7 +1015,7 @@ export const colonyPreviews: PreviewDefinition[] = [
       "Information",
       [`popover/${popover}`, ...(list ? [`popover/content/${list}`] : [])],
       (props) => <InformationPreview {...props} kind={id} />,
-      (id === "travel" ? basic.slice(0, 1) : basic).concat(
+      basic.concat(
         id === "actions" || id === "standard-projects"
           ? [{ id: "unavailable", name: "Unavailable" }]
           : [],

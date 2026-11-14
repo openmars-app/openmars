@@ -5,6 +5,7 @@ interface UIOverlayState {
   showDebugDropdown: boolean;
   showUIDebug: boolean;
   showPerformanceWindow: boolean;
+  showSettings: boolean;
   showFeedbackWindow: boolean;
   showCorporationOverlay: boolean;
   showLeaveGameConfirm: boolean;
@@ -32,6 +33,7 @@ interface UIOverlayState {
   setShowDebugDropdown: (show: boolean) => void;
   setShowUIDebug: (show: boolean) => void;
   setShowPerformanceWindow: (show: boolean) => void;
+  setShowSettings: (show: boolean) => void;
   setShowFeedbackWindow: (show: boolean) => void;
   setShowCorporationOverlay: (show: boolean) => void;
   setShowLeaveGameConfirm: (show: boolean) => void;
@@ -66,6 +68,7 @@ export const useUIOverlayStore = create<UIOverlayState>((set) => ({
   showDebugDropdown: false,
   showUIDebug: false,
   showPerformanceWindow: false,
+  showSettings: false,
   showFeedbackWindow: false,
   showCorporationOverlay: false,
   showLeaveGameConfirm: false,
@@ -93,6 +96,7 @@ export const useUIOverlayStore = create<UIOverlayState>((set) => ({
   setShowDebugDropdown: (show) => set({ showDebugDropdown: show }),
   setShowUIDebug: (show) => set({ showUIDebug: show }),
   setShowPerformanceWindow: (show) => set({ showPerformanceWindow: show }),
+  setShowSettings: (show) => set({ showSettings: show }),
   setShowFeedbackWindow: (show) => set({ showFeedbackWindow: show }),
   setShowCorporationOverlay: (show) => set({ showCorporationOverlay: show }),
   setShowLeaveGameConfirm: (show) => set({ showLeaveGameConfirm: show }),

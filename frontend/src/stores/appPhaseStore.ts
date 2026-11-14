@@ -29,15 +29,11 @@ export type AppPhaseKind = AppPhase["kind"];
 
 interface AppPhaseState {
   phase: AppPhase;
-  isSkyboxReady: boolean;
-  isGpuReady: boolean;
   marsRevealedReady: boolean;
   lobbyMounted: boolean;
 
   setPhase: (next: AppPhase) => void;
   setMenuRoute: (route: MenuRoute) => void;
-  setSkyboxReady: (ready: boolean) => void;
-  setGpuReady: (ready: boolean) => void;
   setMarsRevealedReady: (ready: boolean) => void;
   setLobbyMounted: (mounted: boolean) => void;
   resetToMenu: (route?: MenuRoute) => void;
@@ -45,23 +41,17 @@ interface AppPhaseState {
 
 export const useAppPhaseStore = create<AppPhaseState>((set) => ({
   phase: { kind: "menu", route: "landing" },
-  isSkyboxReady: false,
-  isGpuReady: false,
   marsRevealedReady: false,
   lobbyMounted: false,
 
   setPhase: (phase) => set({ phase }),
   setMenuRoute: (route) =>
     set((s) => (s.phase.kind === "menu" ? { phase: { kind: "menu", route } } : s)),
-  setSkyboxReady: (isSkyboxReady) => set({ isSkyboxReady }),
-  setGpuReady: (isGpuReady) => set({ isGpuReady }),
   setMarsRevealedReady: (marsRevealedReady) => set({ marsRevealedReady }),
   setLobbyMounted: (lobbyMounted) => set({ lobbyMounted }),
   resetToMenu: (route = "landing") =>
     set({
       phase: { kind: "menu", route },
-      isSkyboxReady: false,
-      isGpuReady: false,
       marsRevealedReady: false,
       lobbyMounted: false,
     }),
@@ -90,7 +80,10 @@ export const isInGameWorld = (p: AppPhase): boolean =>
   p.kind === "playing" ||
   p.kind === "completed";
 
-export const showsSpaceBackground = (p: AppPhase): boolean =>
+export const needsGameScene = (p: AppPhase): boolean =>
+  p.kind === "loading" || p.kind === "fadeOutLobby" || isInGameWorld(p);
+
+export const showsMenuBackground = (p: AppPhase): boolean =>
   (p.kind === "menu" && p.route !== "cards") ||
   p.kind === "checking" ||
   p.kind === "connecting" ||

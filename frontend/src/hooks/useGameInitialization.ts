@@ -16,9 +16,8 @@ function setInitPhase(
   if (kind === "checking") {
     useAppPhaseStore.setState({
       phase: { kind, gameId },
-      isSkyboxReady: false,
-      isGpuReady: false,
       marsRevealedReady: false,
+      lobbyMounted: false,
     });
     return;
   }

@@ -1,12 +1,13 @@
+import { engineProfiler } from "../engine/profiler";
+import { publicSceneCues } from "@/engine/presentation";
+import { useEngineStore } from "@/stores/engineStore";
 import { useEffect, useRef } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import type { MutableRefObject } from "react";
 import { config } from "@/config.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
-import { skyboxCache } from "@/services/SkyboxCache.ts";
 import { useGameStore } from "@/stores/gameStore.ts";
 import { useUIOverlayStore } from "@/stores/uiOverlayStore.ts";
-import { useAsteroidEventStore } from "@/stores/asteroidEventStore.ts";
 import { useBotPresenceStore } from "@/stores/botPresenceStore.ts";
 import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
@@ -26,8 +27,6 @@ import {
   GameStatusLobby,
 } from "@/types/generated/api-types.ts";
 import type { PlayedCardNotification } from "@/hooks/usePlayedCardNotification.ts";
-import { QUICK_MODE } from "@/utils/quickMode.ts";
-import { GRAPHICS } from "@/utils/graphicsQuality.ts";
 
 // Bots count as joined once their session is ready, not when they are added.
 function isPresent(player: OtherPlayerDto): boolean {
@@ -50,6 +49,7 @@ export function useWebSocketConnection(
 ): { attemptReconnection: () => Promise<void> } {
   const isWebSocketInitialized = useRef(false);
   const previousGameRef = useRef<GameDto | null>(null);
+  const reconnectRequest = useRef<AbortController | null>(null);
 
   const {
     playTemperatureSound,
@@ -60,6 +60,11 @@ export function useWebSocketConnection(
   } = useSoundEffects();
 
   const attemptReconnection = async () => {
+    if (reconnectRequest.current) {
+      return;
+    }
+    const controller = new AbortController();
+    reconnectRequest.current = controller;
     try {
       const savedGameData = getGameSession();
       if (!savedGameData) {
@@ -68,11 +73,14 @@ export function useWebSocketConnection(
         return;
       }
 
-      const { gameId, playerId, playerName } = savedGameData;
+      const { gameId, playerId, playerName, isSpectator } = savedGameData;
 
       useGameStore.getState().setReconnectionStep("game");
 
-      const response = await fetch(`${config.apiUrl}/games/${gameId}?playerId=${playerId}`);
+      const query = isSpectator ? "" : `?playerId=${encodeURIComponent(playerId)}`;
+      const response = await fetch(`${config.apiUrl}/games/${gameId}${query}`, {
+        signal: controller.signal,
+      });
       if (!response.ok) {
         clearGameSession();
         navigate("/", { replace: true });
@@ -80,25 +88,33 @@ export function useWebSocketConnection(
       }
 
       const gameData = await response.json();
+      controller.signal.throwIfAborted();
 
       const store = useGameStore.getState();
       store.setGame(gameData.game);
       store.setPlayerId(playerId);
+      store.setIsSpectator(!!isSpectator);
 
       const player = gameData.game.currentPlayer;
-      store.setCurrentPlayer(player || null);
+      store.setCurrentPlayer(isSpectator ? null : player || null);
 
-      if (!QUICK_MODE && GRAPHICS.skybox === "exr" && !skyboxCache.isReady()) {
-        useGameStore.getState().setReconnectionStep("environment");
-        await skyboxCache.preload();
+      if (isSpectator) {
+        await globalWebSocketManager.spectatorConnect(playerName, gameId);
+      } else {
+        await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
       }
-
-      globalWebSocketManager.playerConnect(playerName, gameId, playerId);
     } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
       console.error("Reconnection failed:", error);
       const store = useGameStore.getState();
       store.setIsReconnecting(false);
       store.setReconnectionStep(null);
+    } finally {
+      if (reconnectRequest.current === controller) {
+        reconnectRequest.current = null;
+      }
     }
   };
 
@@ -117,6 +133,8 @@ export function useWebSocketConnection(
       if (!myPlayerId && !updatedGame.isSpectator) {
         return;
       }
+
+      engineProfiler.stateReceived();
 
       if (previousGameRef.current) {
         const changes = findChangedPaths(previousGameRef.current, updatedGame);
@@ -220,10 +238,18 @@ export function useWebSocketConnection(
       const store = useGameStore.getState();
       const latestGame = store.gameRef;
       const myPlayerId = store.playerId;
-      if (!latestGame || !myPlayerId || store.isReconnecting) {
+      if (!latestGame || store.isReconnecting) {
         return;
       }
-      const allPlayers = [latestGame.currentPlayer, ...(latestGame.otherPlayers ?? [])];
+      const present = useEngineStore.getState().present;
+      if (present) {
+        for (const cue of publicSceneCues({ logs, isHistory }, latestGame)) {
+          present(cue);
+        }
+      }
+      if (!myPlayerId) {
+        return;
+      }
       // Corps and preludes played during setup are presented by the corporation showcase.
       const isInitApply =
         latestGame.currentPhase === GamePhaseInitApplyCorp ||
@@ -234,17 +260,6 @@ export function useWebSocketConnection(
           (log.sourceType === "standard_project" || log.sourceType === "card_action")
         ) {
           void playCardPlayedSound();
-        }
-        if (
-          log.sourceType === "standard_project" &&
-          log.source.toLowerCase().includes("asteroid")
-        ) {
-          const player = allPlayers.find((p) => p.id === log.playerId);
-          useAsteroidEventStore.getState().enqueue({
-            cardName: "Asteroid",
-            playerName: player?.name ?? "Unknown",
-            playerColor: player?.color ?? "#FF5722",
-          });
         }
 
         if (log.sourceType !== "card_play" || isInitApply) {
@@ -276,13 +291,6 @@ export function useWebSocketConnection(
           if (!isMe) {
             enqueuePlayedCard({
               card,
-              playerName: player.name,
-              playerColor: player.color,
-            });
-          }
-          if (card.name.toLowerCase().includes("asteroid")) {
-            useAsteroidEventStore.getState().enqueue({
-              cardName: card.name,
               playerName: player.name,
               playerColor: player.color,
             });
@@ -330,6 +338,21 @@ export function useWebSocketConnection(
           clearGameSession();
           navigate("/", { replace: true });
         }
+      }
+    };
+
+    const handleConnectionAvailable = () => {
+      const store = useGameStore.getState();
+      const session = getGameSession();
+      if (
+        !store.isConnected &&
+        store.playerId &&
+        session?.gameId === store.game?.id &&
+        session?.playerId === store.playerId &&
+        !globalWebSocketManager.isGracefulDisconnect()
+      ) {
+        store.setIsReconnecting(true);
+        void attemptReconnection();
       }
     };
 
@@ -386,6 +409,8 @@ export function useWebSocketConnection(
     globalWebSocketManager.on("game-ended", handleGameEnded);
     globalWebSocketManager.on("error", handleError);
     globalWebSocketManager.on("disconnect", handleDisconnect);
+    globalWebSocketManager.on("connect", handleConnectionAvailable);
+    window.addEventListener("online", handleConnectionAvailable);
     globalWebSocketManager.on("max-reconnects-reached", handleMaxReconnectsReached);
     globalWebSocketManager.on("chat-update", handleChatUpdate);
     globalWebSocketManager.on("emote", handleEmote);
@@ -396,12 +421,16 @@ export function useWebSocketConnection(
     isWebSocketInitialized.current = true;
 
     return () => {
+      reconnectRequest.current?.abort();
+      reconnectRequest.current = null;
       globalWebSocketManager.off("game-updated", handleGameUpdated);
       globalWebSocketManager.off("log-update", handleLogUpdate);
       globalWebSocketManager.off("player-kicked", handlePlayerKicked);
       globalWebSocketManager.off("game-ended", handleGameEnded);
       globalWebSocketManager.off("error", handleError);
       globalWebSocketManager.off("disconnect", handleDisconnect);
+      globalWebSocketManager.off("connect", handleConnectionAvailable);
+      window.removeEventListener("online", handleConnectionAvailable);
       globalWebSocketManager.off("max-reconnects-reached", handleMaxReconnectsReached);
       globalWebSocketManager.off("chat-update", handleChatUpdate);
       globalWebSocketManager.off("emote", handleEmote);

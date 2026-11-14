@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { engineWatcher } from "./scripts/engine/vite.ts";
 import { assetWatcher } from "./scripts/assets/vite.ts";
 
 const backendProxy = {
@@ -17,8 +18,13 @@ const backendProxy = {
 };
 
 export default defineConfig({
-  plugins: [react(), assetWatcher()],
+  plugins: [react(), assetWatcher(), engineWatcher()],
   server: {
+    // Inspector scenarios retain a renderer across long-lived GPU sequences.
+    // Independent builds may refresh generated files without changing their contents.
+    hmr: process.env.E2E_DISABLE_HMR === "1" ? false : undefined,
+    watch: { ignored: ["**/playwright-report/**", "**/test-results/**"] },
+    fs: { allow: [import.meta.dirname, path.resolve(import.meta.dirname, "../engine/pkg")] },
     host: true,
     port: 3000,
     // Behind the dev gateway the page is on another origin, so CSS url()s need this one
@@ -46,11 +52,6 @@ export default defineConfig({
               test: /node_modules\/(react|react-dom|scheduler)\//,
               priority: 20,
             },
-            {
-              name: "three-vendor",
-              test: /node_modules\/(three|@react-three\/[^/]+)\//,
-              priority: 10,
-            },
           ],
         },
       },
@@ -58,8 +59,5 @@ export default defineConfig({
   },
   worker: {
     format: "es",
-  },
-  optimizeDeps: {
-    include: ["three", "@react-three/fiber", "@react-three/drei"],
   },
 });

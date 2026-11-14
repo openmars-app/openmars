@@ -6,7 +6,6 @@ import { useUIOverlayStore } from "@/stores/uiOverlayStore.ts";
 import { useCardPlayFlowStore } from "@/stores/cardPlayFlowStore.ts";
 import { useGameStore } from "@/stores/gameStore.ts";
 import { useSpectateStore } from "@/stores/spectateStore.ts";
-import { useWorld3DSettings } from "@/contexts/World3DSettingsContext.tsx";
 import {
   GamePhaseAction,
   GamePhaseInitApplyCorp,
@@ -19,8 +18,6 @@ export function useGameHotkeys(
   cardFanRef: RefObject<CardFanOverlayHandle | null>,
   playerListRef: RefObject<PlayerListHandle | null>,
 ): void {
-  const { settings } = useWorld3DSettings();
-
   useEffect(() => {
     const handleToggleDebug = () => {
       useUIOverlayStore.getState().toggleShowDebugDropdown();
@@ -140,10 +137,6 @@ export function useGameHotkeys(
       if (e.key === " ") {
         e.preventDefault();
 
-        if (settings.freeCameraEnabled) {
-          return;
-        }
-
         if (ui.showCorporationOverlay) {
           useUIOverlayStore.getState().setShowCorporationOverlay(false);
           return;
@@ -180,5 +173,5 @@ export function useGameHotkeys(
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [cardFanRef, playerListRef, settings.freeCameraEnabled]);
+  }, [cardFanRef, playerListRef]);
 }

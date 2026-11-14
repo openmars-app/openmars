@@ -87,6 +87,8 @@ __pycache__/
 
 # Playwright
 .playwright-cli
+playwright-report/
+test-results/
 
 # Deploy
 .deploy-staging/
@@ -111,3 +113,11 @@ tmp/
 /plans/
 
 .cache/
+
+# Rust renderer and generated browser bindings
+/engine/target/
+/engine/pkg/
+/engine/.tools/
+
+# Local design-tool state
+/.impeccable/
