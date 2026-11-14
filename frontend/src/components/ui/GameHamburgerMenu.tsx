@@ -15,8 +15,8 @@ import {
   EndGameIcon,
   BugIcon,
   CardsIcon,
-  ThoughtIcon,
   InstallIcon,
+  SettingsIcon,
   ChangelogIcon,
 } from "./menuIcons.tsx";
 import SoundToggleButton from "./buttons/SoundToggleButton.tsx";
@@ -24,7 +24,6 @@ import { useHoverSound } from "@/hooks/useHoverSound.ts";
 import { Z_INDEX } from "@/constants/zIndex.ts";
 import { useUIOverlayStore } from "@/stores/uiOverlayStore.ts";
 import { useVersionStore } from "@/stores/versionStore.ts";
-import { useBotThoughtsPreferenceStore } from "@/stores/botPresenceStore.ts";
 import {
   isFullscreen as readIsFullscreen,
   isFullscreenSupported,
@@ -98,8 +97,6 @@ export const GameMenuItems: React.FC<GameMenuItemsProps> = ({
   onEndGame,
 }) => {
   const menuItemHover = useHoverSound();
-  const showBotThoughts = useBotThoughtsPreferenceStore((s) => s.showBotThoughts);
-  const setShowBotThoughts = useBotThoughtsPreferenceStore((s) => s.setShowBotThoughts);
   const [isFullscreen, setIsFullscreen] = useState(readIsFullscreen);
   const fullscreenSupported = isFullscreenSupported();
   const { platform: installPlatform, install } = useInstallOffer();
@@ -150,15 +147,13 @@ export const GameMenuItems: React.FC<GameMenuItemsProps> = ({
       <SaveGameMenuItem gameId={gameId} />
       <MenuPopoverDivider />
       <SoundToggleButton />
-      <MenuPopoverDivider />
       <MenuPopoverItem
-        icon={<ThoughtIcon />}
-        label={showBotThoughts ? "Hide bot thoughts" : "Show bot thoughts"}
+        icon={<SettingsIcon />}
+        label="Settings"
         onClick={() => {
-          menuItemHover.onClick?.();
-          setShowBotThoughts(!showBotThoughts);
+          onClose();
+          useUIOverlayStore.getState().setShowSettings(true);
         }}
-        onMouseEnter={menuItemHover.onMouseEnter}
       />
       <MenuPopoverDivider />
       <MenuPopoverItem

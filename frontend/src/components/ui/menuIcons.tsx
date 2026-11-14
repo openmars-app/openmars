@@ -11,6 +11,13 @@ const svgProps = {
   strokeLinejoin: "round" as const,
 };
 
+export const SettingsIcon: React.FC = () => (
+  <svg {...svgProps} aria-hidden="true">
+    <path d="m9 3-.5 3-2 1-2.8-1-2 3.5L4 11v2l-2.3 1.5 2 3.5 2.8-1 2 1 .5 3h4l.5-3 2-1 2.8 1 2-3.5L18 13v-2l2.3-1.5-2-3.5-2.8 1-2-1-.5-3Z" />
+    <circle cx="11" cy="12" r="3" />
+  </svg>
+);
+
 export const CopyIcon: React.FC = () => (
   <svg {...svgProps}>
     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
