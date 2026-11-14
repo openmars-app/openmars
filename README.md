@@ -31,7 +31,7 @@ You can play on desktop or on a phone in landscape.
 
 ### Cards and expansions
 
-Choose from hundreds of cards, with corporations, milestones and awards to shape your strategy. Open Mars includes the base game, Corporate Era, Prelude, Venus Next, Colonies and Turmoil. You can browse cards by type, cost, tags or game mode before starting a game.
+Choose from hundreds of cards, with corporations, milestones and awards to shape your strategy. Open Mars includes the base game, Corporate Era, Prelude, Venus Next, Colonies and Turmoil.
 
 <p align="center">
   <img src="docs/img/cards.png" alt="Project cards with simple effects, triggered abilities, resource storage and alternative actions" width="1000" />
@@ -41,15 +41,9 @@ Choose from hundreds of cards, with corporations, milestones and awards to shape
 
 Create a lobby, pick a map and your game options, then share the invite link. Friends and AI opponents can play in the same game. If you lose your connection, you can rejoin and carry on.
 
-On mobile, the lobby has separate tabs for Players, Chat, Map and Settings.
-
 <p align="center">
   <img src="docs/img/lobby.png" alt="Game lobby with player invitations, map selection and expansion settings" width="1000" />
 </p>
-
-### Graphics and controls
-
-Start with a Low, Medium or High graphics preset, or adjust resolution, textures, effects and frame rate yourself. Settings also has camera sensitivity, sound and music controls, and the option to show bot thoughts.
 
 ## Run locally
 
