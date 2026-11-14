@@ -56,15 +56,7 @@ func (s *Server) Play(t testing.TB, edit func(*dto.GameSetupDto), names ...strin
 		if preludes := state.CurrentPlayer.SelectPreludeCardsPhase; preludes != nil {
 			ids := make([]string, 0, preludes.MaxSelectable)
 			for _, p := range preludes.AvailablePreludes {
-				forcedHandPlay := false
-				for _, behavior := range p.Behaviors {
-					for _, output := range behavior.Outputs {
-						if op, ok := output.(map[string]any); ok && op["type"] == "card-play" {
-							forcedHandPlay = true
-						}
-					}
-				}
-				if !forcedHandPlay && len(ids) < preludes.MaxSelectable {
+				if !requiresHandPlay(p.Behaviors) && len(ids) < preludes.MaxSelectable {
 					ids = append(ids, p.ID)
 				}
 			}
@@ -158,9 +150,9 @@ func (c *Client) ResolvePending(t testing.TB) bool {
 		c.expectAccepted(t, dto.MessageTypeActionTileSelected, map[string]any{"hex": pending.AvailableHexes[0]})
 	case p.PendingCardDrawSelection != nil:
 		pending := p.PendingCardDrawSelection
-		take := []string{}
-		for _, card := range pending.AvailableCards[:min(pending.FreeTakeCount, len(pending.AvailableCards))] {
-			take = append(take, card.ID)
+		take := cardsToTake(pending)
+		if len(take) < pending.MinFreeTakeCount {
+			t.Fatalf("%s: not enough supported cards for the draw selection", c.Name)
 		}
 		c.expectAccepted(t, dto.MessageTypeActionCardDrawConfirmed, map[string]any{"cardsToTake": take, "cardsToBuy": []string{}})
 	case p.PendingAwardFundSelection != nil && len(p.PendingAwardFundSelection.AvailableAwards) > 0:
@@ -173,6 +165,32 @@ func (c *Client) ResolvePending(t testing.TB) bool {
 		return false
 	}
 	return true
+}
+
+// requiresHandPlay identifies Prelude follow-ups that this setup helper does not automate.
+func requiresHandPlay(behaviors []dto.CardBehaviorDto) bool {
+	for _, behavior := range behaviors {
+		for _, output := range behavior.Outputs {
+			if op, ok := output.(map[string]any); ok && op["type"] == "card-play" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func cardsToTake(pending *dto.PendingCardDrawSelectionDto) []string {
+	take := []string{}
+	for _, card := range pending.AvailableCards {
+		if len(take) == pending.FreeTakeCount {
+			break
+		}
+		if pending.PlayAsPrelude && requiresHandPlay(card.Behaviors) {
+			continue
+		}
+		take = append(take, card.ID)
+	}
+	return take
 }
 
 // expectAccepted sends a request and fails the test if the server rejects it.
