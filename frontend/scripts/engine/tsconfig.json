@@ -1,0 +1,4 @@
+{
+  "extends": "../assets/tsconfig.json",
+  "include": ["./*.ts", "../../../engine/build.ts"]
+}

@@ -2,15 +2,15 @@
 
 ## Development and verification
 
-The user normally runs Vite with hot module replacement. Do not stop or restart their server without authorization. Tests and the board inspector may manage their own isolated servers.
+The user normally runs Vite with hot module replacement. Do not stop or restart their server without authorization. Tests and the engine inspector may manage their own isolated servers.
 
-For frontend source changes, run `just frontend check` and `just frontend build` from the repository root. The check recipe includes formatting, lint, type checking, asset validation, asset tests, and inspector tests. There is no general app `test` script; use the commands in [justfile](justfile). The root preparation policy still governs staging and publishing.
+For frontend source changes, run `just frontend check` and `just frontend build` from the repository root. The check recipe includes formatting, lint, type checking, asset validation and asset tests. There is no general app `test` script; use the commands in [justfile](justfile). The root preparation policy still governs staging and publishing.
 
 For a visual change, capture the final result with the production renderer, open the images, and correct visible problems before reporting completion. Assertions, successful screenshot generation, geometry checks, and isolated previews do not establish visual correctness. Report which images you inspected and any verification gaps.
 
 Inspect desktop, iPhone landscape, and Android landscape. Check initial, loading, error, expanded, long-content, and keyboard-open states as applicable. Confirm controls remain reachable and content is not clipped by fixed chrome. Preserve the portrait rotation overlay.
 
-For board graphics, follow the [board review instructions](src/components/game/board/AGENTS.md) and [inspector commands](scripts/README.md). The inspector can start and stop its own temporary server; this does not authorize restarting the user's server.
+For engine graphics, verify both WebGPU and WebGL2. Use `?renderer=webgpu` or `?renderer=webgl2` in development to force a backend. Run `just frontend inspect` and open the screenshots in `tmp/bevy-scaffold/`. The development-only `/dev/engine` entry uses the production canvas. The inspector can manage its own temporary server; this does not authorize restarting the user's server.
 
 ## State ownership
 
@@ -31,9 +31,7 @@ Only these owners write the app phase:
 
 Add lifecycle transitions in the transition hook. Update selector projections when adding a phase. Reset world-ready flags, including new ones, when initializing another game; retained readiness can skip that game's loading sequence. Anchor animation timers to phase entry and cancel them on cleanup.
 
-Keep the `SpaceBackground` wrapper mounted once at the App root. Control visibility through phase selectors. Keep the outer `GameLayout` transparent; the inner game-world content owns its background so the lobby does not obscure the space scene.
-
-Preserve the low-graphics exception: the background wrapper stays mounted, but its menu Canvas is released during gameplay and rebuilt on return. Do not defeat that GPU-memory saving by forcing both canvases to stay active.
+The single Bevy `EngineBackground` owns the app's world canvas. React retains the UI and network services. Read renderer readiness and measured loading progress through `engineStore`; do not invent timer-based progress or skip initialization with `?quick`. Pause rendering through `renderPauseStore` and document visibility.
 
 ## UI conventions
 
@@ -55,7 +53,7 @@ Preserve the low-graphics exception: the background wrapper stays mounted, but i
 - Use the `compact:` Tailwind variant rather than viewport-width breakpoints. Use layout hooks for behavior differences.
 - Position board overlays using the HUD variables `--hud-top-h`, `--hud-dock-h`, `--hud-rail-left-w`, `--hud-rail-right-w`, plus `--safe-top`, `--safe-right`, `--safe-bottom`, and `--safe-left`.
 - Provide touch equivalents: `RevealTrigger` / `useTapReveal` for hover information, `useLongPress` plus a visible button for context menus, and on-screen controls for hotkeys.
-- Respect [GRAPHICS](src/utils/graphicsQuality.ts). Use `useRenderPause(reason, active)` from [renderPauseStore](src/stores/renderPauseStore.ts) when an overlay covers the canvas.
+- Use `useRenderPause(reason, active)` from [renderPauseStore](src/stores/renderPauseStore.ts) when an overlay covers the canvas.
 - Use touch targets of at least 44×44px, input text of at least 16px, and other text of at least 11px. Use `dvh` for viewport-height surfaces.
 - Substantial forms and dialogs need a full-screen compact shell, fixed top bar, safe-area padding, one scrolling content region, and reachable actions. Account for the software keyboard rather than shrinking a desktop modal.
 
@@ -69,7 +67,7 @@ For sounds, add source audio and catalog entries through that pipeline, then reg
 
 ## Browser checks
 
-Use `?quick` for functional browser inspection when skipped graphics are irrelevant. Omit it when reviewing those visuals or their performance; board visual review uses the production-renderer inspector.
+Use `/dev/engine` to inspect the production renderer without a backend. `?compact` forces compact layout for UI inspection; the old `?quick` graphics bypass has been removed.
 
 Playwright specs in [tests](tests) are checked for formatting, lint, and types by the normal gate, but execution is opt-in:
 

@@ -2,18 +2,20 @@
 # Backend, frontend and gateway recipes live in modules: `just backend <recipe>`, `just frontend <recipe>`, `just proxy <recipe>`.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
+export PATH := env("HOME") + "/.cargo/bin:" + env("PATH")
 
 mod backend
 mod frontend
 mod proxy
+mod engine
 
 [private]
 default:
     @just --list --unsorted --list-submodules
 
 [group('setup')]
-[doc('Install Go modules and frontend and gateway dependencies')]
-deps: backend::deps frontend::deps proxy::deps
+[doc('Install Go, frontend, gateway, and Rust renderer dependencies')]
+deps: backend::deps frontend::deps proxy::deps engine::deps
 
 [group('dev')]
 [doc('Build once and run the app on :3001 without hot reload, serving the built frontend from the backend')]
@@ -75,12 +77,12 @@ kill:
     fi
 
 [group('check')]
-[doc('Fail if any backend, frontend or gateway source is not formatted')]
-format-check: backend::format-check frontend::format-check proxy::format-check
+[doc('Check source formatting across all modules')]
+format-check: backend::format-check frontend::format-check proxy::format-check engine::format-check
 
 [group('check')]
-[doc('Lint backend, frontend and gateway')]
-lint: backend::lint frontend::lint proxy::lint
+[doc('Lint backend, frontend, gateway, and engine')]
+lint: backend::lint frontend::lint proxy::lint engine::lint
 
 [group('check')]
 [doc('Type-check the frontend and gateway')]
@@ -96,11 +98,11 @@ generate-check: backend::generate-check
 
 [group('check')]
 [doc('Run every check CI runs, without modifying files')]
-check: backend::check frontend::check proxy::check
+check: backend::check frontend::check proxy::check engine::check
 
 [group('fix')]
-[doc('Format backend, frontend and gateway source')]
-format: backend::format frontend::format proxy::format
+[doc('Format source across all modules')]
+format: backend::format frontend::format proxy::format engine::format
 
 [group('fix')]
 [doc('Format, regenerate types, then run every check CI runs')]
@@ -119,7 +121,7 @@ build: backend::build frontend::build proxy::build
 
 [group('build')]
 [doc('Remove backend, frontend and gateway build output')]
-clean: backend::clean frontend::clean proxy::clean
+clean: backend::clean frontend::clean proxy::clean engine::clean
 
 [group('release')]
 [doc('Check that changelog/<tag>/ has a valid CHANGELOG.md and CHANGELOG-USER.md')]

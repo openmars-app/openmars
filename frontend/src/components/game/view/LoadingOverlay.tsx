@@ -1,83 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { useProgress } from "@react-three/drei";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Z_INDEX } from "@/constants/zIndex";
 import OpenMarsLogo from "@/components/ui/OpenMarsLogo.tsx";
-
-/** What the file three.js is loading is, by its path under /assets/; most specific first. */
-const ASSET_LABELS: [RegExp, string][] = [
-  [/\/assets\/textures\/skyboxes\//, "Loading starfield"],
-  [/\/assets\/textures\/planets\/mars\//, "Loading Mars"],
-  [/\/assets\/textures\/planets\//, "Loading planets"],
-  [/\/assets\/textures\/terrain\//, "Loading terrain"],
-  [/\/assets\/textures\//, "Loading textures"],
-  [/\/assets\/models\//, "Loading models"],
-];
-
-function assetLabel(item: string): string | undefined {
-  return ASSET_LABELS.find(([pattern]) => pattern.test(item))?.[1];
-}
-
-/** Real asset progress fills this much of the bar; the rest covers scene build and GPU work. */
-const ASSET_SHARE = 90;
-/** The time-based estimate approaches ESTIMATE_CEILING with this time constant. */
-const ESTIMATE_TIME_CONSTANT_MS = 6000;
-const ESTIMATE_CEILING = 95;
-const TICK_MS = 100;
-
-/**
- * Percentage for the loading screen: the larger of three.js loader progress and a
- * time-based estimate, eased so it keeps creeping forward and never goes back.
- * Holds below 100 until the load is done.
- */
-function useEstimatedProgress(done: boolean) {
-  const [shown, setShown] = useState(0);
-
-  useEffect(() => {
-    if (done) {
-      setShown(100);
-      return;
-    }
-    const startedAt = performance.now();
-    const id = window.setInterval(() => {
-      const { loaded, total } = useProgress.getState();
-      const assets = total > 0 ? (loaded / total) * ASSET_SHARE : 0;
-      const elapsed = performance.now() - startedAt;
-      const estimate = ESTIMATE_CEILING * (1 - Math.exp(-elapsed / ESTIMATE_TIME_CONSTANT_MS));
-      const target = Math.min(99, Math.max(assets, estimate));
-      setShown((previous) => Math.max(previous, previous + (target - previous) * 0.25));
-    }, TICK_MS);
-    return () => window.clearInterval(id);
-  }, [done]);
-
-  return shown;
-}
-
-function ProgressReadout({ done }: { done: boolean }) {
-  const progress = useEstimatedProgress(done);
-  return (
-    <div style={{ width: "220px", marginBottom: "16px", textAlign: "center" }}>
-      <div style={{ fontSize: "32px", fontWeight: 700, marginBottom: "10px" }}>
-        {Math.floor(progress)}%
-      </div>
-      <div
-        style={{
-          height: "3px",
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${progress}%`,
-            backgroundColor: "white",
-            transition: `width ${TICK_MS}ms linear`,
-          }}
-        />
-      </div>
-    </div>
-  );
-}
 
 interface LoadingOverlayProps {
   message?: string;
@@ -96,10 +19,8 @@ interface LoadingOverlayProps {
    */
   minDurationMs?: number;
   fadeDurationMs?: number;
-  /**
-   * Show an estimated percentage and bar instead of the spinner, with a single detail line
-   * below it: the subtitle, else the message, else what three.js is loading right now.
-   */
+  /** Optional measured fraction in [0, 1]; omitted work is indeterminate. */
+  progress?: number;
   showProgress?: boolean;
 }
 
@@ -114,13 +35,12 @@ export default function LoadingOverlay({
   minDurationMs = 200,
   fadeDurationMs = 800,
   showProgress = false,
+  progress,
 }: LoadingOverlayProps) {
   const [phase, setPhase] = useState<Phase>(() => (showDelayMs === 0 ? "showing" : "waiting"));
   const shownAtRef = useRef<number | null>(showDelayMs === 0 ? Date.now() : null);
   const ref = useRef<HTMLDivElement>(null);
-  const loadingItem = useProgress((state) => state.item);
-  // Without a caller-given line, name what is loading right now
-  const detail = subtitle || message || assetLabel(loadingItem) || "Loading";
+  const detail = subtitle || message || "Loading";
 
   useEffect(() => {
     if (phase !== "waiting") {
@@ -175,10 +95,10 @@ export default function LoadingOverlay({
     return () => animation.cancel();
   }, [phase, onTransitionEnd, fadeDurationMs]);
 
-  useEffect(() => {
-    if (!isLoaded && phase === "done") {
-      shownAtRef.current = null;
-      setPhase("waiting");
+  useLayoutEffect(() => {
+    if (!isLoaded && (phase === "fading" || phase === "done")) {
+      shownAtRef.current = Date.now();
+      setPhase("showing");
     }
   }, [isLoaded, phase]);
 
@@ -189,6 +109,8 @@ export default function LoadingOverlay({
   return (
     <div
       ref={ref}
+      role="status"
+      aria-live="polite"
       style={{
         position: "fixed",
         top: 0,
@@ -211,8 +133,22 @@ export default function LoadingOverlay({
       <div className="mb-12 w-[min(520px,calc(100%-48px))] text-center compact:mb-6 compact:w-[340px] compact:max-w-[calc(100%-48px)]">
         <OpenMarsLogo surface="loading" />
       </div>
-      {showProgress ? (
-        <ProgressReadout done={isLoaded} />
+      {showProgress && progress !== undefined ? (
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress * 100)}
+          className="mb-4 w-[220px] text-center"
+        >
+          <div className="mb-2 text-3xl font-bold">{Math.round(progress * 100)}%</div>
+          <div className="h-[3px] bg-white/10">
+            <div
+              className="h-full bg-white"
+              style={{ width: `${Math.max(0, Math.min(1, progress)) * 100}%` }}
+            />
+          </div>
+        </div>
       ) : (
         <>
           <div

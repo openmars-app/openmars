@@ -3,7 +3,6 @@ import GameButton from "@/components/ui/buttons/GameButton.tsx";
 import { getBotPersonaLabel } from "@/components/ui/display/BotChips.tsx";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { useBotTraceStore } from "@/stores/botTraceStore.ts";
-import { useDebugHexHighlightStore } from "@/stores/debugHexHighlightStore.ts";
 import {
   MessageTypeBotInspect,
   type BotCallDto,
@@ -370,24 +369,12 @@ const PlanTab: React.FC<{
   plan: BotPlanDto;
   planUpdatedAt?: string;
   grudges: BotGrudgeDto[];
-  showOnBoard: boolean;
-  onShowOnBoardChange: (value: boolean) => void;
-}> = ({ plan, planUpdatedAt, grudges, showOnBoard, onShowOnBoardChange }) => {
+}> = ({ plan, planUpdatedAt, grudges }) => {
   const nextMoves = plan.nextMoves ?? [];
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <UpdatedAgo at={planUpdatedAt} />
-        <label className="flex items-center gap-2 font-orbitron text-[11px] text-white cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showOnBoard}
-            onChange={(e) => onShowOnBoardChange(e.target.checked)}
-            className="cursor-pointer"
-            style={{ accentColor: "#a855f7" }}
-          />
-          Show plan on board
-        </label>
       </div>
       {!planUpdatedAt && <div className="text-xs text-white/50">The bot has no plan yet.</div>}
       <div>
@@ -598,7 +585,6 @@ const BotInspectorPage: React.FC<BotInspectorPageProps> = ({ gameState }) => {
   );
   const [selectedId, setSelectedId] = useState("");
   const [tab, setTab] = useState<InspectorTab>("plan");
-  const [showOnBoard, setShowOnBoard] = useState(false);
 
   const selectedBot = bots.find((bot) => bot.id === selectedId) ?? bots[0];
   const botId = selectedBot?.id ?? "";
@@ -608,24 +594,6 @@ const BotInspectorPage: React.FC<BotInspectorPageProps> = ({ gameState }) => {
 
   const trace = useBotTraceStore((state) => state.trace);
   const error = useBotTraceStore((state) => state.error);
-  const setHexes = useDebugHexHighlightStore((state) => state.setHexes);
-  const clearHexes = useDebugHexHighlightStore((state) => state.clear);
-
-  useEffect(() => {
-    setShowOnBoard(false);
-  }, [botId]);
-
-  const wantedHexes = trace?.plan.wantedHexes;
-  useEffect(() => {
-    if (showOnBoard && wantedHexes) {
-      setHexes(wantedHexes);
-    } else {
-      clearHexes();
-    }
-  }, [showOnBoard, wantedHexes, setHexes, clearHexes]);
-
-  useEffect(() => clearHexes, [clearHexes]);
-
   if (bots.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
@@ -665,8 +633,6 @@ const BotInspectorPage: React.FC<BotInspectorPageProps> = ({ gameState }) => {
           plan={trace.plan}
           planUpdatedAt={trace.planUpdatedAt}
           grudges={trace.grudges ?? []}
-          showOnBoard={showOnBoard}
-          onShowOnBoardChange={setShowOnBoard}
         />
       );
     } else if (tab === "history") {

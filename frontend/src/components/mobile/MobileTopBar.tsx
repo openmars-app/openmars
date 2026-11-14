@@ -1,11 +1,11 @@
-import { useCallback, useRef, useState } from "react";
+import TravelPopover from "../ui/popover/TravelPopover";
+import { useCallback, useState, useRef } from "react";
 import type { GameDto, OtherPlayerDto, PlayerDto } from "@/types/generated/api-types.ts";
 import { Z_INDEX } from "@/constants/zIndex.ts";
 import { getPhaseDisplayName } from "@/constants/gameConstants.ts";
 import { isPlayerActionPhase } from "@/utils/actionUtils.ts";
 import { usePassAction } from "@/hooks/usePassAction.ts";
 import { GameMenuItems } from "../ui/GameHamburgerMenu.tsx";
-import TravelPopover from "../ui/popover/TravelPopover.tsx";
 import GameButton from "../ui/buttons/GameButton.tsx";
 import PassConfirmDialog from "../ui/modals/PassConfirmDialog.tsx";
 import { useMobileGame } from "./MobileGameContext.tsx";
@@ -73,14 +73,14 @@ export default function MobileTopBar({
   const { gameState, currentPlayer, isSpectator, isReplay, onLeaveGame, onEndGame } =
     useMobileGame();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [travelOpen, setTravelOpen] = useState(false);
   const [modeRulesOpen, setModeRulesOpen] = useState(false);
+  const [travelOpen, setTravelOpen] = useState(false);
+  const travelButtonRef = useRef<HTMLButtonElement>(null);
   const gameMode = gameState.settings.availableGameModes.find(
     (mode) => mode.id === gameState.settings.gameModeId,
   );
   const supportLabel = earthSupportLabel(gameState);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
-  const travelButtonRef = useRef<HTMLButtonElement>(null);
 
   const pass = usePassAction({
     player: currentPlayer,
@@ -152,6 +152,13 @@ export default function MobileTopBar({
         </GameButton>
       )}
 
+      {showActions && (
+        <TravelPopover
+          isVisible={travelOpen}
+          onClose={() => setTravelOpen(false)}
+          anchorRef={travelButtonRef}
+        />
+      )}
       {showActions && gameMode && (
         <GameButton
           shape="toolbar"
@@ -167,6 +174,7 @@ export default function MobileTopBar({
           GAMEMODE
         </GameButton>
       )}
+
       {showActions && (
         <GameButton
           ref={travelButtonRef}
@@ -194,13 +202,6 @@ export default function MobileTopBar({
         </GameButton>
       )}
 
-      {showActions && (
-        <TravelPopover
-          isVisible={travelOpen}
-          onClose={() => setTravelOpen(false)}
-          anchorRef={travelButtonRef}
-        />
-      )}
       {showActions && gameMode && (
         <GameModeRules
           mode={gameMode}

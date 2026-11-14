@@ -62,6 +62,8 @@ const MapPreview: React.FC<MapPreviewProps> = ({ tiles }) => {
 
   return (
     <svg
+      role="img"
+      aria-label="Map preview"
       viewBox={`${minX} ${minY} ${width} ${height}`}
       width={width * 1.2}
       height={height * 1.2}

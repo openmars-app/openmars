@@ -1,0 +1,54 @@
+[workspace]
+members = ["scene", "asset-pipeline", "preparation"]
+resolver = "3"
+
+[package]
+name = "openmars-engine"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99.1"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["webgpu"]
+webgpu = ["bevy/webgpu", "wgpu/webgpu"]
+webgl2 = ["bevy/webgl2", "wgpu/webgl"]
+
+[dependencies]
+wgpu = { version = "=30.0.1", default-features = false, features = ["wgsl"] }
+openmars-scene = { path = "scene" }
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+bevy = { version = "=0.20.1", default-features = false, features = [
+    "std", "async_executor", "bevy_asset", "bevy_color", "bevy_core_pipeline",
+    "bevy_anti_alias", "bevy_render", "bevy_image", "bevy_camera", "bevy_mesh", "bevy_shader",
+    "bevy_text", "bevy_ui", "bevy_ui_render", "bevy_window", "default_font",
+    "bevy_pbr", "bevy_light", "bevy_scene", "bevy_world_serialization", "bevy_gltf", "bevy_animation", "gltf_animation",
+    "png", "jpeg", "webp", "ktx2", "zlib",
+    "reflect_auto_register", "debug",
+] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "=0.2.129"
+wasm-bindgen-futures = "=0.4.79"
+web-sys = { version = "=0.3.106", features = ["HtmlCanvasElement", "console"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+
+[profile.profiling]
+inherits = "release"
+debug = 1
+strip = false

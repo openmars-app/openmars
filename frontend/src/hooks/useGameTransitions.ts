@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { useEngineStore } from "@/stores/engineStore";
+import { isGameSceneReady } from "@/engine/status";
 import { useGameStore } from "@/stores/gameStore.ts";
 import { useUIOverlayStore } from "@/stores/uiOverlayStore.ts";
 import { useAppPhaseStore, gameIdOf, isInGameWorld } from "@/stores/appPhaseStore.ts";
@@ -23,6 +25,7 @@ export function useGameTransitions(
   const gamePhase = useGameStore((s) => s.game?.currentPhase);
   const gameStatus = useGameStore((s) => s.game?.status);
   const gameId = useGameStore((s) => s.game?.id);
+  const mapId = useGameStore((s) => s.game?.settings.mapId);
   const isConnected = useGameStore((s) => s.isConnected);
   const corpData = useGameStore((s) => s.currentPlayer?.corporation);
   const productionPhase = useGameStore((s) => s.currentPlayer?.productionPhase);
@@ -53,19 +56,20 @@ export function useGameTransitions(
   const currentPlayerId = useGameStore((s) => s.currentPlayer?.id);
 
   const phase = useAppPhaseStore((s) => s.phase);
-  const isSkyboxReady = useAppPhaseStore((s) => s.isSkyboxReady);
-  const isGpuReady = useAppPhaseStore((s) => s.isGpuReady);
+  const isEngineReady = useEngineStore((s) => isGameSceneReady(s.status, gameId, mapId));
+  const isCurrentGame = gameId !== undefined && gameIdOf(phase) === gameId;
 
-  const isLobbyPhase = gameStatus === GameStatusLobby;
+  const isLobbyPhase = isCurrentGame && gameStatus === GameStatusLobby;
 
   const isStartingSelectionPhase =
-    gameStatus === GameStatusActive && gamePhase === GamePhaseStartingSelection;
+    isCurrentGame && gameStatus === GameStatusActive && gamePhase === GamePhaseStartingSelection;
 
   const isInitApplyPhase =
+    isCurrentGame &&
     gameStatus === GameStatusActive &&
     (gamePhase === GamePhaseInitApplyCorp || gamePhase === GamePhaseInitApplyPrelude);
 
-  const wasInLobby = useRef(false);
+  const lobbyGameId = useRef<string | null>(null);
   const isInitialMount = useRef(true);
   const loadingEnteredAt = useRef<number | null>(null);
 
@@ -240,7 +244,7 @@ export function useGameTransitions(
   useEffect(() => {
     const { setPhase } = useAppPhaseStore.getState();
     const activeGameId = gameId ?? gameIdOf(phase);
-    if (!activeGameId) {
+    if (!activeGameId || !isCurrentGame) {
       return;
     }
 
@@ -248,16 +252,16 @@ export function useGameTransitions(
       if (phase.kind !== "lobby") {
         setPhase({ kind: "lobby", gameId: activeGameId });
       }
-      wasInLobby.current = true;
+      lobbyGameId.current = activeGameId;
       return;
     }
 
-    if (!wasInLobby.current || phase.kind !== "lobby") {
+    if (lobbyGameId.current !== activeGameId || phase.kind !== "lobby") {
       return;
     }
 
     setPhase({ kind: "loading", gameId: activeGameId });
-  }, [isLobbyPhase, gameId, phase]);
+  }, [isLobbyPhase, gameId, phase, isCurrentGame]);
 
   useEffect(() => {
     if (phase.kind !== "loading") {
@@ -267,7 +271,7 @@ export function useGameTransitions(
     if (loadingEnteredAt.current === null) {
       loadingEnteredAt.current = Date.now();
     }
-    if (!isSkyboxReady || !isGpuReady) {
+    if (!isEngineReady) {
       return;
     }
     const activeGameId = phase.gameId;
@@ -282,7 +286,7 @@ export function useGameTransitions(
     }
     const timer = window.setTimeout(advance, remaining);
     return () => window.clearTimeout(timer);
-  }, [phase, isSkyboxReady, isGpuReady]);
+  }, [phase, isEngineReady]);
 
   useEffect(() => {
     const { setPhase } = useAppPhaseStore.getState();
@@ -392,25 +396,24 @@ export function useGameTransitions(
         phase.kind === "selecting" ||
         phase.kind === "joining" ||
         phase.kind === "spectating") &&
-      !wasInLobby.current &&
-      isSkyboxReady &&
-      isGpuReady
+      lobbyGameId.current !== activeGameId &&
+      isEngineReady
     ) {
       useAppPhaseStore.getState().setPhase({ kind: "marsRevealed", gameId: activeGameId });
     }
-  }, [isStartingSelectionPhase, phase, isSkyboxReady, isGpuReady, gameId]);
+  }, [isStartingSelectionPhase, phase, isEngineReady, gameId]);
 
   useEffect(() => {
-    if (gameStatus !== GameStatusActive) {
+    if (!isCurrentGame || gameStatus !== GameStatusActive) {
       return;
     }
     if (isLobbyPhase || isStartingSelectionPhase) {
       return;
     }
-    if (!isSkyboxReady || !isGpuReady) {
+    if (!isEngineReady) {
       return;
     }
-    if (wasInLobby.current) {
+    if (lobbyGameId.current === gameId) {
       return;
     }
     const activeGameId = gameId ?? gameIdOf(phase);
@@ -433,14 +436,17 @@ export function useGameTransitions(
     isLobbyPhase,
     isStartingSelectionPhase,
     isInitApplyPhase,
-    isSkyboxReady,
-    isGpuReady,
+    isEngineReady,
+    isCurrentGame,
     gameId,
     phase,
   ]);
 
   useEffect(() => {
-    if (gameStatus !== GameStatusCompleted) {
+    if (!isCurrentGame || gameStatus !== GameStatusCompleted) {
+      return;
+    }
+    if (!isEngineReady) {
       return;
     }
     const activeGameId = gameId ?? gameIdOf(phase);
@@ -450,7 +456,7 @@ export function useGameTransitions(
     if (phase.kind !== "completed") {
       useAppPhaseStore.getState().setPhase({ kind: "completed", gameId: activeGameId });
     }
-  }, [gameStatus, gameId, phase]);
+  }, [gameStatus, gameId, phase, isCurrentGame, isEngineReady]);
 
   useEffect(() => {
     if (!isInitApplyPhase || !initPhase?.waitingForConfirm) {

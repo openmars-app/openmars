@@ -1,5 +1,6 @@
+import TravelPopover from "../../ui/popover/TravelPopover";
+import { useEngineStore } from "@/stores/engineStore";
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { usePlanetFocus } from "../../../contexts/PlanetFocusContext.tsx";
 import {
   GameDto,
   GamePhaseAction,
@@ -13,7 +14,6 @@ import { StandardProject } from "@/types/cards.tsx";
 import { Z_INDEX } from "@/constants/zIndex";
 import { canPerformActions } from "@/utils/actionUtils.ts";
 import GameHamburgerMenu from "../../ui/GameHamburgerMenu.tsx";
-import TravelPopover from "../../ui/popover/TravelPopover.tsx";
 import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx";
 import MilestonePopover from "../../ui/popover/MilestonePopover.tsx";
 import AwardPopover from "../../ui/popover/AwardPopover.tsx";
@@ -118,14 +118,14 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
   minimal = false,
   contentClassName = "",
 }) => {
-  const { activePlanet } = usePlanetFocus();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showTravelPopover, setShowTravelPopover] = useState(false);
   const [showModeRules, setShowModeRules] = useState(false);
+  const [showTravelPopover, setShowTravelPopover] = useState(false);
+  const travelButtonRef = useRef<HTMLButtonElement>(null);
+  const isSolarOverview = useEngineStore((state) => state.focus.type === "solar-system");
   const gameMode = gameState.settings.availableGameModes.find(
     (mode) => mode.id === gameState.settings.gameModeId,
   );
-  const travelButtonRef = useRef<HTMLButtonElement>(null);
 
   const [spectatorsOpen, setSpectatorsOpen] = useState(false);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
@@ -232,8 +232,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
         >
           <div className="flex justify-between items-center h-[60px] max-lg:h-[50px] max-md:flex-wrap">
             <div
-              className={`flex max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5 origin-top-left transition-opacity duration-500 ease-in-out ${activePlanet === "solar-system" ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"}`}
-              inert={activePlanet === "solar-system"}
+              className={`flex max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5 origin-top-left transition-opacity duration-500 ease-in-out pointer-events-auto`}
               style={{ transform: `scale(${topBarScale})` }}
             >
               {!isInitPhase &&
@@ -352,12 +351,8 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
 
           {!isInitPhase && !isEndgame && (
             <div
-              className={`absolute left-1/2 top-0 h-[60px] max-lg:h-[50px] flex items-center origin-top transition-opacity duration-500 ease-in-out ${
-                activePlanet === "solar-system"
-                  ? "opacity-0 pointer-events-none"
-                  : "opacity-100 pointer-events-auto"
-              }`}
-              inert={activePlanet === "solar-system"}
+              className={`absolute left-1/2 top-0 h-[60px] max-lg:h-[50px] flex items-center origin-top transition-opacity duration-500 ease-in-out ${isSolarOverview ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"}`}
+              inert={isSolarOverview}
               style={{ transform: `translateX(-50%) scale(${topBarScale})` }}
             >
               <MilestoneAwardStatusStrip />

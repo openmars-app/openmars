@@ -6,12 +6,19 @@ interface LobbyMapInfoPanelProps {
   game: GameDto;
   playerId: string;
   layout?: "stacked" | "split";
+  section?: "all" | "map" | "settings";
 }
 
-export default function LobbyMapInfoPanel({ game, playerId, layout }: LobbyMapInfoPanelProps) {
+export default function LobbyMapInfoPanel({
+  game,
+  playerId,
+  layout,
+  section,
+}: LobbyMapInfoPanelProps) {
   return (
     <GameSetupControls
       layout={layout}
+      section={section}
       maps={game.settings.availableMaps ?? []}
       mapId={game.settings.mapId}
       modes={game.settings.availableGameModes}

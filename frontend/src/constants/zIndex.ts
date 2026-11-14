@@ -83,6 +83,7 @@ export const Z_INDEX = {
 
   // Loading overlay - above everything
   LOADING_OVERLAY: 99999,
+  ENGINE_ERROR: 99999,
   FLOATING_TOOLTIP: 99999,
   DRAG_SHIELD: 99999,
   // Asks phone players in portrait to rotate; covers the game, including the loading overlay

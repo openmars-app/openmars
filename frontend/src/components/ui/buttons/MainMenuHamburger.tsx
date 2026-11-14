@@ -17,6 +17,7 @@ import {
   ServerIcon,
   CardsIcon,
   ChangelogIcon,
+  SettingsIcon,
 } from "../menuIcons.tsx";
 import MobileMenuDrawer, { MobileMenuButton } from "../../mobile/MobileMenuDrawer.tsx";
 import { Z_INDEX } from "@/constants/zIndex.ts";
@@ -136,6 +137,14 @@ export const MainMenuItems: React.FC<MainMenuProps & { onClose: () => void }> = 
         </>
       )}
       <SoundToggleButton />
+      <MenuPopoverItem
+        icon={<SettingsIcon />}
+        label="Settings"
+        onClick={() => {
+          onClose();
+          useUIOverlayStore.getState().setShowSettings(true);
+        }}
+      />
       {fullscreenSupported && (
         <>
           <MenuPopoverDivider />

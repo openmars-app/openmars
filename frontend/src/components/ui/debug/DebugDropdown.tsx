@@ -11,10 +11,6 @@ import PlaceTilePage from "./panels/PlaceTilePage.tsx";
 import GameCommandsPage from "./panels/GameCommandsPage.tsx";
 import TurnCommandsPage from "./panels/TurnCommandsPage.tsx";
 import BotInspectorPage from "./panels/BotInspectorPage.tsx";
-import World3DCameraPage from "./panels/World3DCameraPage.tsx";
-import World3DSunPage from "./panels/World3DSunPage.tsx";
-import World3DSkyboxPage from "./panels/World3DSkyboxPage.tsx";
-import World3DClimatePage from "./panels/World3DClimatePage.tsx";
 
 const WINDOW_ID = "admin-tools";
 const WINDOW_WIDTH = 780;
@@ -36,7 +32,10 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
   onOpenUIDebug,
 }) => {
   const [activeItem, setActiveItem] = useState<ActiveItem>("game-state");
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
+  const [playerSelection, setPlayerSelection] = useState<{
+    gameId: string | null;
+    playerId: string;
+  }>({ gameId: null, playerId: "" });
 
   const { position, handleMouseDown } = useWindowDrag({
     windowId: WINDOW_ID,
@@ -48,20 +47,30 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
 
   const { getZIndex } = useWindowManager();
 
-  const allPlayers = gameState ? [gameState.currentPlayer, ...gameState.otherPlayers] : [];
+  const gameId = gameState?.id ?? null;
+  const allPlayers = gameState
+    ? [gameState.currentPlayer, ...gameState.otherPlayers].filter((player) => player?.id)
+    : [];
+  const preferredPlayerId = playerSelection.gameId === gameId ? playerSelection.playerId : "";
+  const selectedPlayerId =
+    allPlayers.find((player) => player.id === preferredPlayerId)?.id ?? allPlayers[0]?.id ?? "";
+  const setSelectedPlayerId = (playerId: string) => setPlayerSelection({ gameId, playerId });
 
   useEffect(() => {
-    if (allPlayers.length > 0 && !selectedPlayerId) {
-      setSelectedPlayerId(allPlayers[0].id);
-    }
-  }, [allPlayers.length]);
+    // Resolve against the current roster before rendering any player commands.
+    // A native select can display its first option while still holding a stale ID.
+    setPlayerSelection((previous) =>
+      previous.gameId === gameId && previous.playerId === selectedPlayerId
+        ? previous
+        : { gameId, playerId: selectedPlayerId },
+    );
+  }, [gameId, selectedPlayerId]);
 
   if (!isVisible) {
     return null;
   }
 
-  const is3DItem = (item: ActiveItem) => item.startsWith("3d-");
-  const isCommandItem = (item: ActiveItem) => item !== "game-state" && !is3DItem(item);
+  const isCommandItem = (item: ActiveItem) => item !== "game-state";
   const contentOverflow = (item: ActiveItem) => {
     if (item === "bots") {
       return "hidden";
@@ -72,19 +81,6 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
   const renderContent = () => {
     if (activeItem === "game-state") {
       return <GameStatePanel gameState={gameState} changedPaths={changedPaths} />;
-    }
-
-    if (activeItem === "3d-camera") {
-      return <World3DCameraPage />;
-    }
-    if (activeItem === "3d-sun") {
-      return <World3DSunPage />;
-    }
-    if (activeItem === "3d-skybox") {
-      return <World3DSkyboxPage />;
-    }
-    if (activeItem === "3d-climate") {
-      return <World3DClimatePage gameState={gameState} />;
     }
 
     if (!gameState) {

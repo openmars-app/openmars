@@ -48,11 +48,66 @@
   "copy": {
     "copy": true
   },
+  "environment": {
+    "environment": {
+      "faceSize": 2048,
+      "recipe": "ordinary-linear",
+      "samples": 16,
+      "encoding": "rgb9e5-ufloat",
+      "faceSizes": [
+        512,
+        1024,
+        2048
+      ]
+    }
+  },
   "branding": {
     "sizes": [
       768,
       1536
     ],
     "quality": 95
+  },
+  "terrain-color-array": {
+    "textureArray": {
+      "size": 1024,
+      "srgb": true,
+      "sizes": [
+        256,
+        512,
+        1024
+      ]
+    }
+  },
+  "terrain-detail-array": {
+    "textureArray": {
+      "size": 1024,
+      "srgb": false,
+      "sizes": [
+        256,
+        512,
+        1024
+      ]
+    }
+  },
+  "environment-diffuse": {
+    "environment": {
+      "faceSize": 32,
+      "recipe": "normalized-irradiance",
+      "samples": 0,
+      "diffuseGrid": {
+        "width": 128,
+        "height": 64
+      },
+      "encoding": "rgba16-float"
+    }
+  },
+  "environment-specular": {
+    "environment": {
+      "faceSize": 128,
+      "recipe": "ggx",
+      "samples": 128,
+      "encoding": "rgba16-float"
+    }
   }
 }

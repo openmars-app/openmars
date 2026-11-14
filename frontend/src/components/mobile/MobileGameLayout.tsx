@@ -8,14 +8,9 @@ import { useAppPhaseStore } from "@/stores/appPhaseStore.ts";
 import { useGameStore } from "@/stores/gameStore.ts";
 import { useUIOverlayStore } from "@/stores/uiOverlayStore.ts";
 import { useMobileUiStore } from "@/stores/mobileUiStore.ts";
-import { usePlanetFocus } from "@/contexts/PlanetFocusContext.tsx";
 import MainContentDisplay from "../ui/display/MainContentDisplay.tsx";
 import CardPlayPresentation from "../ui/overlay/CardPlayPresentation.tsx";
-import {
-  CardInspections,
-  SolarSystemFade,
-  type GameLayoutProps,
-} from "../layout/main/GameLayout.tsx";
+import { CardInspections, type GameLayoutProps } from "../layout/main/GameLayout.tsx";
 import GameConfirmDialogs from "../layout/main/GameConfirmDialogs.tsx";
 import { MobileGameContext, type MobileGameContextValue } from "./MobileGameContext.tsx";
 import MobileScreenHost from "./MobileScreenHost.tsx";
@@ -83,15 +78,10 @@ export default function MobileGameLayout({
   currentPlayer,
   initTurnPlayerId = null,
   showStartingSelection = false,
-  animateHexEntrance = false,
-  startDark = false,
-  tilesHidden = false,
   bottomBarCallbacks,
   onStandardProjectSelect,
   onLeaveGame,
   onEndGame,
-  onSkyboxReady,
-  onGpuReady,
   onPlayerClick,
   spectatingPlayer,
   onStopSpectating,
@@ -121,8 +111,6 @@ export default function MobileGameLayout({
   const uiAnimationClass = isAnimatingIn ? "animate-[uiFadeIn_1200ms_ease-out_both]" : "";
   const earlyUiAnimationClass =
     isShowcase || isAnimatingIn ? "animate-[uiFadeIn_1200ms_ease-out_both]" : "";
-  const { activePlanet } = usePlanetFocus();
-  const inSolarSystem = activePlanet === "solar-system";
 
   const isInitPhase =
     gameState.currentPhase === GamePhaseInitApplyCorp ||
@@ -176,7 +164,7 @@ export default function MobileGameLayout({
 
   return (
     <MobileGameContext.Provider value={contextValue}>
-      <div className="relative w-full h-dvh text-white overflow-hidden">
+      <div className="contents text-white">
         <style>{`
           @keyframes uiFadeIn {
             from { opacity: 0; }
@@ -185,22 +173,15 @@ export default function MobileGameLayout({
         `}</style>
 
         {phase.kind !== "lobby" && (
-          <div className="absolute inset-0 bg-[#000000]">
-            <MainContentDisplay
-              gameState={gameState}
-              animateHexEntrance={animateHexEntrance}
-              startDark={startDark}
-              tilesHidden={tilesHidden}
-              onSkyboxReady={onSkyboxReady}
-              onGpuReady={onGpuReady}
-              showUI={showUI}
-              uiAnimationClass={uiAnimationClass}
-            />
-          </div>
+          <MainContentDisplay
+            gameState={gameState}
+            showUI={showUI}
+            uiAnimationClass={uiAnimationClass}
+          />
         )}
 
         {showUI && (
-          <SolarSystemFade>
+          <>
             <CardPlayPresentation chatBounds={null} />
             <CardInspections
               store={inspectionStore}
@@ -209,7 +190,7 @@ export default function MobileGameLayout({
               chatBounds={null}
               onDrag={onInspectionDrag}
             />
-          </SolarSystemFade>
+          </>
         )}
 
         {showUI && !showStartingSelection && (
@@ -221,19 +202,17 @@ export default function MobileGameLayout({
             className={earlyUiAnimationClass}
           />
         )}
-        {showHud && !showStartingSelection && !inSolarSystem && (
+        {showHud && !showStartingSelection && (
           <MobileResourceRail spectatingPlayer={spectatingPlayer} className={uiAnimationClass} />
         )}
         {showUI && !isCompleted && (
           <MobileStatusRail
             turnPlayerId={turnPlayerId}
-            showParameters={showHud && !inSolarSystem}
+            showParameters={showHud}
             className={earlyUiAnimationClass}
           />
         )}
-        {showHud && !showStartingSelection && !inSolarSystem && (
-          <MobileDock className={uiAnimationClass} />
-        )}
+        {showHud && !showStartingSelection && <MobileDock className={uiAnimationClass} />}
 
         {showHud && !showStartingSelection && (
           <MobileFeedbackFeed

@@ -26,6 +26,7 @@ func ToSpectatorGameDto(g *game.Game, cardRegistry cards.CardRegistry, awardRegi
 	settings := g.Settings()
 	settingsDto := GameSettingsDto{
 		MaxPlayers:      settings.MaxPlayers,
+		MapID:           settings.MapID,
 		DevelopmentMode: settings.DevelopmentMode,
 		DemoGame:        settings.DemoGame,
 		AllowRandomBuy:  settings.AllowRandomBuy,

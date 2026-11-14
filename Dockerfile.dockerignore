@@ -4,6 +4,9 @@
 **/.cache
 .git
 output
+tmp/
+frontend/test-results/
+frontend/playwright-report/
 frontend/src/assets/generated
 frontend/public/assets
 **/.env
@@ -12,3 +15,7 @@ backend/bin
 backend/tmp
 **/coverage.out
 **/coverage.html
+
+engine/target/
+engine/pkg/
+engine/.tools/

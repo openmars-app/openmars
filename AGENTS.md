@@ -4,7 +4,7 @@ Open Mars is a multiplayer Terraforming Mars game with a Go backend, React front
 
 ## Commands
 
-Run commands from the repository root unless stated otherwise. Tasks use `just`; run `just` to list recipes. Modules are `backend`, `frontend`, and `proxy` (the gateway). Inside a module directory, omit its prefix.
+Run commands from the repository root unless stated otherwise. Tasks use `just`; run `just` to list recipes. Modules are `backend`, `frontend`, `engine` (Bevy/WebGPU/WebGL2), and `proxy` (the gateway). Inside a module directory, omit its prefix.
 
 ```sh
 just deps                    # Install dependencies for all modules
@@ -34,9 +34,14 @@ Go tools are pinned in [backend/go.mod](backend/go.mod) and [backend/golangci-li
 
 ## Before staging or publishing
 
-`just prepare-for-commit` must pass for the final file state before `git add`, `git commit`, `git push`, or PR creation. It formats sources, regenerates types, and runs `just check`.
+Match verification to the scope of the change before committing, pushing, or opening a PR:
 
-A successful run covers subsequent Git operations while the file state is unchanged. Subsequent file edits invalidate it and require another run. Resolve check failures before proceeding; Git operations alone do not invalidate a successful run.
+- For focused code changes, run the affected test suites and any suites that depend on the changed behavior or contracts. Run the relevant formatting, lint, type and build checks. Unrelated modules do not need to be checked.
+- For example, a backend-only test fix requires backend checks; it does not require frontend or renderer tests. If a client-facing DTO changes, regenerate the types and check its frontend consumers too.
+- Documentation-only changes need a review of the text, links and formatting, not application tests.
+- After a large change, such as a migration, broad refactor, or change spanning several modules, run `just prepare-for-commit`. It formats sources, regenerates types and runs every CI check.
+
+Successful checks cover later Git operations while the relevant files remain unchanged. If those files change, rerun the affected checks. Fix failures before publishing; Git operations alone do not require another test run.
 
 ## Scoped guidance
 
@@ -47,7 +52,7 @@ Read the applicable instruction files when working in their directories, includi
 - [Game state](backend/internal/game/AGENTS.md), [shared conditions](backend/internal/game/shared/AGENTS.md), and [DTOs](backend/internal/delivery/dto/AGENTS.md): domain events, condition extensions, and the client contract.
 - [Backend tests](backend/test/AGENTS.md) and [card-family tests](backend/test/action/card_packs/AGENTS.md): harness synchronization and organization.
 - [Frontend](frontend/AGENTS.md): app phases, mobile layout, UI conventions, and verification.
-- [Board rendering](frontend/src/components/game/board/AGENTS.md) and [card behavior rendering](frontend/src/components/ui/cards/BehaviorSection/AGENTS.md): rendering-specific constraints.
+- [Card behavior rendering](frontend/src/components/ui/cards/BehaviorSection/AGENTS.md): rendering-specific constraints.
 
 `AGENTS.md` is the maintained source; edit it directly and retain the matching `CLAUDE.md` symlinks.
 

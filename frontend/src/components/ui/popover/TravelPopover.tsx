@@ -1,10 +1,12 @@
 import GameButton from "@/components/ui/buttons/GameButton.tsx";
 import React from "react";
 import GamePopover from "../GamePopover/GamePopover";
-import { usePlanetFocus, type PlanetTarget } from "../../../contexts/PlanetFocusContext";
+import { audioService } from "@/services/audioService";
+import { useEngineStore } from "@/stores/engineStore";
+import type { BodyId } from "@/engine/scene.generated";
 
 interface TravelDestination {
-  id: PlanetTarget;
+  id: BodyId | "solar-system";
   name: string;
 }
 
@@ -28,26 +30,21 @@ interface TravelPopoverProps {
 }
 
 export default function TravelPopover({ isVisible, onClose, anchorRef }: TravelPopoverProps) {
-  const { activePlanet, setActivePlanet } = usePlanetFocus();
-
-  return (
-    <TravelPopoverView
-      isVisible={isVisible}
-      onClose={onClose}
-      anchorRef={anchorRef}
-      activePlanet={activePlanet}
-      onTravel={setActivePlanet}
-    />
-  );
-}
-
-export function TravelPopoverView({
-  isVisible,
-  onClose,
-  anchorRef,
-  activePlanet,
-  onTravel,
-}: TravelPopoverProps & { activePlanet: PlanetTarget; onTravel: (planet: PlanetTarget) => void }) {
+  const focus = useEngineStore((state) => state.focus);
+  const setFocus = useEngineStore((state) => state.setFocus);
+  let activePlanet: BodyId | "solar-system" | "orbital-station" = "mars";
+  if (focus.type !== "body") {
+    activePlanet = focus.type;
+  }
+  if (focus.type === "body") {
+    activePlanet = focus.body;
+    if (focus.body === "luna") {
+      activePlanet = "earth";
+    }
+    if (focus.body === "ganymede") {
+      activePlanet = "jupiter";
+    }
+  }
   return (
     <GamePopover
       isVisible={isVisible}
@@ -66,6 +63,7 @@ export function TravelPopoverView({
           return (
             <GameButton
               emphasis="quiet"
+              aria-current={isCurrent ? "location" : undefined}
               key={dest.id}
               style={
                 {
@@ -75,11 +73,16 @@ export function TravelPopoverView({
               }
               onClick={() => {
                 if (!isCurrent) {
-                  onTravel(dest.id);
+                  void audioService.playTravelSound();
+                  setFocus(
+                    dest.id === "solar-system"
+                      ? { type: "solar-system" }
+                      : { type: "body", body: dest.id },
+                  );
                 }
                 onClose();
               }}
-              className={`popover-list-item flex items-center justify-start text-left px-3 py-2 rounded-none border transition-all duration-150 ${
+              className={`popover-list-item flex items-center justify-start text-left px-3 py-2 min-h-11 rounded-none border transition-all duration-150 ${
                 isCurrent
                   ? "border-white/30 bg-white/10 opacity-50 cursor-default"
                   : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/15 cursor-pointer"

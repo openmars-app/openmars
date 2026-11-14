@@ -39,7 +39,7 @@ for (const mode of modes) {
   }
 }
 const originalDir = path.join(repoRoot, "assets/original");
-const sources = new Set(entries.map((entry) => entry.source));
+const sources = new Set(entries.flatMap((entry) => (entry.source ? [entry.source] : [])));
 for (const relative of await fs.readdir(originalDir, { recursive: true })) {
   if ((await fs.stat(path.join(originalDir, relative))).isFile() && !sources.has(relative)) {
     throw new Error(`Uncatalogued original: ${relative}`);

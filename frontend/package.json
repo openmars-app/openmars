@@ -4,30 +4,27 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run assets && vite",
-    "build": "bun run assets && vite build",
+    "dev": "bun run engine && bun run assets && vite",
+    "build": "bun run engine && bun run assets && vite build",
     "preview": "vite preview",
-    "lint": "oxlint src scripts/assets scripts/inspect tests --ignore-pattern src/assets/generated",
-    "typecheck": "bun run assets && tsc --noEmit && tsc -p scripts/assets/tsconfig.json && tsc -p tests/tsconfig.json && tsc -p scripts/inspect/tsconfig.json",
-    "format": "oxfmt --check src scripts/assets scripts/inspect tests playwright.config.ts --ignore-path .prettierignore",
-    "format:write": "oxfmt --write src scripts/assets scripts/inspect tests playwright.config.ts --ignore-path .prettierignore",
-    "assets": "node scripts/assets/build.ts",
-    "assets:check": "node scripts/assets/check.ts",
-    "assets:preview": "node scripts/assets/preview.ts",
+    "lint": "oxlint src scripts/assets scripts/engine tests --ignore-pattern src/assets/generated && cd .. && frontend/node_modules/.bin/oxlint engine/build.ts",
+    "typecheck": "bun run engine && bun run assets && tsc --noEmit && tsc -p scripts/assets/tsconfig.json && tsc -p tests/tsconfig.json && tsc -p scripts/engine/tsconfig.json",
+    "format": "oxfmt --check src scripts/assets scripts/engine tests playwright.config.ts --ignore-path .prettierignore && cd .. && frontend/node_modules/.bin/oxfmt --check engine/build.ts",
+    "format:write": "oxfmt --write src scripts/assets scripts/engine tests playwright.config.ts --ignore-path .prettierignore && cd .. && frontend/node_modules/.bin/oxfmt --write engine/build.ts",
+    "assets": "bun scripts/assets/build.ts",
+    "assets:check": "bun scripts/assets/check.ts",
+    "assets:preview": "bun scripts/assets/preview.ts",
     "assets:test": "bun test scripts/assets",
-    "inspect": "bun scripts/inspect/cli.ts"
+    "engine": "bun ../engine/build.ts",
+    "engine:test": "bun test scripts/engine"
   },
   "dependencies": {
-    "@react-three/drei": "^10.7.9",
-    "@react-three/fiber": "^9.8.1",
     "@tanstack/react-virtual": "^3.14.13",
-    "@types/three": "^0.186.0",
     "html2canvas": "^1.4.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
     "recharts": "^3.10.1",
-    "three": "^0.186.1",
     "uuid": "^14.0.2",
     "zustand": "^5.0.15"
   },
@@ -64,7 +61,6 @@
     ]
   },
   "engines": {
-    "node": ">=26.10.0",
     "bun": ">=1.4.2"
   },
   "packageManager": "bun@1.4.2"

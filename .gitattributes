@@ -13,3 +13,6 @@ changelog/**/*.png filter=lfs diff=lfs merge=lfs -text
 changelog/**/*.jpg filter=lfs diff=lfs merge=lfs -text
 changelog/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
 changelog/**/*.webp filter=lfs diff=lfs merge=lfs -text
+
+# Current README screenshots
+docs/img/*.png filter=lfs diff=lfs merge=lfs -text

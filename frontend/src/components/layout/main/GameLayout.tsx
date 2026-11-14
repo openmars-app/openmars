@@ -4,7 +4,6 @@ import { useStore } from "zustand";
 import LeftSidebar from "../panels/LeftSidebar.tsx";
 import type { PlayerListHandle } from "../../ui/list/PlayerList.tsx";
 import TopMenuBar from "../panels/TopMenuBar.tsx";
-import { usePlanetFocus } from "../../../contexts/PlanetFocusContext.tsx";
 import RightSidebar from "../panels/RightSidebar.tsx";
 import MainContentDisplay from "../../ui/display/MainContentDisplay.tsx";
 
@@ -33,14 +32,6 @@ import CardInspection from "../../ui/overlay/CardInspection.tsx";
 import type { PlayerCardDto } from "@/types/generated/api-types.ts";
 import ChatOverlay from "../../ui/overlay/ChatOverlay.tsx";
 
-export function SolarSystemFade({ children }: { children: React.ReactNode }) {
-  const { activePlanet } = usePlanetFocus();
-  if (activePlanet === "solar-system") {
-    return null;
-  }
-  return <>{children}</>;
-}
-
 export interface GameLayoutProps {
   gameState: GameDto;
   inspectionStore: CardInspectionStore;
@@ -52,17 +43,12 @@ export interface GameLayoutProps {
   corporationCard?: CardDto | null;
   initTurnPlayerId?: string | null;
   showStartingSelection?: boolean;
-  animateHexEntrance?: boolean;
-  startDark?: boolean;
-  tilesHidden?: boolean;
   changedPaths?: Set<string>;
   triggeredEffects?: TriggeredEffectDto[];
   bottomBarCallbacks?: BottomResourceBarCallbacks;
   onStandardProjectSelect?: (project: StandardProject) => void;
   onLeaveGame?: () => void;
   onEndGame?: () => void;
-  onSkyboxReady?: () => void;
-  onGpuReady?: () => void;
   onPlayerClick?: (player: PlayerDto | OtherPlayerDto) => void;
   spectatingPlayer?: PlayerDto | OtherPlayerDto | null;
   spectatingCorporation?: CardDto | null;
@@ -140,17 +126,12 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
     corporationCard = null,
     initTurnPlayerId = null,
     showStartingSelection = false,
-    animateHexEntrance = false,
-    startDark = false,
-    tilesHidden = false,
     changedPaths = new Set(),
     triggeredEffects = [],
     bottomBarCallbacks,
     onStandardProjectSelect,
     onLeaveGame,
     onEndGame,
-    onSkyboxReady,
-    onGpuReady,
     onPlayerClick,
     spectatingPlayer,
     spectatingCorporation,
@@ -229,7 +210,7 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
   const endgameFadeClass = endgameFadeUI ? "opacity-0 pointer-events-none" : "opacity-100";
 
   return (
-    <div className="relative w-full h-dvh text-white overflow-hidden">
+    <div className="contents text-white">
       {/* CSS animations for transition */}
       <style>{`
         @keyframes uiFadeIn {
@@ -238,21 +219,12 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
         }
       `}</style>
 
-      {/* Game world canvas: mounted while it should be visible; covers SpaceBackground.
-          Skipped during "lobby" so the persistent SpaceBackground at App level shows through. */}
       {phase.kind !== "lobby" && (
-        <div className="absolute inset-0 bg-[#000000]">
-          <MainContentDisplay
-            gameState={gameState}
-            animateHexEntrance={animateHexEntrance}
-            startDark={startDark}
-            tilesHidden={tilesHidden}
-            onSkyboxReady={onSkyboxReady}
-            onGpuReady={onGpuReady}
-            showUI={showUI}
-            uiAnimationClass={uiAnimationClass}
-          />
-        </div>
+        <MainContentDisplay
+          gameState={gameState}
+          showUI={showUI}
+          uiAnimationClass={uiAnimationClass}
+        />
       )}
 
       {/* TopMenuBar overlays on top — always visible in endgame */}
@@ -279,7 +251,7 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
 
       {/* Chat overlay - rendered before sidebars so it's behind them in z-order */}
       {showHud && !showStartingSelection && chatMessages && onSendChatMessage && (
-        <SolarSystemFade>
+        <>
           <div className={uiAnimationClass}>
             <ChatOverlay
               onBoundsChange={setChatBounds}
@@ -289,11 +261,11 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
               playerColorMap={playerColorMap}
             />
           </div>
-        </SolarSystemFade>
+        </>
       )}
 
       {showUI && (
-        <SolarSystemFade>
+        <>
           <CardPlayPresentation chatBounds={chatBounds} />
           <CardInspections
             store={inspectionStore}
@@ -302,7 +274,7 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
             chatBounds={chatBounds}
             onDrag={onInspectionDrag}
           />
-        </SolarSystemFade>
+        </>
       )}
 
       {/* Player list — stays visible in solar system view */}
@@ -334,7 +306,7 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
 
       {/* Overlay Components — fade out in solar system view */}
       {showHud && (
-        <SolarSystemFade>
+        <>
           <div
             className={`${uiAnimationClass} ${endgameFadeClass} transition-opacity duration-700 ease-in-out`}
           >
@@ -356,14 +328,14 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
               </WithoutInspection>
             )}
           </div>
-        </SolarSystemFade>
+        </>
       )}
 
       {showHud &&
         !showStartingSelection &&
         (gameState?.currentPhase !== GamePhaseComplete ||
           (isEndgame && activeEndgamePanel === "replay")) && (
-          <SolarSystemFade>
+          <>
             <div className={uiAnimationClass}>
               <BottomResourceBar
                 currentPlayer={currentPlayer}
@@ -380,7 +352,7 @@ const GameLayout = forwardRef<PlayerListHandle, GameLayoutProps>(function GameLa
                 isGameSpectator={isGameSpectator}
               />
             </div>
-          </SolarSystemFade>
+          </>
         )}
 
       <GameConfirmDialogs />

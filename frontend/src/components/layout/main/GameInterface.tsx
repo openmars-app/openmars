@@ -1,3 +1,5 @@
+import { useEngineStore } from "@/stores/engineStore";
+import { isGameSceneReady } from "@/engine/status";
 import CardPlaySelectionOverlay from "../../ui/overlay/CardPlaySelectionOverlay";
 import { useResolutionFailure } from "@/hooks/useResolutionFailure";
 import GameExitConfirmDialog from "../../ui/modals/GameExitConfirmDialog";
@@ -7,7 +9,7 @@ import CardRevealOverlay from "@/components/ui/overlay/CardRevealOverlay.tsx";
 import EffectSelectionOverlay from "@/components/ui/overlay/EffectSelectionOverlay.tsx";
 import { lazy, Suspense, useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import GameLayout, { SolarSystemFade, type GameLayoutProps } from "./GameLayout.tsx";
+import GameLayout, { type GameLayoutProps } from "./GameLayout.tsx";
 import MobileGameLayout from "../../mobile/MobileGameLayout.tsx";
 import { useLayoutMode } from "@/hooks/useLayoutMode.ts";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
@@ -71,7 +73,6 @@ import ActionReusePopover from "../../ui/popover/ActionReusePopover.tsx";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { clearGameSession } from "@/utils/sessionStorage.ts";
 import { useSoundEffects } from "@/hooks/useSoundEffects.ts";
-import { useSpaceBackground } from "@/contexts/SpaceBackgroundContext.tsx";
 import { useNotifications } from "@/contexts/NotificationContext.tsx";
 import {
   GamePhaseComplete,
@@ -96,7 +97,6 @@ import { useWebSocketConnection } from "@/hooks/useWebSocketConnection.ts";
 import { useGameInitialization } from "@/hooks/useGameInitialization.ts";
 import { useGameTransitions } from "@/hooks/useGameTransitions.ts";
 import { useGameHotkeys } from "@/hooks/useGameHotkeys.ts";
-import { PlanetFocusProvider } from "../../../contexts/PlanetFocusContext.tsx";
 
 const ARRIVAL_LOADING_DELAY_MS = 600;
 
@@ -198,7 +198,8 @@ export default function GameInterface() {
   const { gameId: urlGameId } = useParams<{ gameId?: string }>();
   const { playProductionSound } = useSoundEffects();
   const { showNotification } = useNotifications();
-  const { isLoaded: isSpaceBgLoaded } = useSpaceBackground();
+  const engineStatus = useEngineStore((s) => s.status);
+  const isEngineReady = engineStatus.phase === "ready";
 
   // Refs that stay in the component
   const cardFanRef = useRef<CardFanOverlayHandle>(null);
@@ -212,6 +213,7 @@ export default function GameInterface() {
 
   // --- Stores ---
   const game = useGameStore((s) => s.game);
+  const isWorldReady = isGameSceneReady(engineStatus, game?.id, game?.settings.mapId);
   const currentPlayer = useGameStore((s) => s.currentPlayer);
   const playerId = useGameStore((s) => s.playerId);
   const isConnected = useGameStore((s) => s.isConnected);
@@ -222,7 +224,6 @@ export default function GameInterface() {
     dismissCurrent: dismissGameEvent,
     enqueue: enqueueGameEvent,
   } = useGameEvent(game, isConnected && !isReconnecting);
-  const reconnectionStep = useGameStore((s) => s.reconnectionStep);
   const gameForSelection = useGameStore((s) => s.gameForSelection);
   const changedPaths = useGameStore((s) => s.changedPaths);
   const triggeredEffects = useGameStore((s) => s.triggeredEffects);
@@ -297,8 +298,6 @@ export default function GameInterface() {
   const showAmountSelection = useCardPlayFlowStore((s) => s.showAmountSelection);
 
   const phase = useAppPhaseStore((s) => s.phase);
-  const isSkyboxReady = useAppPhaseStore((s) => s.isSkyboxReady);
-  const isGpuReady = useAppPhaseStore((s) => s.isGpuReady);
   const marsRevealedReady = useAppPhaseStore((s) => s.marsRevealedReady);
   const lobbyMounted = useAppPhaseStore((s) => s.lobbyMounted);
 
@@ -542,45 +541,8 @@ export default function GameInterface() {
   );
 
   // --- Loading message ---
-  const loadingMessage = (() => {
-    if (phase.kind === "selecting" || phase.kind === "joining" || phase.kind === "spectating") {
-      if (!isSpaceBgLoaded) {
-        return "Loading";
-      }
-      return "Loading game";
-    }
-    if (phase.kind === "checking") {
-      return "Loading game";
-    }
-    if (phase.kind === "connecting") {
-      return "Connecting";
-    }
-    if (isReconnecting && reconnectionStep) {
-      if (reconnectionStep === "game") {
-        return "Reconnecting to game";
-      }
-      if (reconnectionStep === "environment") {
-        return "Loading";
-      }
-    }
-    if (!isSkyboxReady) {
-      return "Loading";
-    }
-    return "Connecting to game";
-  })();
-
-  const loadingSubtitle = (() => {
-    if (!isSkyboxReady || !isGpuReady) {
-      if (isSkyboxReady && !isGpuReady) {
-        return "Preparing renderer";
-      }
-      if (!isSkyboxReady) {
-        return "Preparing environment";
-      }
-      return "Loading assets";
-    }
-    return "";
-  })();
+  const loadingMessage = isEngineReady ? "Connecting to game" : engineStatus.message;
+  const loadingSubtitle = "";
 
   // --- Loading state ---
   const isFullyLoaded = (() => {
@@ -591,21 +553,13 @@ export default function GameInterface() {
       return false;
     }
     if (phase.kind === "selecting" || phase.kind === "joining" || phase.kind === "spectating") {
-      return isSpaceBgLoaded;
+      return isConnected && game?.id === phase.gameId ? isWorldReady : isEngineReady;
     }
     if (phase.kind === "lobby") {
       return isConnected && !!game && !isReconnecting;
     }
-    return isConnected && !!game && !isReconnecting && isSkyboxReady && isGpuReady;
+    return isConnected && !!game && !isReconnecting && isWorldReady;
   })();
-
-  const handleSkyboxReady = useCallback(() => {
-    useAppPhaseStore.getState().setSkyboxReady(true);
-  }, []);
-
-  const handleGpuReady = useCallback(() => {
-    useAppPhaseStore.getState().setGpuReady(true);
-  }, []);
 
   const handleLoadingTransitionEnd = useCallback(() => {}, []);
 
@@ -763,23 +717,12 @@ export default function GameInterface() {
         corporationCard: replayViewAsPlayer?.corporation ?? corporationData,
         initTurnPlayerId: displayedInitPlayerId,
         showStartingSelection,
-        animateHexEntrance:
-          phase.kind === "marsRevealed" ||
-          phase.kind === "showcase" ||
-          phase.kind === "animateUI" ||
-          phase.kind === "playing" ||
-          phase.kind === "completed",
-        startDark: phase.kind === "loading" || phase.kind === "lobby",
-        tilesHidden:
-          phase.kind === "loading" || phase.kind === "lobby" || phase.kind === "fadeOutLobby",
         changedPaths,
         triggeredEffects,
         bottomBarCallbacks,
         onStandardProjectSelect: flow.handleStandardProjectSelect,
         onLeaveGame: handleLeaveGame,
         onEndGame: handleEndGame,
-        onSkyboxReady: handleSkyboxReady,
-        onGpuReady: handleGpuReady,
         onPlayerClick: handlePlayerClick,
         spectatingPlayer: spectatePlayer,
         spectatingCorporation: spectatePlayer?.corporation ?? null,
@@ -822,7 +765,7 @@ export default function GameInterface() {
   })();
 
   return (
-    <PlanetFocusProvider>
+    <>
       <VPCountingProvider
         state={vpCounting.state}
         controls={{
@@ -1165,7 +1108,7 @@ export default function GameInterface() {
           isInGameWorld(phase) &&
           (currentPlayer || replayViewAsPlayer) &&
           (game.currentPhase !== GamePhaseComplete || !!replayViewAsPlayer) && (
-            <SolarSystemFade>
+            <>
               <div className={`transition-all duration-300 ease-in-out ${cardFanTransitionClass}`}>
                 <CardFanOverlay
                   ref={cardFanRef}
@@ -1177,7 +1120,7 @@ export default function GameInterface() {
                   onPlayCard={spectatePlayerId ? undefined : flow.handlePlayCard}
                 />
               </div>
-            </SolarSystemFade>
+            </>
           )}
 
         {!isCompact && (
@@ -1595,8 +1538,13 @@ export default function GameInterface() {
           showDelayMs={loadingShowDelayMs}
           minDurationMs={200}
           showProgress
+          progress={
+            engineStatus.phase === "loading" && engineStatus.total
+              ? engineStatus.loaded / engineStatus.total
+              : undefined
+          }
         />
       </VPCountingProvider>
-    </PlanetFocusProvider>
+    </>
   );
 }

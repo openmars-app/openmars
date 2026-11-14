@@ -1,0 +1,35 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+deps:
+    rustup target add wasm32-unknown-unknown
+    cargo install --locked --root .tools --version 0.2.129 wasm-bindgen-cli
+
+build:
+    bun build.ts
+
+build-profile:
+    OPENMARS_ENGINE_PROFILE=profiling bun build.ts
+
+check: format-check lint contracts
+
+contracts:
+    cargo test --locked --lib
+    cargo test --locked -p openmars-scene
+    cargo test --locked -p openmars-engine-assets
+    cargo clippy --locked -p openmars-engine-assets --all-targets -- -D warnings
+    cargo run --quiet --locked -p openmars-scene --features export-types --bin export-types -- --check
+
+lint:
+    cargo clippy --locked -p openmars-scene --all-targets -- -D warnings
+    cargo clippy --locked -p openmars-terrain-worker --target wasm32-unknown-unknown -- -D warnings
+    cargo clippy --locked --target wasm32-unknown-unknown --no-default-features --features webgpu -- -D warnings
+    cargo clippy --locked --target wasm32-unknown-unknown --no-default-features --features webgl2 -- -D warnings
+
+format:
+    cargo fmt --all
+
+format-check:
+    cargo fmt --all --check
+
+clean:
+    rm -rf pkg target

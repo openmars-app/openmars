@@ -1,9 +1,0 @@
-vec2 nl=position.xy+0.5;
-vec2 np=patchOrigin+nl*uPatchSize;
-float e=1.0/(uFieldSamples-1.0);
-float stepSize=e*uPatchSize;
-vec3 nx0=landscapeProject(np-vec2(stepSize,0.0),landscapeField(nl-vec2(e,0.0),patchLayer,patchBirth).x);
-vec3 nx1=landscapeProject(np+vec2(stepSize,0.0),landscapeField(nl+vec2(e,0.0),patchLayer,patchBirth).x);
-vec3 ny0=landscapeProject(np-vec2(0.0,stepSize),landscapeField(nl-vec2(0.0,e),patchLayer,patchBirth).x);
-vec3 ny1=landscapeProject(np+vec2(0.0,stepSize),landscapeField(nl+vec2(0.0,e),patchLayer,patchBirth).x);
-vec3 objectNormal=normalize(cross(nx1-nx0,ny1-ny0));

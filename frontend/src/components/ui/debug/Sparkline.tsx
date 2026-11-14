@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from "react";
 
 interface SparklineProps {
-  data: number[];
+  data: (number | null)[];
   width?: number;
   height?: number;
   color: string;
@@ -39,51 +39,60 @@ const Sparkline: React.FC<SparklineProps> = ({
 
     ctx.clearRect(0, 0, width, height);
 
-    if (data.length < 2) return;
-
-    const dataMin = fixedMin ?? Math.min(...data);
-    const dataMax = fixedMax ?? Math.max(...data);
+    const values = data.filter(
+      (value): value is number => value !== null && Number.isFinite(value),
+    );
+    const dataMin = fixedMin ?? Math.min(0, ...values);
+    const dataMax = fixedMax ?? Math.max(1, ...values);
     const range = dataMax - dataMin || 1;
 
     const padding = { top: label ? 14 : 2, bottom: 2, left: 1, right: 1 };
     const plotW = width - padding.left - padding.right;
     const plotH = height - padding.top - padding.bottom;
 
-    const toX = (i: number) => padding.left + (i / (data.length - 1)) * plotW;
+    const toX = (i: number) => padding.left + (i / Math.max(1, data.length - 1)) * plotW;
     const toY = (v: number) => padding.top + plotH - ((v - dataMin) / range) * plotH;
 
-    // Fill area
-    if (fillColor) {
-      ctx.beginPath();
-      ctx.moveTo(toX(0), padding.top + plotH);
-      for (let i = 0; i < data.length; i++) {
-        ctx.lineTo(toX(i), toY(data[i]));
+    // Missing/paused samples are gaps, never fabricated zero measurements.
+    let segment: { x: number; y: number }[] = [];
+    const drawSegment = () => {
+      if (segment.length < 2) {
+        segment = [];
+        return;
       }
-      ctx.lineTo(toX(data.length - 1), padding.top + plotH);
-      ctx.closePath();
-      ctx.fillStyle = fillColor;
-      ctx.fill();
+      if (fillColor) {
+        ctx.beginPath();
+        ctx.moveTo(segment[0].x, padding.top + plotH);
+        for (const point of segment) ctx.lineTo(point.x, point.y);
+        ctx.lineTo(segment.at(-1)!.x, padding.top + plotH);
+        ctx.closePath();
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.moveTo(segment[0].x, segment[0].y);
+      for (const point of segment.slice(1)) ctx.lineTo(point.x, point.y);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      segment = [];
+    };
+    for (const [index, value] of data.entries()) {
+      if (value === null || !Number.isFinite(value)) drawSegment();
+      else segment.push({ x: toX(index), y: toY(value) });
     }
-
-    // Line
-    ctx.beginPath();
-    ctx.moveTo(toX(0), toY(data[0]));
-    for (let i = 1; i < data.length; i++) {
-      ctx.lineTo(toX(i), toY(data[i]));
-    }
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    drawSegment();
 
     // Label text
     if (label || currentValue) {
-      ctx.font = "10px monospace";
+      ctx.font = "11px sans-serif";
       if (label) {
         ctx.fillStyle = "rgba(255,255,255,0.5)";
         ctx.textAlign = "left";
         ctx.fillText(label, 2, 10);
       }
       if (currentValue) {
+        ctx.font = "11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
         ctx.fillStyle = color;
         ctx.textAlign = "right";
         ctx.fillText(currentValue, width - 2, 10);

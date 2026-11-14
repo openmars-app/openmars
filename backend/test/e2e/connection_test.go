@@ -1,12 +1,49 @@
 package e2e_test
 
 import (
+	"net/http"
 	"testing"
 
 	"openmars/internal/delivery/dto"
 	"openmars/internal/game/shared"
 	"openmars/test/e2e/harness"
 )
+
+func TestConnection_SpectatorRetainsMapIdentity(t *testing.T) {
+	t.Parallel()
+	for _, mapID := range []string{"tharsis", "hellas"} {
+		t.Run(mapID, func(t *testing.T) {
+			t.Parallel()
+			srv := harness.Start(t)
+			gameID := srv.CreateGame(t, func(settings *dto.GameSetupDto) {
+				settings.MapID = mapID
+			})
+			host := srv.Dial(t, "host")
+			host.Join(t, gameID, "host")
+
+			var public dto.GetGameResponse
+			if status := srv.Request(t, http.MethodGet, "/api/v1/games/"+gameID, nil, &public); status != http.StatusOK {
+				t.Fatalf("public game: status %d", status)
+			}
+			if public.Game.Settings.MapID != mapID {
+				t.Fatalf("public game map: want %q, got %q", mapID, public.Game.Settings.MapID)
+			}
+
+			watcher := srv.Dial(t, "watcher")
+			watcher.Spectate(t, gameID, "watcher")
+			if got := watcher.State(t).Settings.MapID; got != mapID {
+				t.Fatalf("initial spectator map: want %q, got %q", mapID, got)
+			}
+			host.Send(t, dto.MessageTypeActionStartGame, map[string]any{})
+			active := watcher.AwaitState(t, "game started", func(g dto.GameDto) bool {
+				return g.Status == dto.GameStatusActive
+			})
+			if active.ID != gameID || active.Settings.MapID != mapID {
+				t.Fatalf("active spectator identity: want %s/%s, got %s/%s", gameID, mapID, active.ID, active.Settings.MapID)
+			}
+		})
+	}
+}
 
 // lobby creates a game and joins the given players, first one hosting.
 func lobby(t *testing.T, srv *harness.Server, names ...string) (string, []*harness.Client) {

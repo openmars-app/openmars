@@ -3,9 +3,6 @@ import React, { useSyncExternalStore } from "react";
 import { useSound } from "../../../contexts/SoundContext.tsx";
 import { audioService } from "../../../services/audioService.ts";
 
-const sliderClassName =
-  "w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-space-blue-400 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:hover:bg-space-blue-400";
-
 const SpeakerIcon: React.FC<{ enabled: boolean; volume: number }> = ({ enabled, volume }) => {
   if (!enabled || volume === 0) {
     return (
@@ -103,77 +100,40 @@ const MusicNoteIcon: React.FC<{ enabled: boolean }> = ({ enabled }) => {
 };
 
 const SoundToggleButton: React.FC = () => {
-  const {
-    enabled,
-    musicEnabled,
-    volume,
-    musicVolume,
-    toggleMute,
-    toggleMusicMute,
-    setVolume,
-    setMusicVolume,
-  } = useSound();
+  const { enabled, musicEnabled, volume, toggleMute, toggleMusicMute } = useSound();
   const music = useSyncExternalStore(audioService.subscribeMusic, audioService.getMusicState);
-
-  const handleSfxVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVolume(parseFloat(e.target.value));
-  };
-
-  const handleMusicVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMusicVolume(parseFloat(e.target.value));
-  };
 
   return (
     <div className="flex flex-col gap-2 px-4 py-3 text-white">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <GameButton
           emphasis="quiet"
           onClick={() => {
             toggleMute();
           }}
-          className="!p-0 !min-h-8 w-8 h-8 shrink-0 hover:text-white transition-colors"
+          className="!min-h-11 flex-1 !px-2 gap-2 hover:text-white transition-colors"
           aria-label={enabled ? "Mute sound" : "Unmute sound"}
         >
           <SpeakerIcon enabled={enabled} volume={volume} />
+          <span className="text-xs">Sound</span>
         </GameButton>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={enabled ? volume : 0}
-          onChange={handleSfxVolumeChange}
-          className={sliderClassName}
-          aria-label="SFX Volume"
-        />
-      </div>
-      <div className="flex items-center gap-3">
         <GameButton
           emphasis="quiet"
           onClick={() => {
             toggleMusicMute();
           }}
-          className="!p-0 !min-h-8 w-8 h-8 shrink-0 hover:text-white transition-colors"
+          className="!min-h-11 flex-1 !px-2 gap-2 hover:text-white transition-colors"
           aria-label={musicEnabled ? "Mute music" : "Unmute music"}
         >
           <MusicNoteIcon enabled={musicEnabled} />
+          <span className="text-xs">Music</span>
         </GameButton>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={musicEnabled ? musicVolume : 0}
-          onChange={handleMusicVolumeChange}
-          className={sliderClassName}
-          aria-label="Music Volume"
-        />
       </div>
       <div className="flex flex-col items-center gap-1">
         <div className="flex items-center justify-center gap-1">
           <GameButton
             emphasis="quiet"
-            className="!p-0 !min-h-8 w-8 h-8"
+            className="!p-0 !min-h-11 w-11 h-11"
             aria-label="Restart or previous song"
             disabled={!music.title}
             onClick={() => audioService.skipMusicTrack(-1)}
@@ -184,7 +144,7 @@ const SoundToggleButton: React.FC = () => {
           </GameButton>
           <GameButton
             emphasis="quiet"
-            className="!p-0 !min-h-8 w-8 h-8"
+            className="!p-0 !min-h-11 w-11 h-11"
             aria-label={music.playing ? "Pause music" : "Play music"}
             onClick={() => {
               if (!music.playing && !musicEnabled) {
@@ -199,7 +159,7 @@ const SoundToggleButton: React.FC = () => {
           </GameButton>
           <GameButton
             emphasis="quiet"
-            className="!p-0 !min-h-8 w-8 h-8"
+            className="!p-0 !min-h-11 w-11 h-11"
             aria-label="Next song"
             disabled={!music.title}
             onClick={() => audioService.skipMusicTrack(1)}

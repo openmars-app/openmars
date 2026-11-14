@@ -1,10 +1,18 @@
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
+import { createReadStream } from "node:fs";
 import path from "node:path";
 import { NodeIO, VERSION as gltfVersion } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { dedup, prune, textureCompress } from "@gltf-transform/functions";
 import sharp from "sharp";
+import {
+  assetToolVersion,
+  prepareEnvironment,
+  prepareTextureArray,
+  validEnvironment,
+  type EnvironmentSpec,
+} from "./environment.ts";
 
 export interface Profile {
   copy?: boolean;
@@ -13,10 +21,13 @@ export interface Profile {
   quality?: number;
   copyMatchingWebp?: boolean;
   gltf?: { maxTextureSize: number };
+  environment?: EnvironmentSpec;
+  textureArray?: { size: number; sizes?: number[]; srgb: boolean };
 }
 export interface Entry {
   id: string;
-  source: string;
+  source?: string;
+  layers?: string[];
   profile: string;
   prepare?: { crop: [number, number, number, number]; charcoalMatte: boolean };
   corporation?: { key: string; name: string; color: string };
@@ -43,6 +54,7 @@ interface State {
 export const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const hash = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
 const raster = /\.(png|jpe?g|webp|gif|avif)$/i;
+const arrayRaster = /\.(png|jpe?g|webp)$/i;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function safePath(root: string, relative: string): string {
@@ -120,23 +132,69 @@ export async function loadCatalog(root: string) {
       throw new Error(`Invalid or duplicate asset ID: ${entry.id}`);
     }
     ids.add(entry.id);
-    safePath(path.join(root, "assets/original"), entry.source);
+    if (typeof entry.source === "string") {
+      safePath(path.join(root, "assets/original"), entry.source);
+    } else if (!Array.isArray(entry.layers)) {
+      throw new Error(`Missing source or layers for ${entry.id}`);
+    }
+    if (entry.source !== undefined && entry.layers !== undefined) {
+      throw new Error(`Ambiguous source and layers for ${entry.id}`);
+    }
     const profile = profiles[entry.profile];
     if (
       !profile ||
       (!profile.copy &&
         !profile.gltf &&
+        !profile.environment &&
+        !profile.textureArray &&
         (!profile.sizes?.length || profile.sizes.some((n) => !Number.isInteger(n) || n < 1)))
     ) {
       throw new Error(`Invalid profile for ${entry.id}`);
     }
     if (
       profile.gltf &&
-      (!/\.glb$/i.test(entry.source) ||
+      (!/\.glb$/i.test(entry.source ?? "") ||
         !Number.isInteger(profile.gltf.maxTextureSize) ||
         profile.gltf.maxTextureSize < 1)
     ) {
       throw new Error(`Invalid model profile for ${entry.id}`);
+    }
+    if (
+      profile.environment &&
+      (!/\.exr$/i.test(entry.source ?? "") || !validEnvironment(profile.environment))
+    ) {
+      throw new Error(`Invalid environment profile for ${entry.id}`);
+    }
+    if (
+      Boolean(profile.textureArray) !== Boolean(entry.layers) ||
+      (profile.textureArray &&
+        (!Number.isInteger(profile.textureArray.size) ||
+          profile.textureArray.size < 16 ||
+          profile.textureArray.size > 1024 ||
+          (profile.textureArray.sizes &&
+            (!profile.textureArray.sizes.length ||
+              profile.textureArray.sizes.length > 4 ||
+              new Set(profile.textureArray.sizes).size !== profile.textureArray.sizes.length ||
+              !profile.textureArray.sizes.includes(profile.textureArray.size) ||
+              profile.textureArray.sizes.some(
+                (size) =>
+                  !Number.isInteger(size) ||
+                  size < 16 ||
+                  size > profile.textureArray!.size ||
+                  (size & (size - 1)) !== 0,
+              ))) ||
+          (profile.textureArray.size & (profile.textureArray.size - 1)) !== 0 ||
+          typeof profile.textureArray.srgb !== "boolean" ||
+          !entry.layers?.length ||
+          entry.layers.length > 32 ||
+          profile.copy ||
+          profile.gltf ||
+          profile.environment ||
+          profile.sizes ||
+          entry.prepare ||
+          entry.publicName))
+    ) {
+      throw new Error(`Invalid texture array profile for ${entry.id}`);
     }
     if (profile.quality !== undefined && (profile.quality < 1 || profile.quality > 100)) {
       throw new Error(`Invalid quality for ${entry.id}`);
@@ -155,6 +213,15 @@ export async function loadCatalog(root: string) {
         throw new Error(`Invalid or duplicate public output: ${entry.publicName}`);
       }
       destinations.add(entry.publicName);
+    }
+  }
+  const byId = new Map(catalog.assets.map((entry) => [entry.id, entry]));
+  for (const entry of catalog.assets) {
+    for (const id of entry.layers ?? []) {
+      const source = byId.get(id);
+      if (!source?.source || !arrayRaster.test(source.source) || source.prepare) {
+        throw new Error(`Texture array ${entry.id} requires an unprepared raster source: ${id}`);
+      }
     }
   }
   return { entries: catalog.assets, profiles };
@@ -195,9 +262,10 @@ async function optimizedModel(data: Buffer, profile: Profile): Promise<Buffer> {
     prune({ keepLeaves: true, keepAttributes: true, keepSolidTextures: true }),
     textureCompress({
       encoder: sharp,
-      targetFormat: "webp",
+      // Core glTF embeds PNG/JPEG directly. This matches the sibling Rust
+      // pipeline's portable GLB output and avoids EXT_texture_webp at runtime.
+      targetFormat: "png",
       resize: [max, max],
-      quality: profile.quality ?? 90,
     }),
   );
   return Buffer.from(await io.writeBinary(document));
@@ -232,20 +300,50 @@ export async function buildAssets(root = repoRoot, verifyOnly = false) {
       hash(await fs.readFile(path.join(repoRoot, "frontend/scripts/assets/pipeline.ts"))) +
       JSON.stringify(sharp.versions) +
       gltfVersion;
+    const nativeVersion = entries.some(
+      (entry) => profiles[entry.profile].environment || profiles[entry.profile].textureArray,
+    )
+      ? hash(await assetToolVersion(repoRoot))
+      : "";
+    const byId = new Map(entries.map((entry) => [entry.id, entry]));
     let built = 0;
     let cursor = 0;
     const fixedOutputs: Array<[string, Buffer]> = [];
     const processEntry = async (entry: Entry) => {
       const profile = profiles[entry.profile];
-      const source = safePath(path.join(root, "assets/original"), entry.source);
-      const bytes = await fs.readFile(source);
+      const names = entry.layers?.map((id) => byId.get(id)!.source!) ?? [entry.source!];
+      const sources = names.map((name) => safePath(path.join(root, "assets/original"), name));
+      const source = sources[0];
+      const bytes = entry.layers ? Buffer.alloc(0) : await fs.readFile(source);
       if (
         bytes.subarray(0, 100).toString().startsWith("version https://git-lfs.github.com/spec/v1")
       ) {
-        throw new Error(`Unresolved Git LFS source: ${entry.source}. Run git lfs pull.`);
+        throw new Error(`Unresolved Git LFS source: ${names[0]}. Run git lfs pull.`);
+      }
+      const bindings: { path: string; sha256: string }[] = [];
+      if (entry.layers) {
+        for (const [index, file] of sources.entries()) {
+          if ((await fs.stat(file)).size > 64 * 1024 * 1024)
+            throw new Error(`Texture array source exceeds byte bound: ${names[index]}`);
+          const digest = createHash("sha256");
+          let prefix = "";
+          for await (const chunk of createReadStream(file)) {
+            if (!prefix) prefix = chunk.subarray(0, 100).toString();
+            digest.update(chunk);
+          }
+          if (prefix.startsWith("version https://git-lfs.github.com/spec/v1"))
+            throw new Error(`Unresolved Git LFS source: ${names[index]}. Run git lfs pull.`);
+          bindings.push({ path: file, sha256: digest.digest("hex") });
+        }
       }
       const key = hash(
-        Buffer.concat([bytes, Buffer.from(JSON.stringify({ entry, profile, toolVersion }))]),
+        JSON.stringify({
+          sources: entry.layers ? bindings.map((binding) => binding.sha256) : [hash(bytes)],
+          entry,
+          profile,
+          toolVersion,
+          nativeVersion: profile.environment || profile.textureArray ? nativeVersion : undefined,
+        }),
       );
       const cached = previous.entries[entry.id];
       let valid = cached?.key === key;
@@ -286,18 +384,51 @@ export async function buildAssets(root = repoRoot, verifyOnly = false) {
         outputs[relative] = hash(data);
         variants.push({ url: "/" + relative, width, height });
       };
-      if (profile.copy) {
+      if (profile.textureArray) {
+        const { srgb } = profile.textureArray;
+        const sizes = [...(profile.textureArray.sizes ?? [profile.textureArray.size])].sort(
+          (a, b) => a - b,
+        );
+        for (const size of sizes)
+          await publish(
+            await prepareTextureArray(repoRoot, bindings, size, srgb),
+            size,
+            size,
+            ".ktx2",
+            size,
+            sizes.length > 1,
+          );
+      } else if (profile.copy) {
         let width = 0;
         let height = 0;
-        if (raster.test(entry.source)) {
+        if (raster.test(entry.source!)) {
           const m = await sharp(bytes).metadata();
           width = m.width ?? 0;
           height = m.height ?? 0;
         }
         const isPlanet = entry.id.startsWith("textures/planets/");
-        await publish(bytes, width, height, path.extname(entry.source), width, isPlanet);
+        await publish(bytes, width, height, path.extname(entry.source!), width, isPlanet);
       } else if (profile.gltf) {
         await publish(await optimizedModel(bytes, profile), 0, 0, ".glb", 0, false);
+      } else if (profile.environment) {
+        const sizes = [...(profile.environment.faceSizes ?? [profile.environment.faceSize])].sort(
+          (a, b) => a - b,
+        );
+        for (const size of sizes)
+          await publish(
+            await prepareEnvironment(
+              repoRoot,
+              source,
+              entry.id,
+              { ...profile.environment, faceSize: size },
+              hash(bytes),
+            ),
+            size,
+            size,
+            ".ktx2",
+            size,
+            sizes.length > 1,
+          );
       } else {
         const prepared = await preparedImage(bytes, entry);
         const metadata = await sharp(prepared).metadata();
