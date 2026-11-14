@@ -346,23 +346,22 @@ const CardFanOverlay = forwardRef<CardFanOverlayHandle, CardFanOverlayProps>(
 
     // Sync cardOrder when cards prop changes (additions/removals)
     useEffect(() => {
-      setCardOrder((prev) => {
-        const propIds = new Set(cards.map((c) => c.id));
-        const kept = prev.filter((id) => propIds.has(id));
-        const keptSet = new Set(kept);
-        const added = cards.filter((c) => !keptSet.has(c.id)).map((c) => c.id);
-        const next = [...kept, ...added];
-        const isFirstRender = prev.length === 0;
-        const result = isFirstRender ? cards.map((c) => c.id) : next;
-        // Center scroll on first load
-        if (isFirstRender && result.length > 0) {
-          const center = (result.length - 1) / 2;
-          setScrollPos(center);
-          scrollTargetRef.current = center;
-        }
-        return result;
-      });
-    }, [cards]);
+      const propIds = new Set(cards.map((c) => c.id));
+      const kept = cardOrder.filter((id) => propIds.has(id));
+      const keptSet = new Set(kept);
+      const added = cards.filter((c) => !keptSet.has(c.id)).map((c) => c.id);
+      const next = [...kept, ...added];
+      if (next.length === cardOrder.length && next.every((id, index) => id === cardOrder[index])) {
+        return;
+      }
+      setCardOrder(next);
+      // Center scroll on first load without scheduling state from a state updater.
+      if (cardOrder.length === 0 && next.length > 0) {
+        const center = (next.length - 1) / 2;
+        setScrollPos(center);
+        scrollTargetRef.current = center;
+      }
+    }, [cards, cardOrder]);
 
     // Clamp scrollPos when cards change
     useEffect(() => {
