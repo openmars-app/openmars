@@ -1,0 +1,40 @@
+name: Cache frontend preparation
+description: Reuse Rust compilation and content-checked assets across frontend jobs
+runs:
+  using: composite
+  steps:
+    # Only frontend jobs write this cache: their target tree contains the scene
+    # exporter, asset converter and release WASM, not native Bevy test builds.
+    - name: Cache Rust compilation
+      uses: actions/cache@v6.1.0
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          engine/target
+        key: rust-web-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/Cargo.toml', 'engine/scene/Cargo.toml', 'engine/preparation/Cargo.toml', 'engine/asset-pipeline/Cargo.toml', 'engine/Cargo.lock', 'engine/rust-toolchain.toml', '.cargo/config*', 'engine/.cargo/config*') }}-${{ hashFiles('engine/src/**', 'engine/scene/src/**', 'engine/preparation/src/**', 'engine/asset-pipeline/src/**', 'engine/build.ts') }}
+        restore-keys: |
+          rust-web-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/Cargo.toml', 'engine/scene/Cargo.toml', 'engine/preparation/Cargo.toml', 'engine/asset-pipeline/Cargo.toml', 'engine/Cargo.lock', 'engine/rust-toolchain.toml', '.cargo/config*', 'engine/.cargo/config*') }}-
+
+    # build.ts pins wasm-bindgen. Do not restore an older executable when that
+    # pin changes; unlike Cargo, an installed tool is not fingerprint-checked.
+    - name: Cache wasm-bindgen
+      uses: actions/cache@v6.1.0
+      with:
+        path: engine/.tools
+        key: wasm-bindgen-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/build.ts', 'engine/rust-toolchain.toml') }}
+
+    # The asset pipeline validates each entry and its output bytes even on a
+    # cache hit. Exclude tracked public files and transient generation locks.
+    - name: Cache prepared assets
+      uses: actions/cache@v6.1.0
+      with:
+        path: |
+          frontend/.cache/assets/state.json
+          frontend/public/assets
+          frontend/public/*.png
+          frontend/public/*.ico
+          frontend/src/assets/generated
+        key: prepared-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('frontend/scripts/assets/**', 'frontend/package.json', 'frontend/bun.lock', 'engine/asset-pipeline/**', 'engine/Cargo.toml', 'engine/Cargo.lock', 'engine/rust-toolchain.toml') }}-${{ hashFiles('assets/**') }}
+        restore-keys: |
+          prepared-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('frontend/scripts/assets/**', 'frontend/package.json', 'frontend/bun.lock', 'engine/asset-pipeline/**', 'engine/Cargo.toml', 'engine/Cargo.lock', 'engine/rust-toolchain.toml') }}-
