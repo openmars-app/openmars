@@ -227,6 +227,77 @@ test.describe("Bevy renderer", () => {
   });
   test.setTimeout(120_000);
 
+  for (const crossOrigin of [false, true]) {
+    test(`prepares terrain from a ${crossOrigin ? "gateway" : "direct"} page origin`, async ({
+      page,
+      baseURL,
+    }) => {
+      const origin = new URL(baseURL!).origin;
+      const documentOrigin = crossOrigin ? origin.replace("localhost", "127.0.0.1") : origin;
+      await page.goto(`${documentOrigin}/tests/fixtures/engine.html`);
+      const result = await page.evaluate(
+        async ({ origin, renderer, game }) => {
+          const runtimePath = `${origin}/src/engine/runtime.ts`;
+          const scenePath = `${origin}/src/engine/scene.ts`;
+          const [{ startEngine }, { toSceneSnapshot }] = await Promise.all([
+            import(/* @vite-ignore */ runtimePath),
+            import(/* @vite-ignore */ scenePath),
+          ]);
+          const blobs = new Set<string>();
+          let created = 0;
+          const create = URL.createObjectURL;
+          const revoke = URL.revokeObjectURL;
+          URL.createObjectURL = function (value) {
+            const url = create.call(this, value);
+            blobs.add(url);
+            created++;
+            return url;
+          };
+          URL.revokeObjectURL = function (url) {
+            blobs.delete(url);
+            revoke.call(this, url);
+          };
+          const host = document.createElement("div");
+          host.style.cssText = "position:fixed;inset:0";
+          document.body.append(host);
+          let phase = "starting";
+          let failure: string | undefined;
+          const runtime = startEngine(
+            host,
+            (status: { phase: string; message?: string }) => {
+              phase = status.phase;
+              if (phase === "error") failure = status.message;
+            },
+            renderer,
+          );
+          try {
+            runtime.setScene(toSceneSnapshot(game, null), "snapshot");
+            const deadline = performance.now() + 100_000;
+            while (phase !== "ready" || !runtime.sceneStats()?.boardReady) {
+              if (failure) throw new Error(failure);
+              if (performance.now() > deadline) throw new Error("Terrain did not become ready");
+              await new Promise(requestAnimationFrame);
+            }
+          } finally {
+            runtime.dispose();
+            host.remove();
+            URL.createObjectURL = create;
+            URL.revokeObjectURL = revoke;
+          }
+          return {
+            created,
+            live: blobs.size,
+            canvases: document.querySelectorAll("canvas").length,
+          };
+        },
+        { origin, renderer: backend(), game: sceneGame() },
+      );
+      expect(result.created).toBe(crossOrigin ? 1 : 0);
+      expect(result.live).toBe(0);
+      expect(result.canvases).toBe(0);
+    });
+  }
+
   for (const [device, profile] of [
     ["desktop", { viewport: { width: 1280, height: 720 } }],
     ["iphone", devices["iPhone 14 landscape"]],
