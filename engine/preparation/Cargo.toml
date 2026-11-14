@@ -1,0 +1,10 @@
+[package]
+name = "openmars-terrain-worker"
+version = "0.1.0"
+edition = "2024"
+publish = false
+[lib]
+crate-type = ["cdylib", "rlib"]
+[dependencies]
+openmars-scene = { path = "../scene" }
+wasm-bindgen = "=0.2.129"
