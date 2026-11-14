@@ -1,7 +1,7 @@
 use openmars_scene::{
     SceneEvent, ScenePlayer, SceneSnapshot, SceneTile, SceneTileBonus, SceneTileVisual,
     offworld::{OffworldScene, SceneColony, SceneFleet, SceneStation},
-    presentation::{CueKind, SceneCue, SceneSound, SoundAction, SoundKind},
+    presentation::{SceneSound, SoundAction, SoundKind},
     structure::StructureStyleRequest,
 };
 use openmars_scene::{
@@ -42,8 +42,6 @@ fn main() {
             SceneFleet::decl(),
             SceneStation::decl(),
             SceneEvent::decl(),
-            CueKind::decl(),
-            SceneCue::decl(),
             SoundKind::decl(),
             SoundAction::decl(),
             SceneSound::decl()

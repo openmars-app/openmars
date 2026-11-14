@@ -120,17 +120,6 @@ pub const RENDERER_ASSETS: &[AssetRequirement] = &[
         array_layers: 0,
     },
     AssetRequirement {
-        id: "models/asteroid",
-        extension: ".glb",
-        kind: AssetKind::Model,
-        srgb: false,
-        repeat: false,
-        scope: Scope::Board,
-        pixels: 0,
-        cache: true,
-        array_layers: 0,
-    },
-    AssetRequirement {
         id: "textures/effects/smoke",
         extension: ".png",
         kind: AssetKind::Image,
@@ -486,7 +475,7 @@ mod tests {
         let menu = requirements(AssetView::Menu);
         let game = requirements(AssetView::Game);
         assert_eq!(menu.len(), 5);
-        assert_eq!(game.len(), 60);
+        assert_eq!(game.len(), 59);
         for id in ["models/spaceship", "models/satellite"] {
             assert!(game.iter().any(|asset| asset.id == id));
         }

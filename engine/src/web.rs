@@ -135,7 +135,6 @@ impl Engine {
         .add_plugins(super::structures::special::SpecialPlugin)
         .add_plugins(super::particles::ParticlePlugin)
         .add_plugins(super::nuclear::NuclearPlugin)
-        .add_plugins(super::asteroid::AsteroidPlugin)
         .add_plugins(super::atmosphere::AtmospherePlugin)
         .add_plugins(super::offworld::materials::OffworldMaterialPlugin)
         .add_plugins(super::sky::SkyPlugin)
@@ -155,7 +154,7 @@ impl Engine {
         .init_resource::<super::scene::MotionPreference>()
         .init_resource::<super::scene::WorldEntryState>()
         .init_resource::<super::entry::WorldEntrance>()
-        .init_resource::<super::presentation::PresentationRuntime>()
+        .init_resource::<super::presentation::SoundRuntime>()
         .init_resource::<super::scene::PresentationState>()
         .init_resource::<super::world::WorldView>()
         .init_resource::<super::graphics::GraphicsState>()
@@ -605,36 +604,12 @@ impl Engine {
         self.profiler.drain(max_events)
     }
 
-    /// Public live log cue. React remains the sole network owner.
-    pub fn present(&mut self, json: &str) -> Result<bool, JsValue> {
-        if json.len() > 2048 {
-            return Err(js_error("Presentation cue is too large"));
-        }
-        let cue: openmars_scene::presentation::SceneCue =
-            serde_json::from_str(json).map_err(js_error)?;
-        cue.validate().map_err(js_error)?;
-        let world = self.app.world_mut();
-        if world
-            .resource::<super::scene::SceneState>()
-            .0
-            .as_ref()
-            .is_none_or(|s| s.game_id != cue.game_id)
-        {
-            return Ok(false);
-        }
-        let quiet = world.resource::<super::scene::PresentationState>().settling
-            || world.resource::<super::scene::MotionPreference>().0;
-        world
-            .resource_mut::<super::presentation::PresentationRuntime>()
-            .accept(cue, quiet)
-            .map_err(js_error)
-    }
     pub fn take_sounds(&mut self) -> String {
         serde_json::to_string(
             &self
                 .app
                 .world_mut()
-                .resource_mut::<super::presentation::PresentationRuntime>()
+                .resource_mut::<super::presentation::SoundRuntime>()
                 .take_sounds(),
         )
         .expect("Sound events serialize")
@@ -716,8 +691,8 @@ impl Engine {
         if replaced || resync {
             self.app
                 .world_mut()
-                .resource_mut::<super::presentation::PresentationRuntime>()
-                .clear(replaced);
+                .resource_mut::<super::presentation::SoundRuntime>()
+                .clear();
             self.ready = Arc::new(AtomicBool::new(false));
             self.submitted = false;
             self.preparation = "Preparing scene";
@@ -982,7 +957,7 @@ impl Engine {
             serde_json::json!({"id":tile.0.id,"entity":entity.to_string(),"occupant":tile.0.occupant,"point":point})
         }).collect();
         let terrain = world.resource::<super::terrain::surface::SurfaceRuntime>();
-        serde_json::json!({"entry":world.resource::<super::entry::WorldEntrance>().diagnostics(),"entryActors":super::entry::actors(world),"boardReady":super::assets::board_ready(world),"labels":world.resource::<super::labels::scene::LabelRuntime>().diagnostics(world),"offworld":world.resource::<super::offworld::scene::OffworldRuntime>().diagnostics(world),"celestialGrids":world.resource::<super::terrain::grid::GridRuntime>().diagnostics(world,camera.as_ref().map(|(c,t)|(c,t)),scale),"space":world.resource::<super::space::scene::CelestialRuntime>().diagnostics(camera.as_ref().map(|(c,t)|(c,t)),scale),"graphics":world.resource::<super::graphics::GraphicsState>().0,"focus":super::assets::focus(world),"menu":world.resource::<super::menu::MenuRuntime>().diagnostics(),"lighting":lighting,"atmosphere":world.resource::<super::atmosphere::AtmosphereRuntime>().diagnostics(),"asteroids":world.resource::<super::asteroid::AsteroidRuntime>().diagnostics(world),"presentation":world.resource::<super::presentation::PresentationRuntime>().diagnostics(),"nuclearDebris":world.resource::<super::nuclear::NuclearRuntime>().debris_poses(world),"blast":world.resource::<super::nuclear::blast::BlastRuntime>().diagnostics(world),"vegetationPoses":world.resource::<super::vegetation::FoliageRuntime>().poses(world),"nuclearTimeline":world.resource::<super::nuclear::timeline::Timeline>().diagnostics(),"craters":world.resource::<super::nuclear::NuclearRuntime>().diagnostics(),"specialSurfaces":world.resource::<super::structures::special::SpecialRuntime>().diagnostics(),"worksites":world.resource::<super::structures::sites::SiteRuntime>().diagnostics(),"step":terrain.step(),"settling":world.resource::<super::scene::PresentationState>().settling,"worldTrees":world.resource::<super::structures::world_tree::WorldTreeRuntime>().diagnostics(),"vegetation":world.resource::<super::vegetation::FoliageRuntime>().diagnostics(),"structures":world.resource::<super::structures::scene::StructureRuntime>().diagnostics(),"camera":camera_state,"tiles":tiles,"terrain":{"revision":terrain.revision(),"transitioning":terrain.transitioning()}}).to_string()
+        serde_json::json!({"entry":world.resource::<super::entry::WorldEntrance>().diagnostics(),"entryActors":super::entry::actors(world),"boardReady":super::assets::board_ready(world),"labels":world.resource::<super::labels::scene::LabelRuntime>().diagnostics(world),"offworld":world.resource::<super::offworld::scene::OffworldRuntime>().diagnostics(world),"celestialGrids":world.resource::<super::terrain::grid::GridRuntime>().diagnostics(world,camera.as_ref().map(|(c,t)|(c,t)),scale),"space":world.resource::<super::space::scene::CelestialRuntime>().diagnostics(camera.as_ref().map(|(c,t)|(c,t)),scale),"graphics":world.resource::<super::graphics::GraphicsState>().0,"focus":super::assets::focus(world),"menu":world.resource::<super::menu::MenuRuntime>().diagnostics(),"lighting":lighting,"atmosphere":world.resource::<super::atmosphere::AtmosphereRuntime>().diagnostics(),"audio":world.resource::<super::presentation::SoundRuntime>().diagnostics(),"nuclearDebris":world.resource::<super::nuclear::NuclearRuntime>().debris_poses(world),"blast":world.resource::<super::nuclear::blast::BlastRuntime>().diagnostics(world),"vegetationPoses":world.resource::<super::vegetation::FoliageRuntime>().poses(world),"nuclearTimeline":world.resource::<super::nuclear::timeline::Timeline>().diagnostics(),"craters":world.resource::<super::nuclear::NuclearRuntime>().diagnostics(),"specialSurfaces":world.resource::<super::structures::special::SpecialRuntime>().diagnostics(),"worksites":world.resource::<super::structures::sites::SiteRuntime>().diagnostics(),"step":terrain.step(),"settling":world.resource::<super::scene::PresentationState>().settling,"worldTrees":world.resource::<super::structures::world_tree::WorldTreeRuntime>().diagnostics(),"vegetation":world.resource::<super::vegetation::FoliageRuntime>().diagnostics(),"structures":world.resource::<super::structures::scene::StructureRuntime>().diagnostics(),"camera":camera_state,"tiles":tiles,"terrain":{"revision":terrain.revision(),"transitioning":terrain.transitioning()}}).to_string()
     }
 
     pub fn install_asset(

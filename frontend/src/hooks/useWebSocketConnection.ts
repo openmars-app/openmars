@@ -1,6 +1,4 @@
 import { engineProfiler } from "../engine/profiler";
-import { publicSceneCues } from "@/engine/presentation";
-import { useEngineStore } from "@/stores/engineStore";
 import { useEffect, useRef } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import type { MutableRefObject } from "react";
@@ -240,12 +238,6 @@ export function useWebSocketConnection(
       const myPlayerId = store.playerId;
       if (!latestGame || store.isReconnecting) {
         return;
-      }
-      const present = useEngineStore.getState().present;
-      if (present) {
-        for (const cue of publicSceneCues({ logs, isHistory }, latestGame)) {
-          present(cue);
-        }
       }
       if (!myPlayerId) {
         return;

@@ -711,7 +711,6 @@ macro_rules! scene_material_types {
         $apply!(crate::offworld::materials::ShipPadMaterial);
         $apply!(crate::offworld::materials::ShipParticleMaterial);
         $apply!(crate::labels::material::LabelMaterial);
-        $apply!(crate::asteroid::material::AsteroidDustMaterial);
         $apply!(GroundMaterial);
         $apply!(OceanMaterial);
         $apply!(LakeMaskMaterial);
@@ -910,10 +909,6 @@ mod tests {
         ));
         world.spawn((
             mesh(),
-            MeshMaterial3d::<crate::asteroid::material::AsteroidDustMaterial>(Handle::default()),
-        ));
-        world.spawn((
-            mesh(),
             MeshMaterial3d::<crate::atmosphere::material::HaloMaterial>(Handle::default()),
         ));
         world.spawn((
@@ -941,13 +936,13 @@ mod tests {
             MeshMaterial3d::<crate::labels::material::LabelMaterial>(Handle::default()),
         ));
         let ids = scene_mesh_ids(&mut world).unwrap();
-        assert_eq!(ids.len(), 25);
+        assert_eq!(ids.len(), 24);
         assert!(ids.iter().all(|(_, material)| material.is_some()));
         let types: std::collections::HashSet<_> =
             ids.iter().map(|(_, material)| material.unwrap()).collect();
         assert_eq!(
             types.len(),
-            25,
+            24,
             "erased IDs retain their material asset types"
         );
         world.spawn(mesh());

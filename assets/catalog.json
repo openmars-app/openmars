@@ -3842,11 +3842,6 @@
       "profile": "icon"
     },
     {
-      "id": "models/asteroid",
-      "source": "models/asteroid.glb",
-      "profile": "model"
-    },
-    {
       "id": "models/bird",
       "source": "models/bird.glb",
       "profile": "model"
