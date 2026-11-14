@@ -8,11 +8,19 @@ interface MainContentDisplayProps {
   uiAnimationClass?: string;
 }
 
-export default function MainContentDisplay({ gameState, showUI = true }: MainContentDisplayProps) {
+export default function MainContentDisplay({
+  gameState,
+  showUI = true,
+  uiAnimationClass = "",
+}: MainContentDisplayProps) {
   return (
     <>
       <TileInspectTooltip gameState={gameState} visible={showUI} />
-      <PlacementConfirmBar gameState={gameState} visible={showUI} />
+      <PlacementConfirmBar
+        gameState={gameState}
+        visible={showUI}
+        uiAnimationClass={uiAnimationClass}
+      />
     </>
   );
 }

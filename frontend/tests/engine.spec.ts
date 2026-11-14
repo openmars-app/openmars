@@ -227,6 +227,94 @@ test.describe("Bevy renderer", () => {
   });
   test.setTimeout(120_000);
 
+  for (const [layout, profile] of [
+    ["desktop", { viewport: { width: 1280, height: 800 } }],
+    ["iphone", devices["iPhone 14 landscape"]],
+    ["android", devices["Pixel 7 landscape"]],
+  ] as const) {
+    test(`shows the active tile placement instruction on ${layout}`, async ({
+      browser,
+      baseURL,
+    }) => {
+      const context = await referenceContext(browser, { ...profile, baseURL });
+      try {
+        const page = await context.newPage();
+        await page.goto(engineUrl());
+        await expect(page.locator("[data-engine-state]")).toHaveAttribute(
+          "data-engine-state",
+          "ready",
+          { timeout: 90_000 },
+        );
+        await expect(page.getByText("Place", { exact: true })).toHaveCount(0);
+        const game = sceneGame();
+        await page.evaluate(async (game) => {
+          const gamePath = "/src/stores/gameStore.ts";
+          const phasePath = "/src/stores/appPhaseStore.ts";
+          const [{ useGameStore }, { useAppPhaseStore }] = await Promise.all([
+            import(/* @vite-ignore */ gamePath),
+            import(/* @vite-ignore */ phasePath),
+          ]);
+          useGameStore.getState().setGame(game);
+          useAppPhaseStore.getState().setPhase({ kind: "playing", gameId: game.id });
+        }, game);
+        for (const tileType of ["city", "greenery", "ocean", null]) {
+          await page.evaluate(async (tileType) => {
+            const path = "/src/stores/gameStore.ts";
+            const { useGameStore } = await import(/* @vite-ignore */ path);
+            const state = useGameStore.getState();
+            state.setGame({
+              ...state.game,
+              currentPlayer: {
+                ...state.game.currentPlayer,
+                pendingTileSelection: tileType
+                  ? { tileType, availableHexes: ["0,0,0"], source: "standard-project" }
+                  : undefined,
+              },
+            });
+          }, tileType);
+          const instruction = page.getByText("Place", { exact: true });
+          if (!tileType) {
+            await expect(instruction).toHaveCount(0);
+            continue;
+          }
+          await expect(instruction).toBeVisible();
+          await expect(
+            page.getByRole("img", { name: `${tileType}-tile`, exact: true }),
+          ).toBeVisible();
+          const desktopPrompt = page.getByRole("group", { name: "Tile placement" });
+          if (layout === "desktop") {
+            await expect(desktopPrompt).toBeVisible();
+            const bounds = await desktopPrompt.boundingBox();
+            expect(bounds!.y).toBe(66);
+            expect(
+              Math.abs(bounds!.x + bounds!.width / 2 - page.viewportSize()!.width / 2),
+            ).toBeLessThan(2);
+          } else {
+            await expect(desktopPrompt).toHaveCount(0);
+          }
+          if (tileType === "city") {
+            await expect(page.locator("[data-engine-state]")).toHaveAttribute(
+              "data-engine-state",
+              "ready",
+              { timeout: 90_000 },
+            );
+            await page
+              .locator('[role="status"]')
+              .filter({
+                has: page.getByRole("img", { name: "Open Mars", exact: true }),
+              })
+              .waitFor({ state: "hidden" });
+            const output = path.resolve(import.meta.dirname, "../../tmp/placement-prompt");
+            await mkdir(output, { recursive: true });
+            await page.screenshot({ path: path.join(output, `${backend()}-${layout}.png`) });
+          }
+        }
+      } finally {
+        await context.close();
+      }
+    });
+  }
+
   for (const crossOrigin of [false, true]) {
     test(`prepares terrain from a ${crossOrigin ? "gateway" : "direct"} page origin`, async ({
       page,
