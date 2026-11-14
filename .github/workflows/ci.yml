@@ -21,6 +21,12 @@ jobs:
       - name: Set up Rust
         working-directory: engine
         run: rustup show
+      - name: Cache native Rust checks
+        uses: Swatinem/rust-cache@v2.9.3
+        with:
+          workspaces: engine
+          shared-key: native-checks-v1
+          cache-bin: false
       - name: Check Rust formatting and lint
         working-directory: engine
         run: |
@@ -188,6 +194,9 @@ jobs:
         working-directory: engine
         run: rustup show
 
+      - name: Restore frontend preparation
+        uses: ./.github/actions/frontend-cache
+
       - name: Run frontend TypeScript check
         run: just frontend typecheck
 
@@ -218,6 +227,9 @@ jobs:
       - name: Set up Rust for asset preparation
         working-directory: engine
         run: rustup show
+
+      - name: Restore frontend preparation
+        uses: ./.github/actions/frontend-cache
 
       - name: Validate prepared assets
         run: just frontend::assets-test frontend::assets-check
