@@ -24,7 +24,7 @@ Real-time multiplayer. 450+ cards. Six expansions. One red planet.
 ---
 
 <p align="center">
-  <img src="docs/img/hero.png" alt="3D game board mid-game" width="800" />
+  <img src="docs/img/hero.png" alt="The current 3D Mars board with cities, forests and oceans, surrounded by the game interface" width="1000" />
 </p>
 
 ## What is this?
@@ -35,23 +35,29 @@ This is not a simplified clone. It implements the complete rule set across six e
 
 ## Features
 
-<div align="center">
-<video src="https://github.com/user-attachments/assets/7eee7911-c1c0-4e1f-af88-586b25247703" width="100%" autoplay loop muted></video>
-</div>
+### A living 3D board
 
-**3D Interactive Board** -- A real-time rendered Mars surface built with Three.js and React Three Fiber. Rotate, zoom, and watch the planet transform as oceans fill, greenery spreads, and cities rise.
+Rotate Mars, watch cities rise and forests spread, and travel around the solar system. Rust and Bevy render the world through WebGPU, with automatic WebGL2 fallback. Tile placement, asteroid impacts and the original soundtrack bring the board to life.
 
-<div align="center">
-<video src="https://github.com/user-attachments/assets/86e3f2a1-7f65-4c93-aaa0-8d706eaf9585" width="100%" autoplay loop muted></video>
-</div>
+### Cards and expansions
 
-**450+ Cards Across 6 Expansions** -- Base game, Corporate Era, Prelude, Venus Next, Colonies, and Turmoil. Each card's behavior is fully implemented with triggers, production chains, and conditional effects.
+Play with 450+ cards across the base game, Corporate Era, Prelude, Venus Next, Colonies and Turmoil. Browse cards by type, cost, tags and game mode, with their effects and requirements shown on the card.
 
-<img src="docs/img/lobby.png" alt="Game lobby" width="800" />
+<p align="center">
+  <img src="docs/img/cards.png" alt="Project cards showing simple effects, triggered abilities, resource storage and alternative actions" width="1000" />
+</p>
 
-**Real-time Multiplayer** -- WebSocket-powered sessions with instant state sync. Create a game, share the code, and play. Supports reconnection if you drop -- your game state is preserved.
+### Play together
 
-**Sound and Animation** -- Asteroid impacts, tile placement effects, animated resource counters, and ambient audio bring the experience to life beyond a static board.
+Create a lobby, choose your map and game options, and invite friends with a game link. Sessions update in real time and support reconnection. On mobile, Players, Chat, Map and Settings have their own tabs.
+
+<p align="center">
+  <img src="docs/img/lobby.png" alt="Game lobby with player invitations, map selection and expansion settings" width="1000" />
+</p>
+
+### Make it your game
+
+Choose a graphics preset or adjust resolution, textures, effects and frame rate individually. Set camera sensitivity, tune the space background, and keep audio and AI preferences together in Settings.
 
 ## Quick Start
 
@@ -62,7 +68,7 @@ just deps        # Install dependencies
 just dev         # Launch frontend (3000) + backend (3001)
 ```
 
-Requires [Go](https://go.dev), [Bun](https://bun.sh), [Node](https://nodejs.org) 24+ and [just](https://just.systems).
+Requires [Go](https://go.dev), [Bun](https://bun.sh), [Rust via rustup](https://rustup.rs) and [just](https://just.systems). The engine pins its Rust toolchain; `just deps` installs the WASM target and binding tools. Source media uses [Git LFS](https://git-lfs.com); run `git lfs pull` before building.
 
 Open `http://localhost:3000`, create a game, and invite friends with the game code.
 
@@ -70,13 +76,14 @@ Open `http://localhost:3000`, create a game, and invite friends with the game co
 
 | Layer    | Technology                              |
 |----------|-----------------------------------------|
-| Frontend | React, TypeScript, Three.js / R3F, Tailwind CSS |
+| Frontend | React, TypeScript, Tailwind CSS |
+| Renderer | Rust, Bevy, WebAssembly, WebGPU / WebGL2 |
 | Backend  | Go, Gorilla WebSocket, Chi router       |
 | Tooling  | Tygo (Go-to-TS codegen), Air (hot reload) |
 
 ## Contributing
 
-Contributions are welcome. The codebase is split into a Go backend (`backend/`) and a React frontend (`frontend/`), connected by auto-generated TypeScript types.
+Contributions are welcome. The Go backend (`backend/`) owns game rules, React (`frontend/`) owns the interface and networking, and Bevy (`engine/`) owns the 3D world. Generated types connect the API and scene contracts.
 
 ```bash
 just test               # Run backend tests
