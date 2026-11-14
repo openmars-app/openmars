@@ -8,12 +8,19 @@ export function assetWatcher(): Plugin {
     apply: "serve",
     configureServer(server) {
       const root = path.resolve(server.config.root, "..");
-      const sources = path.join(root, "assets") + path.sep;
-      server.watcher.add(path.join(root, "assets"));
+      const sources = ["assets", "engine/asset-pipeline"].map(
+        (directory) => path.join(root, directory) + path.sep,
+      );
+      const manifests = [
+        "engine/Cargo.toml",
+        "engine/Cargo.lock",
+        "engine/rust-toolchain.toml",
+      ].map((file) => path.join(root, file));
+      server.watcher.add([...sources, ...manifests]);
       let timer: ReturnType<typeof setTimeout> | undefined;
       let pending = Promise.resolve();
       const changed = (file: string) => {
-        if (!file.startsWith(sources)) {
+        if (!sources.some((source) => file.startsWith(source)) && !manifests.includes(file)) {
           return;
         }
         clearTimeout(timer);
