@@ -11,6 +11,28 @@ env:
   GO_VERSION: '1.27.2'
 
 jobs:
+  engine:
+    runs-on: ubuntu-latest
+    name: Bevy Engine
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          lfs: true
+      - name: Set up Rust
+        working-directory: engine
+        run: rustup show
+      - name: Check Rust formatting and lint
+        working-directory: engine
+        run: |
+          cargo fmt --all --check
+          cargo clippy --locked -p openmars-terrain-worker --target wasm32-unknown-unknown -- -D warnings
+          cargo clippy --locked --target wasm32-unknown-unknown --no-default-features --features webgpu -- -D warnings
+          cargo clippy --locked --target wasm32-unknown-unknown --no-default-features --features webgl2 -- -D warnings
+          cargo test --locked --lib
+          cargo test --locked -p openmars-scene -p openmars-engine-assets
+          cargo clippy --locked -p openmars-engine-assets --all-targets -- -D warnings
+          cargo run --quiet --locked -p openmars-scene --features export-types --bin export-types -- --check
+
   format-check:
     runs-on: ubuntu-latest
     name: Format Check
@@ -26,11 +48,6 @@ jobs:
           cache-dependency-path: |
             backend/go.sum
             backend/golangci-lint.sum
-
-      - name: Set up Node
-        uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 26.10.0
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2.2.0
@@ -53,6 +70,10 @@ jobs:
         uses: extractions/setup-just@v4.0.0
         with:
           just-version: '1.57.0'
+
+      - name: Set up Rust
+        working-directory: engine
+        run: rustup show
 
       - name: Check formatting
         run: just format-check
@@ -123,11 +144,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
 
-      - name: Set up Node
-        uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 26.10.0
-
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2.2.0
         with:
@@ -154,11 +170,6 @@ jobs:
         with:
           lfs: true
 
-      - name: Set up Node
-        uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 26.10.0
-
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2.2.0
         with:
@@ -173,7 +184,11 @@ jobs:
         with:
           just-version: '1.57.0'
 
-      - name: Run TypeScript type check
+      - name: Set up Rust for the renderer
+        working-directory: engine
+        run: rustup show
+
+      - name: Run frontend TypeScript check
         run: just frontend typecheck
 
   frontend-build:
@@ -186,11 +201,6 @@ jobs:
         with:
           lfs: true
 
-      - name: Set up Node
-        uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 26.10.0
-
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2.2.0
         with:
@@ -205,8 +215,15 @@ jobs:
         with:
           just-version: '1.57.0'
 
-      - name: Validate asset pipeline
+      - name: Set up Rust for asset preparation
+        working-directory: engine
+        run: rustup show
+
+      - name: Validate prepared assets
         run: just frontend::assets-test frontend::assets-check
+
+      - name: Test renderer bridge and controls
+        run: just frontend::engine-test
 
       - name: Build frontend for production
         run: just frontend build
