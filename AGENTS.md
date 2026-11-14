@@ -4,7 +4,7 @@ Open Mars is a multiplayer Terraforming Mars game with a Go backend, React front
 
 ## Commands
 
-Run commands from the repository root unless stated otherwise. Tasks use `just`; run `just` to list recipes. Modules are `backend`, `frontend`, and `proxy` (the gateway). Inside a module directory, omit its prefix.
+Run commands from the repository root unless stated otherwise. Tasks use `just`; run `just` to list recipes. Modules are `backend`, `frontend`, `engine` (Bevy/WebGPU/WebGL2), and `proxy` (the gateway). Inside a module directory, omit its prefix.
 
 ```sh
 just deps                    # Install dependencies for all modules
@@ -47,7 +47,7 @@ Read the applicable instruction files when working in their directories, includi
 - [Game state](backend/internal/game/AGENTS.md), [shared conditions](backend/internal/game/shared/AGENTS.md), and [DTOs](backend/internal/delivery/dto/AGENTS.md): domain events, condition extensions, and the client contract.
 - [Backend tests](backend/test/AGENTS.md) and [card-family tests](backend/test/action/card_packs/AGENTS.md): harness synchronization and organization.
 - [Frontend](frontend/AGENTS.md): app phases, mobile layout, UI conventions, and verification.
-- [Board rendering](frontend/src/components/game/board/AGENTS.md) and [card behavior rendering](frontend/src/components/ui/cards/BehaviorSection/AGENTS.md): rendering-specific constraints.
+- [Card behavior rendering](frontend/src/components/ui/cards/BehaviorSection/AGENTS.md): rendering-specific constraints.
 
 `AGENTS.md` is the maintained source; edit it directly and retain the matching `CLAUDE.md` symlinks.
 
