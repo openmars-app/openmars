@@ -9,9 +9,8 @@ runs:
       uses: actions/cache@v6.1.0
       with:
         path: |
-          ~/.cargo/registry/index
-          ~/.cargo/registry/cache
-          ~/.cargo/git/db
+          ~/.cargo/registry
+          ~/.cargo/git
           engine/target
         key: rust-web-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/Cargo.toml', 'engine/scene/Cargo.toml', 'engine/preparation/Cargo.toml', 'engine/asset-pipeline/Cargo.toml', 'engine/Cargo.lock', 'engine/rust-toolchain.toml', '.cargo/config*', 'engine/.cargo/config*') }}-${{ hashFiles('engine/src/**', 'engine/scene/src/**', 'engine/preparation/src/**', 'engine/asset-pipeline/src/**', 'engine/build.ts') }}
         restore-keys: |

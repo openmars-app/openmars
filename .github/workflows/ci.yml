@@ -81,13 +81,6 @@ jobs:
         working-directory: engine
         run: rustup show
 
-      - name: Cache generated-type tooling
-        uses: Swatinem/rust-cache@v2.9.3
-        with:
-          workspaces: engine
-          shared-key: generated-types-v1
-          cache-bin: false
-
       - name: Check formatting
         run: just format-check
 
