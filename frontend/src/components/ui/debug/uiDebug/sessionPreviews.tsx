@@ -579,7 +579,7 @@ function WaitingPreview({ cards, presetId, onComplete }: PreviewProps) {
   const playerId = presetId === "guest" ? "preview-other-1" : game.currentPlayer.id;
   const update = (patch: UpdateGameSettingsRequest) =>
     setGame((current) => updateSettings(current, patch));
-  const mapPanel = (layout?: "stacked" | "split") => (
+  const setupPanel = (section: "all" | "map" | "settings", layout?: "stacked" | "split") => (
     <GameSetupControls
       maps={game.settings.availableMaps}
       modes={game.settings.availableGameModes}
@@ -590,6 +590,7 @@ function WaitingPreview({ cards, presetId, onComplete }: PreviewProps) {
       maxPlayers={game.settings.maxPlayers}
       onChange={playerId === game.hostPlayerId ? update : undefined}
       layout={layout}
+      section={section}
     />
   );
   return (
@@ -615,7 +616,7 @@ function WaitingPreview({ cards, presetId, onComplete }: PreviewProps) {
             Menu
           </GameButton>
         }
-        mapPanel={mapPanel}
+        setupPanel={setupPanel}
         onColor={(color, id) =>
           setGame((current) => ({
             ...current,

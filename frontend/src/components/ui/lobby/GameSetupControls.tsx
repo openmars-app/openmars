@@ -21,6 +21,7 @@ interface Props {
   onChange?: (patch: UpdateGameSettingsRequest) => void;
   disabled?: boolean;
   layout?: "stacked" | "split";
+  section?: "all" | "map" | "settings";
   showMapPreview?: boolean;
   showMapSelect?: boolean;
   collapsibleFeatures?: boolean;
@@ -37,6 +38,7 @@ export default function GameSetupControls({
   onChange,
   disabled,
   layout = "stacked",
+  section = "all",
   showMapPreview = true,
   showMapSelect = true,
   collapsibleFeatures = false,
@@ -68,119 +70,123 @@ export default function GameSetupControls({
   };
   const settings = (
     <div className="flex flex-col gap-5 min-w-0">
-      <div className="flex items-center justify-between gap-4">
-        <label htmlFor={`${id}-mode`} className="text-sm text-white/60 shrink-0">
-          Game mode
-        </label>
-        {onChange ? (
-          <GameSelect
-            id={`${id}-mode`}
-            label="Game mode"
-            value={gameModeId}
-            options={modes}
-            disabled={disabled}
-            onChange={chooseMode}
-            className="w-full max-w-64"
-          />
-        ) : (
-          <span className="font-orbitron text-sm">{mode?.name ?? gameModeId}</span>
-        )}
-      </div>
-      {mode && (
-        <div className="pl-4">
-          <p className="text-sm leading-relaxed text-white/75">
-            {modeText(mode.summary, gameModeParameters)}
-          </p>
-          <GameButton
-            emphasis="quiet"
-            size="sm"
-            onClick={() => setRulesOpen(true)}
-            className="mt-2 min-w-11 !px-1"
-          >
-            Rules
-          </GameButton>
-        </div>
-      )}
-      {mode?.parameters.map((parameter) => (
-        <div key={parameter.id} className="flex items-center justify-between gap-4">
-          <label htmlFor={`${id}-${parameter.id}`} className="text-sm text-white/70">
-            {parameter.label}
-          </label>
-          {onChange ? (
-            <GameSelect
-              id={`${id}-${parameter.id}`}
-              label={parameter.label}
-              value={String(gameModeParameters[parameter.id] ?? parameter.default)}
-              options={parameter.values.map((value) => ({
-                id: String(value),
-                name: String(value),
-              }))}
-              disabled={disabled}
-              onChange={(value) =>
-                onChange({
-                  gameModeParameters: {
-                    ...gameModeParameters,
-                    [parameter.id]: Number(value),
-                  },
-                })
-              }
-              className="w-24"
-            />
-          ) : (
-            <span className="font-orbitron">
-              {gameModeParameters[parameter.id] ?? parameter.default}
-            </span>
-          )}
-        </div>
-      ))}
-      {[false, true].map((experimental) => {
-        const options =
-          mode?.features.filter((feature) => feature.experimental === experimental) ?? [];
-        if (!options.length) {
-          return null;
-        }
-        const label = experimental ? "Experimental features" : "Options";
-        const fields = (
-          <fieldset
-            key={String(experimental)}
-            aria-label={label}
-            className={collapsibleFeatures ? "" : "border-t border-white/10 pt-3"}
-            disabled={disabled || !onChange}
-          >
-            {!collapsibleFeatures && (
-              <legend className="font-orbitron text-xs text-white/60 pr-3">{label}</legend>
+      {section !== "map" && (
+        <>
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor={`${id}-mode`} className="text-sm text-white/60 shrink-0">
+              Game mode
+            </label>
+            {onChange ? (
+              <GameSelect
+                id={`${id}-mode`}
+                label="Game mode"
+                value={gameModeId}
+                options={modes}
+                disabled={disabled}
+                onChange={chooseMode}
+                className="w-full max-w-64"
+              />
+            ) : (
+              <span className="font-orbitron text-sm">{mode?.name ?? gameModeId}</span>
             )}
-            {options.map((feature) => (
-              <label
-                key={feature.id}
-                className="flex items-start gap-3 py-3 min-h-11 cursor-pointer"
+          </div>
+          {mode && (
+            <div className="pl-4">
+              <p className="text-sm leading-relaxed text-white/75">
+                {modeText(mode.summary, gameModeParameters)}
+              </p>
+              <GameButton
+                emphasis="quiet"
+                size="sm"
+                onClick={() => setRulesOpen(true)}
+                className="mt-2 min-w-11 !px-1"
               >
-                <input
-                  type="checkbox"
-                  className="game-checkbox mt-0.5 shrink-0"
-                  checked={features.includes(feature.id)}
-                  onChange={() => toggleFeature(feature.id)}
-                />
-                <span className="min-w-0">
-                  <span className="block font-orbitron text-sm">{feature.name}</span>
-                  <span className="block text-xs leading-relaxed text-white/60 mt-1">
-                    {feature.description}
-                  </span>
-                </span>
+                Rules
+              </GameButton>
+            </div>
+          )}
+          {mode?.parameters.map((parameter) => (
+            <div key={parameter.id} className="flex items-center justify-between gap-4">
+              <label htmlFor={`${id}-${parameter.id}`} className="text-sm text-white/70">
+                {parameter.label}
               </label>
-            ))}
-          </fieldset>
-        );
-        if (!collapsibleFeatures) {
-          return fields;
-        }
-        return (
-          <CollapsibleSection key={String(experimental)} label={label}>
-            {fields}
-          </CollapsibleSection>
-        );
-      })}
-      {showMapSelect && (
+              {onChange ? (
+                <GameSelect
+                  id={`${id}-${parameter.id}`}
+                  label={parameter.label}
+                  value={String(gameModeParameters[parameter.id] ?? parameter.default)}
+                  options={parameter.values.map((value) => ({
+                    id: String(value),
+                    name: String(value),
+                  }))}
+                  disabled={disabled}
+                  onChange={(value) =>
+                    onChange({
+                      gameModeParameters: {
+                        ...gameModeParameters,
+                        [parameter.id]: Number(value),
+                      },
+                    })
+                  }
+                  className="w-24"
+                />
+              ) : (
+                <span className="font-orbitron">
+                  {gameModeParameters[parameter.id] ?? parameter.default}
+                </span>
+              )}
+            </div>
+          ))}
+          {[false, true].map((experimental) => {
+            const options =
+              mode?.features.filter((feature) => feature.experimental === experimental) ?? [];
+            if (!options.length) {
+              return null;
+            }
+            const label = experimental ? "Experimental features" : "Options";
+            const fields = (
+              <fieldset
+                key={String(experimental)}
+                aria-label={label}
+                className={collapsibleFeatures ? "" : "border-t border-white/10 pt-3"}
+                disabled={disabled || !onChange}
+              >
+                {!collapsibleFeatures && (
+                  <legend className="font-orbitron text-xs text-white/60 pr-3">{label}</legend>
+                )}
+                {options.map((feature) => (
+                  <label
+                    key={feature.id}
+                    className="flex items-start gap-3 py-3 min-h-11 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      className="game-checkbox mt-0.5 shrink-0"
+                      checked={features.includes(feature.id)}
+                      onChange={() => toggleFeature(feature.id)}
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-orbitron text-sm">{feature.name}</span>
+                      <span className="block text-xs leading-relaxed text-white/60 mt-1">
+                        {feature.description}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            );
+            if (!collapsibleFeatures) {
+              return fields;
+            }
+            return (
+              <CollapsibleSection key={String(experimental)} label={label}>
+                {fields}
+              </CollapsibleSection>
+            );
+          })}
+        </>
+      )}
+      {showMapSelect && section !== "settings" && (
         <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-4">
           <label htmlFor={`${id}-map`} className="text-sm text-white/60">
             Map
@@ -213,7 +219,7 @@ export default function GameSetupControls({
       >
         {settings}
       </div>
-      {showMapPreview && (
+      {showMapPreview && section !== "settings" && (
         <div
           key={mapId}
           className={
@@ -225,7 +231,7 @@ export default function GameSetupControls({
           <MapPreview tiles={activeMap?.tiles ?? []} />
         </div>
       )}
-      {mode && (
+      {mode && section !== "map" && (
         <GameModeRules
           mode={mode}
           parameters={gameModeParameters}

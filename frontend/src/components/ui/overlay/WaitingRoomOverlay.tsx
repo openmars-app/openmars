@@ -24,12 +24,13 @@ interface WaitingRoomOverlayProps {
   chat?: React.ReactNode;
 }
 
-type LobbyTab = "players" | "chat" | "map";
+type LobbyTab = "players" | "chat" | "map" | "settings";
 
 const LOBBY_TABS: { id: LobbyTab; label: string }[] = [
   { id: "players", label: "Players" },
   { id: "chat", label: "Chat" },
   { id: "map", label: "Map" },
+  { id: "settings", label: "Settings" },
 ];
 
 interface LeavingPlayer {
@@ -119,8 +120,13 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = (props) => {
       onCopyInvite={(text) => navigator.clipboard.writeText(text)}
       desktopMenu={<MainMenuHamburger gameId={props.game.id} />}
       compactMenu={<MainMenuDrawerButton gameId={props.game.id} />}
-      mapPanel={(layout) => (
-        <LobbyMapInfoPanel game={props.game} playerId={props.playerId} layout={layout} />
+      setupPanel={(section, layout) => (
+        <LobbyMapInfoPanel
+          game={props.game}
+          playerId={props.playerId}
+          layout={layout}
+          section={section}
+        />
       )}
       renderSettings={(close) => (
         <LobbySettingsOverlay game={props.game} playerId={props.playerId} isOpen onClose={close} />
@@ -147,7 +153,7 @@ export function WaitingRoomOverlayView({
   onCopyInvite,
   desktopMenu,
   compactMenu,
-  mapPanel,
+  setupPanel,
   renderSettings,
   renderDemo,
 }: WaitingRoomOverlayProps & {
@@ -160,7 +166,10 @@ export function WaitingRoomOverlayView({
   onCopyInvite: (text: string) => Promise<void>;
   desktopMenu: React.ReactNode;
   compactMenu: React.ReactNode;
-  mapPanel: (layout?: "stacked" | "split") => React.ReactNode;
+  setupPanel: (
+    section: "all" | "map" | "settings",
+    layout?: "stacked" | "split",
+  ) => React.ReactNode;
   renderSettings: (close: () => void) => React.ReactNode;
   renderDemo: (close: () => void) => React.ReactNode;
 }) {
@@ -730,7 +739,7 @@ export function WaitingRoomOverlayView({
 
           {chat}
         </div>
-        {mapPanel()}
+        {setupPanel("all")}
       </div>
     </GameMenuModal>
   );
@@ -750,7 +759,11 @@ export function WaitingRoomOverlayView({
   if (lobbyTab === "chat") {
     compactPane = <div className="h-full min-h-0">{chat}</div>;
   } else if (lobbyTab === "map") {
-    compactPane = mapPanel("split");
+    compactPane = setupPanel("map", "split");
+  } else if (lobbyTab === "settings") {
+    compactPane = (
+      <div className="h-full overflow-y-auto overscroll-contain">{setupPanel("settings")}</div>
+    );
   }
 
   const compactLobby = (
