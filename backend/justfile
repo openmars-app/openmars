@@ -75,7 +75,7 @@ format:
 [doc('Generate frontend TypeScript types from the DTOs and format them')]
 generate:
     go tool tygo generate
-    cd ../frontend && bunx oxfmt --write src/types/generated/api-types.ts
+    cd ../frontend && bunx --bun oxfmt --write src/types/generated/api-types.ts
 
 [group('check')]
 [doc('Fail if the committed generated TypeScript types are out of date')]
