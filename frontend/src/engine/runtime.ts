@@ -10,7 +10,6 @@ import type {
   OverlayFrame,
   MenuPlacement,
   WorldEntry,
-  SceneCue,
   SceneSound,
   SceneEvent,
   SceneSnapshot,
@@ -40,7 +39,6 @@ interface Renderer {
   supports_compute(): boolean;
   supports_storage_buffers(): boolean;
   max_texture_dimension_2d(): number;
-  present(json: string): boolean;
   take_sounds(): string;
   set_scene(json: string, settled: boolean): string;
   set_menu(json: string): string;
@@ -118,7 +116,6 @@ export function startEngine(
   let applyMenu: ((json: string) => void) | undefined;
   let applyEntry: ((json: string) => void) | undefined;
   let sceneGameId: string | null = null;
-  const cues: SceneCue[] = [];
   let sceneDelivery: "snapshot" | "live" = "snapshot";
   let applyScene: ((json: string, delivery: "snapshot" | "live") => void) | undefined;
   let readSceneStats: (() => SceneDiagnostics | null) | undefined;
@@ -863,11 +860,6 @@ export function startEngine(
                 endOverlay();
               }
             }
-            if (ready) {
-              for (const cue of cues.splice(0)) {
-                engine.present(JSON.stringify(cue));
-              }
-            }
             for (const event of JSON.parse(engine.take_sounds()) as SceneSound[]) {
               onSound(event);
             }
@@ -953,23 +945,6 @@ export function startEngine(
     performance() {
       return readPerformance?.() ?? null;
     },
-    present(cue: SceneCue) {
-      if (disposed || cue.gameId !== sceneGameId) {
-        return false;
-      }
-      const previous = cues.find((pending) => pending.id === cue.id);
-      if (previous) {
-        if (previous.seed !== cue.seed || previous.kind !== cue.kind) {
-          throw new Error("Presentation event identity conflict");
-        }
-        return false;
-      }
-      if (cues.length >= 32) {
-        throw new Error("Presentation event queue limit exceeded");
-      }
-      cues.push({ ...cue });
-      return true;
-    },
     camera(zoom: number, reset = false) {
       cameraCommand?.(zoom, reset);
     },
@@ -1008,9 +983,6 @@ export function startEngine(
       if (disposed) {
         return;
       }
-      if (scene?.gameId !== sceneGameId || delivery === "snapshot") {
-        cues.length = 0;
-      }
       if (scene?.gameId !== sceneGameId || scene?.mapId !== sceneMapId)
         focusJSON = JSON.stringify({ type: "body", body: "mars" } satisfies FocusTarget);
       sceneGameId = scene?.gameId ?? null;
@@ -1046,7 +1018,6 @@ export function startEngine(
     },
     dispose() {
       disposed = true;
-      cues.length = 0;
       cleanupAttempt();
       host.replaceChildren();
     },

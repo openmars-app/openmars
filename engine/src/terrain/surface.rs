@@ -1023,7 +1023,6 @@ pub fn reset(world: &mut World) {
     crate::labels::scene::reset(world);
     crate::offworld::scene::reset(world);
     crate::atmosphere::reset(world);
-    crate::asteroid::reset(world);
     crate::structures::sites::reset(world);
     crate::structures::special::reset(world);
     crate::particles::reset(world);
@@ -1359,17 +1358,6 @@ pub fn prepare(app: &mut App, size: UVec2, format: TextureFormat) -> Result<(), 
                 warm: runtime.targets.as_ref().unwrap().warm.clone(),
             });
         crate::particles::prepare_queued(app, particles, &device, &queue)?;
-        let asteroid = runtime.active.as_ref().map(|batch| crate::asteroid::Input {
-            step: runtime.clock.step(),
-            radius: batch.next.projection().radius(),
-            reduced: app.world().resource::<crate::scene::MotionPreference>().0,
-            quiet: app
-                .world()
-                .resource::<crate::scene::PresentationState>()
-                .settling,
-            warm: runtime.targets.as_ref().unwrap().warm.clone(),
-        });
-        crate::asteroid::prepare_queued(app, asteroid)?;
         let atmosphere = runtime
             .pending
             .as_ref()

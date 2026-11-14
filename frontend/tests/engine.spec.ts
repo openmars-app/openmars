@@ -227,6 +227,94 @@ test.describe("Bevy renderer", () => {
   });
   test.setTimeout(120_000);
 
+  for (const [layout, profile] of [
+    ["desktop", { viewport: { width: 1280, height: 800 } }],
+    ["iphone", devices["iPhone 14 landscape"]],
+    ["android", devices["Pixel 7 landscape"]],
+  ] as const) {
+    test(`shows the active tile placement instruction on ${layout}`, async ({
+      browser,
+      baseURL,
+    }) => {
+      const context = await referenceContext(browser, { ...profile, baseURL });
+      try {
+        const page = await context.newPage();
+        await page.goto(engineUrl());
+        await expect(page.locator("[data-engine-state]")).toHaveAttribute(
+          "data-engine-state",
+          "ready",
+          { timeout: 90_000 },
+        );
+        await expect(page.getByText("Place", { exact: true })).toHaveCount(0);
+        const game = sceneGame();
+        await page.evaluate(async (game) => {
+          const gamePath = "/src/stores/gameStore.ts";
+          const phasePath = "/src/stores/appPhaseStore.ts";
+          const [{ useGameStore }, { useAppPhaseStore }] = await Promise.all([
+            import(/* @vite-ignore */ gamePath),
+            import(/* @vite-ignore */ phasePath),
+          ]);
+          useGameStore.getState().setGame(game);
+          useAppPhaseStore.getState().setPhase({ kind: "playing", gameId: game.id });
+        }, game);
+        for (const tileType of ["city", "greenery", "ocean", null]) {
+          await page.evaluate(async (tileType) => {
+            const path = "/src/stores/gameStore.ts";
+            const { useGameStore } = await import(/* @vite-ignore */ path);
+            const state = useGameStore.getState();
+            state.setGame({
+              ...state.game,
+              currentPlayer: {
+                ...state.game.currentPlayer,
+                pendingTileSelection: tileType
+                  ? { tileType, availableHexes: ["0,0,0"], source: "standard-project" }
+                  : undefined,
+              },
+            });
+          }, tileType);
+          const instruction = page.getByText("Place", { exact: true });
+          if (!tileType) {
+            await expect(instruction).toHaveCount(0);
+            continue;
+          }
+          await expect(instruction).toBeVisible();
+          await expect(
+            page.getByRole("img", { name: `${tileType}-tile`, exact: true }),
+          ).toBeVisible();
+          const desktopPrompt = page.getByRole("group", { name: "Tile placement" });
+          if (layout === "desktop") {
+            await expect(desktopPrompt).toBeVisible();
+            const bounds = await desktopPrompt.boundingBox();
+            expect(bounds!.y).toBe(66);
+            expect(
+              Math.abs(bounds!.x + bounds!.width / 2 - page.viewportSize()!.width / 2),
+            ).toBeLessThan(2);
+          } else {
+            await expect(desktopPrompt).toHaveCount(0);
+          }
+          if (tileType === "city") {
+            await expect(page.locator("[data-engine-state]")).toHaveAttribute(
+              "data-engine-state",
+              "ready",
+              { timeout: 90_000 },
+            );
+            await page
+              .locator('[role="status"]')
+              .filter({
+                has: page.getByRole("img", { name: "Open Mars", exact: true }),
+              })
+              .waitFor({ state: "hidden" });
+            const output = path.resolve(import.meta.dirname, "../../tmp/placement-prompt");
+            await mkdir(output, { recursive: true });
+            await page.screenshot({ path: path.join(output, `${backend()}-${layout}.png`) });
+          }
+        }
+      } finally {
+        await context.close();
+      }
+    });
+  }
+
   for (const crossOrigin of [false, true]) {
     test(`prepares terrain from a ${crossOrigin ? "gateway" : "direct"} page origin`, async ({
       page,
@@ -592,267 +680,6 @@ test.describe("Bevy renderer", () => {
             const p = Reflect.get(window, "atmosphereProbe");
             p?.runtime.dispose();
             p?.host.remove();
-          })
-          .catch(() => {});
-        await context.close();
-      }
-    });
-
-    test(`presents public asteroid cues once with source flight dust and quiet cancellation on ${device}`, async ({
-      browser,
-      baseURL,
-    }) => {
-      const context = await referenceContext(browser, { ...profile, baseURL });
-      const page = await context.newPage();
-      test.setTimeout(240_000);
-      const requests: string[] = [];
-      const errors: string[] = [];
-      page.on("request", (request) => {
-        if (request.url().includes("/assets/models/asteroid.")) {
-          requests.push(request.url());
-        }
-      });
-      page.on("pageerror", (error) => errors.push(error.message));
-      await page.goto("/tests/fixtures/engine.html");
-      const output = path.resolve(import.meta.dirname, "../../tmp/bevy-scaffold");
-      await mkdir(output, { recursive: true });
-      try {
-        const initial = await page.evaluate(
-          async ({ game, renderer }) => {
-            const rp = "/src/engine/runtime.ts",
-              sp = "/src/engine/scene.ts",
-              pp = "/src/engine/presentation.ts";
-            const [{ startEngine }, { toSceneSnapshot }, { publicSceneCues }] = await Promise.all([
-              import(/* @vite-ignore */ rp),
-              import(/* @vite-ignore */ sp),
-              import(/* @vite-ignore */ pp),
-            ]);
-            const host = document.createElement("div");
-            host.style.cssText = "position:fixed;inset:0";
-            document.body.append(host);
-            let resolve = () => {},
-              reject = (_e: Error) => {},
-              failure: string | null = null;
-            const next = () =>
-              new Promise<void>((yes, no) => {
-                resolve = yes;
-                reject = no;
-              });
-            const first = next();
-            const runtime = startEngine(
-              host,
-              (s: { phase: string; message: string }) => {
-                if (s.phase === "ready") {
-                  resolve();
-                }
-                if (s.phase === "error") {
-                  failure = s.message;
-                  reject(new Error(s.message));
-                }
-              },
-              renderer,
-            );
-            const stats = () => runtime.sceneStats() as SceneDiagnostics;
-            const wait = async (condition: () => boolean) => {
-              for (let i = 0; i < 18000; i++) {
-                if (failure) {
-                  throw new Error(failure);
-                }
-                if (condition()) {
-                  return;
-                }
-                await new Promise(requestAnimationFrame);
-              }
-              throw new Error("Asteroid deadline: " + JSON.stringify(stats().asteroids));
-            };
-            const cue = (sequenceNumber: number) =>
-              publicSceneCues(
-                {
-                  isHistory: false,
-                  logs: [
-                    {
-                      gameId: game.id,
-                      sequenceNumber,
-                      sourceType: "standard_project",
-                      source: "Asteroid",
-                      playerId: game.currentPlayer.id,
-                    },
-                  ],
-                },
-                game,
-              )[0];
-            Reflect.set(window, "asteroidProbe", {
-              runtime,
-              host,
-              game,
-              toSceneSnapshot,
-              stats,
-              wait,
-              next,
-              cue,
-            });
-            await first;
-            Reflect.set(window, "asteroidBaseline", runtime.assetStats());
-            const ready = next();
-            let lastPreparation: unknown = null;
-            const preparationProbe = setInterval(() => {
-              lastPreparation = { scene: stats(), assets: runtime.assetStats() };
-            }, 1000);
-            runtime.setScene(toSceneSnapshot(game, null), "snapshot");
-            try {
-              await ready;
-            } catch (error) {
-              throw new Error(
-                String(error) + "\nLast preparation: " + JSON.stringify(lastPreparation),
-              );
-            } finally {
-              clearInterval(preparationProbe);
-            }
-            runtime.camera(-0.3);
-            return stats();
-          },
-          { game: sceneGame("asteroid-public"), renderer: backend() },
-        );
-        expect(initial.asteroids.active).toBeNull();
-        expect(initial.asteroids.started).toBe(0);
-        const flight = await page.evaluate(async () => {
-          const { runtime, stats, wait, cue } = Reflect.get(window, "asteroidProbe");
-          if (!runtime.present(cue(3)) || runtime.present(cue(3))) {
-            throw new Error("JS cue admission");
-          }
-          await wait(() => {
-            const s = stats();
-            return (
-              s.asteroids.active?.start !== null &&
-              s.step >= (s.asteroids.active?.start ?? Infinity) + 90
-            );
-          });
-          runtime.setPaused(true);
-          return stats() as SceneDiagnostics;
-        });
-        expect(flight.presentation.seen).toBe(1);
-        expect(flight.asteroids.active?.warmFrames).toBe(2);
-        expect(flight.asteroids.active?.parts).toBe(1);
-        expect(flight.asteroids.active?.sprites).toBe(60);
-        expect(flight.asteroids.active?.scale).toBeCloseTo(
-          0.15 / (1.4869314432144165 + 1.3308839797973633),
-          6,
-        );
-        const start = flight.asteroids.active!.start!;
-        expect(flight.step - start).toBeLessThan(108);
-        expect(flight.asteroids.active!.dustSample.every((p) => (p.tag & 0x80000000) !== 0)).toBe(
-          true,
-        );
-        await page.screenshot({
-          path: path.join(output, `phase5-asteroid-${backend()}-${device}-flight.png`),
-        });
-        const dust = await page.evaluate(async (start) => {
-          const { runtime, stats, wait } = Reflect.get(window, "asteroidProbe");
-          runtime.setPaused(false);
-          await wait(() => stats().step >= start + 140);
-          runtime.setPaused(true);
-          return stats() as SceneDiagnostics;
-        }, start);
-        expect(
-          dust.asteroids.active!.dustSample.every((p) => (p.tag & 0x80000000) === 0 && p.tag > 0),
-        ).toBe(true);
-        await page.screenshot({
-          path: path.join(output, `phase5-asteroid-${backend()}-${device}-dust.png`),
-        });
-        expect(
-          (
-            await page.evaluate(
-              () => Reflect.get(window, "asteroidProbe").stats() as SceneDiagnostics,
-            )
-          ).asteroids.active,
-        ).toEqual(dust.asteroids.active);
-        const expired = await page.evaluate(async () => {
-          const { runtime, stats, wait, cue } = Reflect.get(window, "asteroidProbe");
-          runtime.setPaused(false);
-          await wait(() => stats().asteroids.completed === 1 && stats().asteroids.retired === 0);
-          runtime.present(cue(3));
-          const step = stats().step;
-          await wait(() => stats().step >= step + 20);
-          return stats() as SceneDiagnostics;
-        });
-        expect(expired.asteroids.started).toBe(1);
-        expect(expired.asteroids.active).toBeNull();
-        expect(expired.asteroids.shared).toBe(false);
-        const quiet = await page.evaluate(async () => {
-          const { runtime, stats, wait, cue, game, toSceneSnapshot, next } = Reflect.get(
-            window,
-            "asteroidProbe",
-          );
-          runtime.present(cue(8));
-          runtime.present(cue(9));
-          await wait(
-            () => stats().asteroids.started === 2 && stats().asteroids.active?.warmFrames === 2,
-          );
-          const ready = next();
-          runtime.setScene(toSceneSnapshot(game, null), "snapshot");
-          await ready;
-          await wait(() => stats().asteroids.retired === 0);
-          runtime.setPaused(true);
-          return stats() as SceneDiagnostics;
-        });
-        expect(quiet.asteroids.active).toBeNull();
-        expect(quiet.asteroids.canceled).toBe(1);
-        expect(quiet.presentation.queued).toBe(0);
-        expect(quiet.presentation.seen).toBe(3);
-        await page.screenshot({
-          path: path.join(output, `phase5-asteroid-${backend()}-${device}-quiet.png`),
-        });
-        await page.emulateMedia({ reducedMotion: "reduce" });
-        const reduced = await page.evaluate(async () => {
-          const { runtime, stats, wait, cue } = Reflect.get(window, "asteroidProbe");
-          runtime.setPaused(false);
-          await wait(() => runtime.assetStats().reducedMotion);
-          runtime.present(cue(10));
-          await wait(() => stats().presentation.seen === 4);
-          return stats() as SceneDiagnostics;
-        });
-        expect(reduced.asteroids.started).toBe(2);
-        expect(reduced.asteroids.active).toBeNull();
-        await page.emulateMedia({ reducedMotion: "no-preference" });
-        const cleared = await page.evaluate(async () => {
-          const { runtime, stats, wait, next } = Reflect.get(window, "asteroidProbe");
-          const ready = next();
-          runtime.setScene(null);
-          await ready;
-          await wait(() => stats().asteroids.retired === 0);
-          const baseline = Reflect.get(window, "asteroidBaseline");
-          const keys = ["meshes", "materials", "images", "gpuImages", "gpuMeshes", "gpuMaterials"];
-          await wait(() => keys.every((key) => runtime.assetStats()[key] === baseline[key]));
-          return { scene: stats(), assets: runtime.assetStats(), baseline };
-        });
-        expect(cleared.scene.presentation.seen).toBe(0);
-        expect(cleared.scene.asteroids.active).toBeNull();
-        expect(cleared.scene.asteroids.shared).toBe(false);
-        for (const key of [
-          "meshes",
-          "materials",
-          "images",
-          "gpuImages",
-          "gpuMeshes",
-          "gpuMaterials",
-        ]) {
-          expect(cleared.assets[key]).toBe(cleared.baseline[key]);
-        }
-        expect(requests).toHaveLength(1);
-        expect(errors).toEqual([]);
-        await writeFile(
-          path.join(output, `phase5-asteroid-${backend()}-${device}-diagnostics.json`),
-          JSON.stringify({ initial, flight, dust, expired, quiet, reduced, cleared }, null, 2),
-        );
-      } finally {
-        await page
-          .evaluate(() => {
-            const p = Reflect.get(window, "asteroidProbe");
-            if (p) {
-              p.runtime.dispose();
-              p.host.remove();
-              Reflect.deleteProperty(window, "asteroidProbe");
-            }
           })
           .catch(() => {});
         await context.close();
@@ -4229,23 +4056,6 @@ test.describe("Bevy renderer", () => {
               stats.particles.imageMips !== 9
             )
               throw new Error("Missing native particles: " + JSON.stringify(stats.particles));
-            runtime.present({
-              gameId: game.id,
-              id: `lifetime:${cycle}`,
-              kind: "asteroid",
-              seed: 37,
-            });
-            let asteroidReady = false;
-            for (let frame = 0; frame < 300; frame++) {
-              if (runtime.sceneStats()?.asteroids.active?.warmFrames === 2) {
-                asteroidReady = true;
-                break;
-              }
-              await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-            }
-            if (!asteroidReady) {
-              throw new Error("Asteroid did not reach actual GPU preparation");
-            }
             const clearing = nextReady();
             runtime.setScene(null);
             await clearing;
@@ -4273,7 +4083,6 @@ test.describe("Bevy renderer", () => {
             cleared.push(runtime.assetStats());
           }
           return {
-            asteroids: runtime.sceneStats()!.asteroids,
             baseline,
             cleared,
             measured,
@@ -4308,11 +4117,6 @@ test.describe("Bevy renderer", () => {
       expect(result.specialBuffers).toEqual({ created: 9, destroyed: 9, live: 0 });
     if (backend() === "webgpu")
       expect(result.particleBuffers).toEqual({ created: 3, destroyed: 3, live: 0 });
-    expect(result.asteroids.started).toBe(3);
-    expect(result.asteroids.canceled).toBe(3);
-    expect(result.asteroids.active).toBeNull();
-    expect(result.asteroids.shared).toBe(false);
-    expect(result.asteroids.retired).toBe(0);
     expect(result.baseline.gpuMeshes).toEqual(expect.any(Number));
     expect(result.baseline.gpuMaterials).toEqual(expect.any(Number));
     for (const stats of result.cleared) {

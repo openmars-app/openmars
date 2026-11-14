@@ -341,26 +341,7 @@ export interface SceneDiagnostics {
     profiles: [number, number, number, number][] | null;
     sample: { id: string; entities: string[]; warmFrames: number }[];
   };
-  asteroids: {
-    started: number;
-    completed: number;
-    canceled: number;
-    retired: number;
-    shared: boolean;
-    active: {
-      id: string;
-      root: string;
-      start: number | null;
-      warmFrames: number;
-      scale: number;
-      parts: number;
-      sprites: number;
-      impact: [number, number, number];
-      position: [number, number, number];
-      dustSample: { entity: string; position: [number, number, number]; tag: number }[];
-    } | null;
-  };
-  presentation: { seen: number; queued: number; sounds: number };
+  audio: { sounds: number };
   nuclearDebris: {
     coordinate: [number, number, number];
     entity: string;

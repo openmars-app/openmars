@@ -122,7 +122,7 @@ impl BlastRuntime {
     fn clear(&mut self, world: &mut World) {
         for (_, entry) in std::mem::take(&mut self.entries) {
             world
-                .resource_mut::<crate::presentation::PresentationRuntime>()
+                .resource_mut::<crate::presentation::SoundRuntime>()
                 .stop_sound(&entry.sound);
             world.despawn(entry.root);
         }
@@ -284,7 +284,7 @@ impl BlastRuntime {
         {
             let entry = self.entries.remove(&c).unwrap();
             world
-                .resource_mut::<crate::presentation::PresentationRuntime>()
+                .resource_mut::<crate::presentation::SoundRuntime>()
                 .stop_sound(&entry.sound);
             world.despawn(entry.root);
         }
@@ -373,7 +373,7 @@ impl BlastRuntime {
             let active = entry.warm >= 2 && sample.is_some();
             if active && sample.is_some_and(|s| s.age >= 0.) {
                 world
-                    .resource_mut::<crate::presentation::PresentationRuntime>()
+                    .resource_mut::<crate::presentation::SoundRuntime>()
                     .start_sound(&game, &entry.sound)?;
             }
             if let Some(sample) = sample {
@@ -532,7 +532,7 @@ mod tests {
     #[test]
     fn clearing_retains_shared_assets_for_two_submitted_turns() {
         let mut world = World::new();
-        world.init_resource::<crate::presentation::PresentationRuntime>();
+        world.init_resource::<crate::presentation::SoundRuntime>();
         world.insert_resource(Assets::<Mesh>::default());
         world.insert_resource(Assets::<StandardMaterial>::default());
         world.insert_resource(Assets::<WaveMaterial>::default());

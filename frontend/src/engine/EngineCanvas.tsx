@@ -82,7 +82,6 @@ export default function EngineCanvas({
     instance.setWorldEntry(currentEntry.current);
     instance.setFocus(currentFocus.current);
     runtime.current = instance;
-    useEngineStore.getState().setPresenter((cue) => instance.present(cue));
     useEngineStore.getState().setInspector(() => instance.sceneStats());
     useEngineStore.getState().setPerformance({
       setActive: (active) => instance.setPerformanceActive(active),
@@ -92,7 +91,6 @@ export default function EngineCanvas({
     return () => {
       audio.dispose();
       sounds.current = null;
-      useEngineStore.getState().setPresenter(null);
       instance.dispose();
       runtime.current = null;
       useEngineStore.getState().setInspector(null);

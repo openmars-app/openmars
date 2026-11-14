@@ -13,7 +13,6 @@ use bevy::{
     prelude::*,
 };
 mod assets;
-pub mod asteroid;
 pub mod atmosphere;
 pub mod entry;
 pub mod fauna;

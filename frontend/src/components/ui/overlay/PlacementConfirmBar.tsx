@@ -15,9 +15,14 @@ const BAR_STYLE = boardBottomOverlayStyle(560);
 interface PlacementConfirmBarProps {
   gameState: GameDto;
   visible: boolean;
+  uiAnimationClass?: string;
 }
 
-const PlacementConfirmBar: React.FC<PlacementConfirmBarProps> = ({ gameState, visible }) => {
+const PlacementConfirmBar: React.FC<PlacementConfirmBarProps> = ({
+  gameState,
+  visible,
+  uiAnimationClass = "",
+}) => {
   const { isCompact } = useLayoutMode();
   const reducedMotion = useReducedMotion();
   const selectedHex = usePlacementSelectionStore((s) => s.selectedHex);
@@ -58,8 +63,25 @@ const PlacementConfirmBar: React.FC<PlacementConfirmBarProps> = ({ gameState, vi
   }
   const shownInfo = info ?? lastInfo.current;
 
-  if (!visible || !isCompact || !pendingTileSelection) {
+  if (!visible || !pendingTileSelection) {
     return null;
+  }
+
+  if (!isCompact) {
+    return (
+      <div
+        role="group"
+        aria-label="Tile placement"
+        aria-live="polite"
+        className={`pointer-events-none fixed top-[66px] left-1/2 max-w-[calc(100vw-32px)] -translate-x-1/2 game-panel game-panel-clipped game-window px-6 py-3 ${uiAnimationClass}`}
+        style={{ zIndex: Z_INDEX.TILE_PLACEMENT_PROMPT }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="font-orbitron text-lg text-white tracking-wider-2xl">Place</span>
+          <GameIcon iconType={getTileIconType(pendingTileSelection.tileType)} size="medium" />
+        </div>
+      </div>
+    );
   }
 
   const expanded = !!selectedHex;

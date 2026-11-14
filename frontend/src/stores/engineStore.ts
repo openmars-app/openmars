@@ -1,4 +1,4 @@
-import type { FocusTarget, OverlayFrame, SceneCue } from "../engine/scene.generated";
+import type { FocusTarget, OverlayFrame } from "../engine/scene.generated";
 import type { SceneDiagnostics } from "../engine/diagnostics";
 import { create } from "zustand";
 import { INITIAL_ENGINE_STATUS, type EngineStatus } from "@/engine/status";
@@ -10,8 +10,6 @@ export const useEngineStore = create<{
   setFocus: (focus: FocusTarget) => void;
   overlay: OverlayFrame | null;
   setOverlay: (overlay: OverlayFrame | null) => void;
-  present: ((cue: SceneCue) => boolean) | null;
-  setPresenter: (present: ((cue: SceneCue) => boolean) | null) => void;
   inspectScene: (() => SceneDiagnostics | null) | null;
   setInspector: (inspectScene: (() => SceneDiagnostics | null) | null) => void;
   performance: PerformanceSource | null;
@@ -26,8 +24,6 @@ export const useEngineStore = create<{
   overlay: null,
   setOverlay: (overlay) => set({ overlay }),
   camera: null,
-  present: null,
-  setPresenter: (present) => set({ present }),
   inspectScene: null,
   setInspector: (inspectScene) => set({ inspectScene }),
   performance: null,

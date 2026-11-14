@@ -106,14 +106,11 @@ function quietLandingOwnership(scene: SceneDiagnostics) {
     atmosphereBodies: scene.atmosphere.bodies,
     atmosphereUniforms: scene.atmosphere.uniforms,
     atmosphereRetirementQueue: scene.atmosphere.retired,
-    asteroidActive: Number(scene.asteroids.active !== null),
-    asteroidRetirementQueue: scene.asteroids.retired,
     nuclearDebris: scene.nuclearDebris.length,
     vegetation: scene.vegetationPoses.length,
     labels: scene.labels.entries.length,
     offworldShips: scene.offworld.ships,
     offworldEffects: scene.offworld.effects.entries.length,
-    queuedPresentation: scene.presentation.queued,
   };
 }
 
