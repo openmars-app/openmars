@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, beforeAll, expect, test } from "bun:test";
 import { Document, NodeIO } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { promises as fs } from "node:fs";
@@ -7,6 +7,13 @@ import path from "node:path";
 import sharp from "sharp";
 import { inflateSync } from "node:zlib";
 import { buildAssets, loadCatalog, safePath, type Variant } from "./pipeline.ts";
+
+import { prepareAssetTool } from "./environment.ts";
+
+// Cold Rust compilation belongs to suite setup, outside each five-second asset test.
+beforeAll(async () => {
+  await prepareAssetTool(path.resolve(import.meta.dirname, "../../.."));
+}, 300_000);
 
 const roots: string[] = [];
 async function fixture() {

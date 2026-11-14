@@ -19,7 +19,7 @@ async function run(command: string, args: string[], cwd: string) {
   });
 }
 
-async function assetTool(root: string) {
+export async function prepareAssetTool(root: string) {
   if (process.env.OPENMARS_ASSET_TOOL) {
     return process.env.OPENMARS_ASSET_TOOL;
   }
@@ -124,7 +124,7 @@ export async function prepareEnvironment(
   spec: EnvironmentSpec,
   sha256: string,
 ): Promise<Buffer> {
-  const executable = await assetTool(root);
+  const executable = await prepareAssetTool(root);
   const cache = path.join(root, "frontend/.cache/assets");
   await fs.mkdir(cache, { recursive: true });
   const temporary = await fs.mkdtemp(path.join(cache, "environment-"));
@@ -160,7 +160,7 @@ export async function prepareTextureArray(
   size: number,
   srgb: boolean,
 ): Promise<Buffer> {
-  const executable = await assetTool(root);
+  const executable = await prepareAssetTool(root);
   await fs.mkdir(path.join(root, "frontend/.cache/assets"), { recursive: true });
   const temporary = await fs.mkdtemp(path.join(root, "frontend/.cache/assets/array-"));
   try {
