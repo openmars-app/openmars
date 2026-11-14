@@ -34,9 +34,14 @@ Go tools are pinned in [backend/go.mod](backend/go.mod) and [backend/golangci-li
 
 ## Before staging or publishing
 
-`just prepare-for-commit` must pass for the final file state before `git add`, `git commit`, `git push`, or PR creation. It formats sources, regenerates types, and runs `just check`.
+Match verification to the scope of the change before committing, pushing, or opening a PR:
 
-A successful run covers subsequent Git operations while the file state is unchanged. Subsequent file edits invalidate it and require another run. Resolve check failures before proceeding; Git operations alone do not invalidate a successful run.
+- For focused code changes, run the affected test suites and any suites that depend on the changed behavior or contracts. Run the relevant formatting, lint, type and build checks. Unrelated modules do not need to be checked.
+- For example, a backend-only test fix requires backend checks; it does not require frontend or renderer tests. If a client-facing DTO changes, regenerate the types and check its frontend consumers too.
+- Documentation-only changes need a review of the text, links and formatting, not application tests.
+- After a large change, such as a migration, broad refactor, or change spanning several modules, run `just prepare-for-commit`. It formats sources, regenerates types and runs every CI check.
+
+Successful checks cover later Git operations while the relevant files remain unchanged. If those files change, rerun the affected checks. Fix failures before publishing; Git operations alone do not require another test run.
 
 ## Scoped guidance
 

@@ -2,106 +2,95 @@
 
 <h1><img src="assets/original/branding/red-frontier.png" alt="Open Mars" width="720" /></h1>
 
-**Play the beloved board game online with a fully interactive 3D Mars.**
+**Terraforming Mars in your browser.**
 
-Real-time multiplayer. 450+ cards. Six expansions. One red planet.
+Play with friends or AI opponents on a 3D Mars board. No account needed.
 
 [![License](https://img.shields.io/github/license/openmars-app/openmars)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/openmars-app/openmars)](https://github.com/openmars-app/openmars/stargazers)
 [![Issues](https://img.shields.io/github/issues/openmars-app/openmars)](https://github.com/openmars-app/openmars/issues)
 [![Coverage](https://img.shields.io/endpoint?url=https://openmars-app.github.io/openmars/coverage.json)](https://openmars-app.github.io/openmars/)
 
-**Original soundtrack by [Lucas](mailto:lucas.gussua@gmail.com)** -- thank you for scoring the red planet.
+Original music by [Lucas](mailto:lucas.gussua@gmail.com). Thanks for the soundtrack!
 
 </div>
 
----
-
-> **Disclaimer** -- This is a fan-made, open-source project and is not affiliated with
-> FryxGames, Asmodee Digital, or Steam. If you enjoy this, please
-> [buy the physical board game](https://www.fryxgames.se/terraforming-mars/) -- it's excellent.
-
----
+> Open Mars is a fan-made, open-source project, unaffiliated with FryxGames,
+> Asmodee Digital, or Steam. If you enjoy playing, please support the creators
+> and [buy the physical board game](https://www.fryxgames.se/terraforming-mars/).
 
 <p align="center">
-  <img src="docs/img/hero.png" alt="The current 3D Mars board with cities, forests and oceans, surrounded by the game interface" width="1000" />
+  <img src="docs/img/hero.png" alt="A multiplayer game on the 3D Mars board, with cities, forests and oceans" width="1000" />
 </p>
 
-## What is this?
+## Play on Mars
 
-Open Mars is a digital board game based on Terraforming Mars, playable in your browser. The Mars surface is rendered as an interactive 3D hex grid -- you rotate, zoom, and place tiles directly on the planet. Games run in real time over WebSockets with no account required.
+Build cities, plant forests and fill oceans as you compete to terraform the planet. Rotate Mars and zoom in to place tiles directly on its surface, or take a look around the solar system between turns. Cities rise and forests grow as you build them.
 
-This is not a simplified clone. It implements the complete rule set across six expansions with hundreds of cards, corporations, milestones, awards, and colonies.
-
-## Features
-
-### A living 3D board
-
-Rotate Mars, watch cities rise and forests spread, and travel around the solar system. Rust and Bevy render the world through WebGPU, with automatic WebGL2 fallback. Tile placement, asteroid impacts and the original soundtrack bring the board to life.
+You can play on desktop or on a phone in landscape.
 
 ### Cards and expansions
 
-Play with 450+ cards across the base game, Corporate Era, Prelude, Venus Next, Colonies and Turmoil. Browse cards by type, cost, tags and game mode, with their effects and requirements shown on the card.
+Choose from hundreds of cards, with corporations, milestones and awards to shape your strategy. Open Mars includes the base game, Corporate Era, Prelude, Venus Next, Colonies and Turmoil. You can browse cards by type, cost, tags or game mode before starting a game.
 
 <p align="center">
-  <img src="docs/img/cards.png" alt="Project cards showing simple effects, triggered abilities, resource storage and alternative actions" width="1000" />
+  <img src="docs/img/cards.png" alt="Project cards with simple effects, triggered abilities, resource storage and alternative actions" width="1000" />
 </p>
 
-### Play together
+### Multiplayer and bots
 
-Create a lobby, choose your map and game options, and invite friends with a game link. Sessions update in real time and support reconnection. On mobile, Players, Chat, Map and Settings have their own tabs.
+Create a lobby, pick a map and your game options, then share the invite link. Friends and AI opponents can play in the same game. If you lose your connection, you can rejoin and carry on.
+
+On mobile, the lobby has separate tabs for Players, Chat, Map and Settings.
 
 <p align="center">
   <img src="docs/img/lobby.png" alt="Game lobby with player invitations, map selection and expansion settings" width="1000" />
 </p>
 
-### Make it your game
+### Graphics and controls
 
-Choose a graphics preset or adjust resolution, textures, effects and frame rate individually. Set camera sensitivity, tune the space background, and keep audio and AI preferences together in Settings.
+Start with a Low, Medium or High graphics preset, or adjust resolution, textures, effects and frame rate yourself. Settings also has camera sensitivity, sound and music controls, and the option to show bot thoughts.
 
-## Quick Start
+## Run locally
+
+Install [Go](https://go.dev), [Bun](https://bun.sh), [Rust via rustup](https://rustup.rs), [just](https://just.systems) and [Git LFS](https://git-lfs.com).
 
 ```bash
 git clone https://github.com/openmars-app/openmars.git
 cd openmars
-just deps        # Install dependencies
-just dev         # Launch frontend (3000) + backend (3001)
+git lfs pull
+just deps
+just dev
 ```
 
-Requires [Go](https://go.dev), [Bun](https://bun.sh), [Rust via rustup](https://rustup.rs) and [just](https://just.systems). The engine pins its Rust toolchain; `just deps` installs the WASM target and binding tools. Source media uses [Git LFS](https://git-lfs.com); run `git lfs pull` before building.
+Open `http://localhost:3000` to create a game. The backend runs on port 3001.
 
-Open `http://localhost:3000`, create a game, and invite friends with the game code.
+The repository pins the Rust toolchain. `just deps` installs the engine's WebAssembly target and binding tools, along with the other project dependencies. Git LFS downloads the source models, images and audio needed to build.
 
-## Tech Stack
+## How it's built
 
-| Layer    | Technology                              |
-|----------|-----------------------------------------|
-| Frontend | React, TypeScript, Tailwind CSS |
-| Renderer | Rust, Bevy, WebAssembly, WebGPU / WebGL2 |
-| Backend  | Go, Gorilla WebSocket, Chi router       |
-| Tooling  | Tygo (Go-to-TS codegen), Air (hot reload) |
+| Part | Technology |
+|------|------------|
+| Interface | React, TypeScript, Tailwind CSS |
+| 3D world | Rust, Bevy, WebAssembly, WebGPU / WebGL2 |
+| Server | Go, Gorilla WebSocket, Gorilla Mux |
+| Development tools | Tygo for generated TypeScript, Air for backend reloads |
+
+The Go backend handles game rules and state. React handles the interface and networking; Bevy renders the 3D world. The renderer uses WebGPU when available and falls back to WebGL2.
 
 ## Contributing
 
-Contributions are welcome. The Go backend (`backend/`) owns game rules, React (`frontend/`) owns the interface and networking, and Bevy (`engine/`) owns the 3D world. Generated types connect the API and scene contracts.
+Game logic lives in `backend/`, the interface in `frontend/`, and the renderer in `engine/`. Bug reports and pull requests are welcome.
 
 ```bash
-just test               # Run backend tests
-just lint               # Lint Go + TypeScript
-just format             # Format everything
-just prepare-for-commit # Format, regenerate types and run every CI check
+just test               # Backend and gateway tests
+just lint               # Lint all modules
+just format             # Format source files
+just prepare-for-commit # Format, regenerate types and run the CI checks
 ```
 
-Run `just` for the full command reference.
+Run `just` to see all available commands.
 
 ## License
 
-MIT -- see [LICENSE](LICENSE) for details.
-
----
-
-<div align="center">
-
-*Not affiliated with FryxGames or Asmodee Digital.*
-
-</div>
+[MIT](LICENSE).
